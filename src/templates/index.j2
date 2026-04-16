@@ -1,0 +1,134 @@
+{% extends 'base.j2' %}
+
+{% block content %}
+
+{# ─── Controls bar: sort buttons + build time ─── #}
+<div class="index-controls">
+    <div class="sort-bar glass-panel" id="sort-bar">
+        <span class="sort-label">排序</span>
+        <button class="sort-btn sort-btn-active" id="btn-level" onclick="sortCards('level')">層級</button>
+        <button class="sort-btn" id="btn-recent" onclick="sortCards('recent')">最近出賽</button>
+    </div>
+</div>
+
+<div class="dashboard-grid" id="player-grid">
+    {% for item in player_data %}
+    {% set player = item.player %}
+    {% set stat = item.stat %}
+    <a href="{{ player_url(player.mlb_id) }}" class="player-card glass-panel"
+       data-level="{{ player.level }}"
+       data-level-order="{{ loop.index }}"
+       data-last-game="{{ item.last_game_date.isoformat() if item.last_game_date else '0000-00-00' }}">
+        <div class="player-header">
+            <div class="avatar">
+                <img
+                    src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
+                    data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
+                    alt="{{ player.name_en }}"
+                    loading="lazy"
+                    class="avatar-img"
+                >
+                <div class="avatar-initials avatar-fallback" aria-hidden="true">{{ player.name_en[:1] }}</div>
+            </div>
+            <div class="player-info">
+                <h2>{{ player.name_tw or player.name_en }}
+                    <span class="level-tag level-{{ player.level|lower }}">{{ player.level }}</span>
+                </h2>
+                <div class="level">{{ player.position }}</div>
+            </div>
+        </div>
+
+        {% if stat %}
+        <div class="stats-row">
+            {% if player.is_pitcher %}
+                <div class="stat-box">
+                    <span class="stat-label">ERA</span>
+                    <span class="stat-value">{{ stat.era|floatformat(2) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">WHIP</span>
+                    <span class="stat-value">{{ stat.whip|floatformat(2) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">K</span>
+                    <span class="stat-value">{{ stat.so|num_dash }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">W-L</span>
+                    <span class="stat-value stat-value-sm">
+                        {{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}
+                    </span>
+                </div>
+            {% else %}
+                <div class="stat-box">
+                    <span class="stat-label">AVG</span>
+                    <span class="stat-value">{{ stat.avg|floatformat(3) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">HR</span>
+                    <span class="stat-value">{{ stat.hr|num_dash }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">OPS</span>
+                    <span class="stat-value">{{ stat.ops|floatformat(3) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">SB</span>
+                    <span class="stat-value">{{ stat.sb|num_dash }}</span>
+                </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="stats-row stats-row-empty">
+            <div class="stat-box stat-box-full">
+                <span class="stat-label">{{ default_season_year }} 尚無出賽紀錄</span>
+            </div>
+        </div>
+        {% endif %}
+    </a>
+    {% else %}
+    <p class="empty-msg">尚無球員資料，資料尚未同步。</p>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".avatar-img").forEach(function(img) {
+        img.addEventListener("error", function() {
+            if (!this.dataset.cdnTried) {
+                // First failure: try the MLB CDN URL
+                this.dataset.cdnTried = "1";
+                var cdn = this.dataset.cdnSrc;
+                if (cdn) { this.src = cdn; return; }
+            }
+            // CDN also failed: show initials fallback
+            this.style.display = "none";
+            var fallback = this.parentElement.querySelector(".avatar-fallback");
+            if (fallback) fallback.style.display = "flex";
+        });
+    });
+});
+
+function sortCards(mode) {
+    var grid = document.getElementById("player-grid");
+    var cards = Array.from(grid.querySelectorAll(".player-card"));
+
+    cards.sort(function(a, b) {
+        if (mode === "level") {
+            return parseInt(a.dataset.levelOrder) - parseInt(b.dataset.levelOrder);
+        } else {
+            var da = a.dataset.lastGame || "0000-00-00";
+            var db = b.dataset.lastGame || "0000-00-00";
+            return da > db ? -1 : da < db ? 1 : 0;
+        }
+    });
+
+    cards.forEach(function(c) { grid.appendChild(c); });
+
+    document.getElementById("btn-level").classList.toggle("sort-btn-active", mode === "level");
+    document.getElementById("btn-recent").classList.toggle("sort-btn-active", mode === "recent");
+}
+</script>
+{% endblock %}

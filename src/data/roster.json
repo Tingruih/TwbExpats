@@ -1,0 +1,27 @@
+{
+  "_comment": "台灣旅美球員設定檔。新增球員：在對應的 milb 或 mlb 區塊加入一筆即可。source 決定 API 抓取方式。",
+  "players": [
+    {"mlb_id": 691907, "name_tw": "鄭宗哲", "source": "milb", "fg_id": "28344", "fg_position": "OF"},
+    {"mlb_id": 692617, "name_tw": "劉致榮", "source": "milb"},
+    {"mlb_id": 696040, "name_tw": "陳柏毓", "source": "milb"},
+    {"mlb_id": 701678, "name_tw": "李灝宇", "source": "milb"},
+    {"mlb_id": 800018, "name_tw": "莊陳仲敖", "source": "milb"},
+    {"mlb_id": 801179, "name_tw": "林昱珉", "source": "milb", "fg_id": "sa3019278", "fg_position": "P"},
+    {"mlb_id": 800213, "name_tw": "張弘稜", "source": "milb"},
+    {"mlb_id": 808486, "name_tw": "李晨薰", "source": "milb"},
+    {"mlb_id": 808207, "name_tw": "潘文輝", "source": "milb"},
+    {"mlb_id": 809223, "name_tw": "沙子宸", "source": "milb"},
+    {"mlb_id": 806823, "name_tw": "林盛恩", "source": "milb"},
+    {"mlb_id": 813820, "name_tw": "林振瑋", "source": "milb"},
+    {"mlb_id": 827734, "name_tw": "林維恩", "source": "milb"},
+    {"mlb_id": 828667, "name_tw": "柯敬賢", "source": "milb"},
+    {"mlb_id": 828430, "name_tw": "沈家羲", "source": "milb"},
+    {"mlb_id": 806825, "name_tw": "陽念希", "source": "milb"},
+    {"mlb_id": 829473, "name_tw": "黃仲翔", "source": "milb"},
+    {"mlb_id": 806836, "name_tw": "林鉑濬", "source": "milb"},
+    {"mlb_id": 835646, "name_tw": "林張子俊", "source": "milb"},
+    {"mlb_id": 835879, "name_tw": "廖宥霖", "source": "milb"},
+    {"mlb_id": 837088, "name_tw": "蘇嵐鴻", "source": "milb"},
+    {"mlb_id": 678906, "name_tw": "鄧愷威", "source": "mlb"}
+  ]
+}

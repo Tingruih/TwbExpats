@@ -1,0 +1,63 @@
+name: Build and Deploy Static Site
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * *"   # 10:30 TST (UTC+8)
+    - cron: "30 4 * * *"   # 12:30 TST backup
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DEFAULT_SEASON_YEAR: "2026"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Resolve GitHub Pages base URL
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          OWNER_NAME="${GITHUB_REPOSITORY_OWNER}"
+          if [ "$REPO_NAME" = "$OWNER_NAME.github.io" ]; then
+            echo "PAGES_BASE_URL=/" >> "$GITHUB_ENV"
+          else
+            echo "PAGES_BASE_URL=/$REPO_NAME/" >> "$GITHUB_ENV"
+          fi
+
+      - name: Sync & Build
+        run: python build.py all --base-url "$PAGES_BASE_URL"
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build-deploy
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

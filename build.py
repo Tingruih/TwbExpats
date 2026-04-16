@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""
+Taiwan MLB Tracker — build pipeline.
+
+Usage:
+    python build.py sync                # fetch latest data from APIs
+    python build.py build               # generate static site
+    python build.py all                 # sync + build (full pipeline)
+
+Options are auto-detected from project defaults but can be overridden:
+    python build.py sync  --player 678906
+    python build.py build --base-url /twbexpats/
+"""
+
+import argparse
+import sys
+
+from site_builder.helpers import DEFAULT_SEASON_YEAR
+
+
+def cmd_sync(args):
+    from site_builder.sync import sync_database
+
+    sync_database(
+        db_path=args.db,
+        roster_file=args.roster,
+        year=args.year,
+        only_player=args.player,
+    )
+
+
+def cmd_build(args):
+    from site_builder.builder import build_static_site
+
+    build_static_site(
+        db_path=args.db,
+        year=args.year,
+        output_dir=args.output,
+        base_url=args.base_url,
+    )
+
+
+def cmd_all(args):
+    cmd_sync(args)
+    cmd_build(args)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Taiwan MLB Tracker — sync data & build static site",
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    # Shared defaults
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--db", default="data/tracker.sqlite3", help="SQLite path")
+    common.add_argument(
+        "--year", type=int, default=DEFAULT_SEASON_YEAR, help="Season year"
+    )
+
+    # sync
+    sp_sync = sub.add_parser(
+        "sync", parents=[common], help="Fetch data from MLB/FanGraphs APIs"
+    )
+    sp_sync.add_argument(
+        "--roster", default="src/data/roster.json", help="Roster JSON path"
+    )
+    sp_sync.add_argument(
+        "--player", type=int, default=None, help="Sync single MLB ID only"
+    )
+    sp_sync.set_defaults(func=cmd_sync)
+
+    # build
+    sp_build = sub.add_parser(
+        "build", parents=[common], help="Generate static HTML site"
+    )
+    sp_build.add_argument("--output", default="dist", help="Output directory")
+    sp_build.add_argument("--base-url", default="/", help="Site base URL (e.g. /repo/)")
+    sp_build.set_defaults(func=cmd_build)
+
+    # all (sync + build)
+    sp_all = sub.add_parser(
+        "all", parents=[common], help="Sync then build (full pipeline)"
+    )
+    sp_all.add_argument(
+        "--roster", default="src/data/roster.json", help="Roster JSON path"
+    )
+    sp_all.add_argument(
+        "--player", type=int, default=None, help="Sync single MLB ID only"
+    )
+    sp_all.add_argument("--output", default="dist", help="Output directory")
+    sp_all.add_argument("--base-url", default="/", help="Site base URL")
+    sp_all.set_defaults(func=cmd_all)
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

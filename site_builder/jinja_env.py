@@ -1,0 +1,101 @@
+"""
+Jinja2 environment configuration for static site generation.
+
+URL strategy: all URLs are absolute-path URLs rooted at *base_url*.
+For GitHub Pages sub-path deployment, pass base_url="/repo/".
+"""
+
+import json
+import os
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_TEMPLATE_DIR = os.path.join(_PROJECT_ROOT, "src", "templates")
+
+
+# ── Custom Filters ──
+
+
+def floatformat(value, digits=2):
+    """Format a numeric value with fixed decimal places, or '-' for None."""
+    if value is None:
+        return "-"
+    try:
+        return f"{float(value):.{int(digits)}f}"
+    except (ValueError, TypeError):
+        return "-"
+
+
+def default_if_none(value, fallback="-"):
+    """Return *fallback* when *value* is None."""
+    return fallback if value is None else value
+
+
+def num_dash(value):
+    """Display a number or '-' for None / empty."""
+    if value is None or value == "":
+        return "-"
+    return value
+
+
+def slice_prefix(value, n):
+    """Return the first *n* characters of a string."""
+    if not value:
+        return ""
+    return str(value)[:n]
+
+
+def tojson_safe(value):
+    """Serialize to JSON and mark safe for embedding in <script>."""
+    return Markup(json.dumps(value, ensure_ascii=False))
+
+
+# ── URL Factories ──
+
+
+def _make_url_helpers(base_url: str):
+    base = base_url.rstrip("/")
+
+    def player_url(mlb_id):
+        return f"{base}/player/{mlb_id}/index.html"
+
+    def static_url(path):
+        return f"{base}/static/{path}"
+
+    return player_url, static_url
+
+
+# ── Environment Factory ──
+
+
+def create_jinja_env(template_dir=None, base_url="/"):
+    """Create and return a configured Jinja2 Environment."""
+    tpl_dir = template_dir or _TEMPLATE_DIR
+
+    if not base_url.startswith("/"):
+        base_url = "/" + base_url
+    if not base_url.endswith("/"):
+        base_url = base_url + "/"
+
+    player_url, static_url = _make_url_helpers(base_url)
+
+    env = Environment(
+        loader=FileSystemLoader(tpl_dir),
+        autoescape=select_autoescape(["html", "j2"]),
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+
+    env.filters["floatformat"] = floatformat
+    env.filters["default_if_none"] = default_if_none
+    env.filters["num_dash"] = num_dash
+    env.filters["slice_prefix"] = slice_prefix
+    env.filters["tojson_safe"] = tojson_safe
+
+    env.globals["player_url"] = player_url
+    env.globals["static_url"] = static_url
+    env.globals["base_url"] = base_url
+
+    return env

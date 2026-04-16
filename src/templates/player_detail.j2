@@ -1,0 +1,796 @@
+{% extends 'base.j2' %}
+
+{% block content %}
+
+{# ── TAB SYSTEM (CSS radio-based, zero JS) ── #}
+<input type="radio" name="profile-tab" id="tab-bio" class="tab-radio" checked>
+<input type="radio" name="profile-tab" id="tab-stats" class="tab-radio">
+<input type="radio" name="profile-tab" id="tab-gamelogs" class="tab-radio">
+<input type="radio" name="profile-tab" id="tab-advanced" class="tab-radio">
+<input type="radio" name="profile-tab" id="tab-fielding" class="tab-radio">
+
+{# ── PLAYER HERO ── #}
+<div class="profile-hero glass-panel" id="player-hero-{{ player.mlb_id }}">
+    <div class="hero-photo-wrap">
+        <div class="hero-avatar" id="avatar-{{ player.mlb_id }}">
+            <img
+                src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
+                data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
+                alt="{{ player.name_en }}"
+                id="headshot-{{ player.mlb_id }}"
+                class="avatar-img"
+            >
+            <div class="avatar-initials avatar-fallback" id="initials-{{ player.mlb_id }}" aria-hidden="true">
+                {{ player.name_en[:1] }}
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-info">
+        <h1>{{ player.name_tw or player.name_en }}
+            <span class="hero-name-en">{{ player.name_en }}</span>
+        </h1>
+        <div class="hero-meta">
+            {% if player.source == 'mlb' and player.level != 'MLB' %}<span class="badge badge-mlb">MLB</span>{% endif %}
+            <span class="badge badge-level">{{ player.level }}</span>
+            <span class="hero-team">{{ player.team }}</span>
+            <span class="hero-pos">{% if is_pitcher %}{{ (player.pitch_hand or "R") }}HP{% else %}{{ (player.bat_side or "?")[:1] }}{% endif %} · {{ player.position }}</span>
+        </div>
+    </div>
+
+    {# ── KEY STATS STRIP ── #}
+    {% if latest_team_stat %}
+    {% set stat = latest_team_stat %}
+    <div class="hero-stats-strip">
+        {% if is_pitcher %}
+            <div class="hs-item"><span class="hs-val">{{ stat.era|floatformat(2) }}</span><span class="hs-lbl">ERA</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.whip|floatformat(2) }}</span><span class="hs-lbl">WHIP</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.so|num_dash }}</span><span class="hs-lbl">K</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span><span class="hs-lbl">W-L</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.ip|floatformat(1) }}</span><span class="hs-lbl">IP</span></div>
+        {% else %}
+            <div class="hs-item"><span class="hs-val">{{ stat.avg|floatformat(3) }}</span><span class="hs-lbl">AVG</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.ops|floatformat(3) }}</span><span class="hs-lbl">OPS</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.hr|num_dash }}</span><span class="hs-lbl">HR</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.rbi|num_dash }}</span><span class="hs-lbl">RBI</span></div>
+            <div class="hs-item"><span class="hs-val">{{ stat.sb|num_dash }}</span><span class="hs-lbl">SB</span></div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{# ── TAB NAV ── #}
+<div class="tab-nav glass-panel desktop-only">
+    <label for="tab-bio" class="tab-label">球員資料</label>
+    <label for="tab-stats" class="tab-label">歷年數據</label>
+    <label for="tab-gamelogs" class="tab-label">逐場紀錄</label>
+    <label for="tab-advanced" class="tab-label">進階數據</label>
+    <label for="tab-fielding" class="tab-label">守備數據</label>
+</div>
+
+{# ── MOBILE TAB NAV ── #}
+<div class="tab-nav-mobile glass-panel mobile-only">
+    <div class="tab-nav-mobile-scroll">
+        <label for="tab-bio" class="tab-mobile-label">球員資料</label>
+        <label for="tab-stats" class="tab-mobile-label">歷年數據</label>
+        <label for="tab-gamelogs" class="tab-mobile-label">逐場紀錄</label>
+        <label for="tab-advanced" class="tab-mobile-label">進階數據</label>
+        <label for="tab-fielding" class="tab-mobile-label">守備數據</label>
+    </div>
+</div>
+
+{# ── TAB 1: BIO ── #}
+<div class="tab-panel" id="panel-bio">
+
+    <div class="bio-grid">
+        {# Personal Info #}
+        <div class="bio-card glass-panel">
+            <h3 class="bio-card-title">個人資料</h3>
+            <dl class="bio-dl">
+                {% if player.birth_date %}
+                <dt>出生日期</dt><dd>{{ player.birth_date }}{% if player.age %} ({{ player.age }}歲){% endif %}</dd>
+                {% endif %}
+                {% if player.birth_city or player.birth_country %}
+                <dt>出生地</dt><dd>{{ player.birth_city }}{% if player.birth_city and player.birth_country %}, {% endif %}{{ player.birth_country }}</dd>
+                {% endif %}
+                {% if player.height %}
+                <dt>身高</dt><dd>{{ player.height }}{% if height_cm %} ({{ height_cm }} cm){% endif %}</dd>
+                {% endif %}
+                {% if player.weight %}
+                <dt>體重</dt><dd>{{ player.weight }} lbs{% if weight_kg %} ({{ weight_kg }} kg){% endif %}</dd>
+                {% endif %}
+                {% if player.bat_side %}
+                <dt>打擊方向</dt><dd>{{ player.bat_side }}</dd>
+                {% endif %}
+                {% if player.pitch_hand %}
+                <dt>投球手</dt><dd>{{ player.pitch_hand }}</dd>
+                {% endif %}
+                <dt>狀態</dt>
+                <dd>
+                    {% if player.roster_status %}
+                        {% set s = player.roster_status %}
+                        {% if "Injured" in s or "IL" in s or "DL" in s %}
+                            <span class="status-pill injured">{{ s }}</span>
+                        {% elif "Restricted" in s or "Suspended" in s or "Bereavement" in s %}
+                            <span class="status-pill restricted">{{ s }}</span>
+                        {% elif "Active" in s %}
+                            <span class="status-pill active">{{ s }}</span>
+                        {% else %}
+                            <span class="status-pill other">{{ s }}</span>
+                        {% endif %}
+                    {% elif player.is_active %}
+                        <span class="status-pill active">Active</span>
+                    {% else %}
+                        <span class="status-pill inactive">Inactive</span>
+                    {% endif %}
+                </dd>
+            </dl>
+        </div>
+
+        {# Next Game #}
+        {% if next_game %}
+        <div class="bio-card glass-panel next-game-card">
+            <h3 class="bio-card-title">Next Game</h3>
+            <div class="next-game-info">
+                <div class="ng-matchup">
+                    <span class="ng-ha">{% if next_game.is_home %}vs{% else %}@{% endif %}</span>
+                    <span class="ng-opponent">{{ next_game.opponent }}</span>
+                </div>
+                <div class="ng-details">
+                    <span class="ng-time">{{ next_game.game_time }}</span>
+                    {% if next_game.venue %}
+                    <span class="ng-venue">{{ next_game.venue }}</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% else %}
+        <div class="bio-card glass-panel next-game-card">
+            <h3 class="bio-card-title">Next Game</h3>
+            <p class="next-game-empty">近期尚無可用賽程資料</p>
+        </div>
+        {% endif %}
+
+        {# Transaction History #}
+        {% if transactions %}
+        <div class="bio-card glass-panel tx-card">
+            <h3 class="bio-card-title">異動紀錄 <span class="tx-count">({{ transactions|length }})</span></h3>
+            <div class="tx-timeline">
+                {% for tx in transactions %}
+                <div class="tx-item">
+                    <div class="tx-dot"></div>
+                    <div class="tx-content">
+                        <div class="tx-header">
+                            <span class="tx-date">{{ tx.date }}</span>
+                            {% if tx.type %}<span class="tx-type-badge">{{ tx.type }}</span>{% endif %}
+                        </div>
+                        <p class="tx-desc">{{ tx.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif player.latest_transaction %}
+        <div class="bio-card glass-panel">
+            <h3 class="bio-card-title">最新異動</h3>
+            <p class="tx-desc">{{ player.latest_transaction }}</p>
+        </div>
+        {% endif %}
+
+        {# ── COMBINED CAREER + SEASON CARD ── #}
+        {% if total_career or player.latest_stat %}
+        <div class="bio-card glass-panel career-combined-card">
+
+            {# Total Career #}
+            {% if total_career %}
+            <h3 class="bio-card-title">生涯累計 ({{ total_career.years_range }})</h3>
+            {% if is_pitcher %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.so|num_dash }}</span><span class="ms-l">K</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.wins|num_dash }}-{{ total_career.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.ip|floatformat(1) if total_career.ip else '-' }}</span><span class="ms-l">IP</span></div>
+            </div>
+            {% else %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.hr|num_dash }}</span><span class="ms-l">HR</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {# Divider #}
+            {% if total_career and season_combined %}
+            <div class="career-divider"></div>
+            {% endif %}
+
+            {# Current Season Combined #}
+            {% if season_combined %}
+            {% set sc = season_combined %}
+            <h3 class="bio-card-title">{{ sc.year }} 賽季 — {{ sc.teams_display }}</h3>
+            {% if is_pitcher %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.so|num_dash }}</span><span class="ms-l">K</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.wins|num_dash }}-{{ sc.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.ip|floatformat(1) if sc.ip else '-' }}</span><span class="ms-l">IP</span></div>
+            </div>
+            {% else %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.hr|num_dash }}</span><span class="ms-l">HR</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── TAB 2: SEASON STATS ── #}
+<div class="tab-panel" id="panel-stats">
+
+    {% if chart_data %}
+    <div class="chart-wrap glass-panel">
+        <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
+        <canvas id="performanceChart" height="80"></canvas>
+    </div>
+    {% endif %}
+
+    {# Year indicator — static site shows default season year only #}
+    <div class="year-selector glass-panel">
+        <span class="year-label">表示年度：</span>
+        <span class="year-btn year-btn-active">{{ selected_year }}</span>
+        {% if years|length > 1 %}
+        <span class="year-note">（歷年數據請見下方表格）</span>
+        {% endif %}
+    </div>
+
+    <div class="data-table-section glass-panel">
+        <h3>歷年賽季成績</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>球隊</th><th>聯盟</th><th>G</th>
+                        {% if is_pitcher %}
+                            <th>W</th><th>L</th><th>ERA</th><th>GS</th><th>CG</th><th>SHO</th>
+                            <th>SV</th><th>HLD</th><th>IP</th><th>H</th><th>R</th><th>ER</th>
+                            <th>HR</th><th>BB</th><th>SO</th><th>HB</th><th>WP</th><th>BK</th><th>TBF</th>
+                        {% else %}
+                            <th>PA</th><th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th>
+                            <th>HR</th><th>RBI</th><th>SB</th><th>CS</th><th>BB</th><th>SO</th>
+                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th><th>TB</th>
+                            <th>XBH</th><th>GIDP</th><th>GIDPO</th><th>P/PA</th><th>ROE</th><th>WO</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in all_stats %}
+                    <tr class="{% if stat.year == selected_year %}highlight-row{% endif %}">
+                        <td>{{ stat.year }}</td>
+                        <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
+                        <td>{{ stat.team_name }}</td>
+                        <td class="td-league">{{ stat.league_name }}</td>
+                        <td>{{ stat.gp|num_dash }}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ stat.wins|num_dash }}</td>
+                            <td class="num">{{ stat.losses|num_dash }}</td>
+                            <td class="num">{{ stat.era|floatformat(2) }}</td>
+                            <td class="num">{{ stat.gs|num_dash }}</td>
+                            <td class="num">{{ stat.cg|num_dash }}</td>
+                            <td class="num">{{ stat.sho|num_dash }}</td>
+                            <td class="num">{{ stat.sv|num_dash }}</td>
+                            <td class="num">{{ stat.hld|num_dash }}</td>
+                            <td class="num">{{ stat.ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.p_hits|num_dash }}</td>
+                            <td class="num">{{ stat.runs_allowed|num_dash }}</td>
+                            <td class="num">{{ stat.earned_runs|num_dash }}</td>
+                            <td class="num">{{ stat.p_hr|num_dash }}</td>
+                            <td class="num">{{ stat.bb|num_dash }}</td>
+                            <td class="num">{{ stat.so|num_dash }}</td>
+                            <td class="num">{{ stat.p_hbp|num_dash }}</td>
+                            <td class="num">{{ stat.wp|num_dash }}</td>
+                            <td class="num">{{ stat.balks|num_dash }}</td>
+                            <td class="num">{{ stat.bf|num_dash }}</td>
+                        {% else %}
+                            <td class="num">{{ stat.pa|num_dash }}</td>
+                            <td class="num">{{ stat.ab|num_dash }}</td>
+                            <td class="num">{{ stat.runs|num_dash }}</td>
+                            <td class="num">{{ stat.hits|num_dash }}</td>
+                            <td class="num">{{ stat.doubles|num_dash }}</td>
+                            <td class="num">{{ stat.triples|num_dash }}</td>
+                            <td class="num">{{ stat.hr|num_dash }}</td>
+                            <td class="num">{{ stat.rbi|num_dash }}</td>
+                            <td class="num">{{ stat.sb|num_dash }}</td>
+                            <td class="num">{{ stat.cs|num_dash }}</td>
+                            <td class="num">{{ stat.hit_bb|num_dash }}</td>
+                            <td class="num">{{ stat.h_so|num_dash }}</td>
+                            <td class="num">{{ stat.avg|floatformat(3) }}</td>
+                            <td class="num">{{ stat.obp|floatformat(3) }}</td>
+                            <td class="num">{{ stat.slg|floatformat(3) }}</td>
+                            <td class="num">{{ stat.ops|floatformat(3) }}</td>
+                            <td class="num">{{ stat.tb|num_dash }}</td>
+                            <td class="num">{{ stat.xbh|num_dash }}</td>
+                            <td class="num">{{ stat.gdp|num_dash }}</td>
+                            <td class="num">{{ stat.gidpo|num_dash }}</td>
+                            <td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ stat.roe|num_dash }}</td>
+                            <td class="num">{{ stat.wo|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="30" class="td-empty">尚無數據</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ── TAB 3: GAME LOGS ── #}
+<div class="tab-panel" id="panel-gamelogs">
+
+    {# Year indicator #}
+    <div class="year-selector glass-panel">
+        <span class="year-label">表示年度：</span>
+        <span class="year-btn year-btn-active">{{ selected_year }}</span>
+    </div>
+
+    {% if game_logs %}
+    <div class="data-table-section glass-panel">
+        <h3>{{ selected_year }} 逐場比賽紀錄</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>日期</th><th>H/A</th><th>對手</th>
+                        {% if is_pitcher %}
+                            <th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>SO</th><th>HR</th><th>HB</th><th>ERA</th><th>結果</th>
+                        {% else %}
+                            <th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>SO</th><th>SB</th><th>CS</th><th>AVG</th><th>OPS</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in game_logs %}
+                    <tr>
+                        <td>{{ log.date }}</td>
+                        <td><span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">
+                            {% if log.is_home %}主{% else %}客{% endif %}
+                        </span></td>
+                        <td>{{ log.opponent }}</td>
+                        {% set s = log.stats_json %}
+                        {% if is_pitcher %}
+                            <td class="num">{{ s.inningsPitched|num_dash }}</td>
+                            <td class="num">{{ s.hits|default_if_none("0") }}</td>
+                            <td class="num">{{ s.runs|default_if_none("0") }}</td>
+                            <td class="num">{{ s.earnedRuns|default_if_none("0") }}</td>
+                            <td class="num">{{ s.baseOnBalls|default_if_none("0") }}</td>
+                            <td class="num">{{ s.strikeOuts|default_if_none("0") }}</td>
+                            <td class="num">{{ s.homeRuns|default_if_none("0") }}</td>
+                            <td class="num">{{ s.hitByPitch|default_if_none("0") }}</td>
+                            <td class="num">{{ s.era|num_dash }}</td>
+                            <td>{% if s.wins %}W{% elif s.losses %}L{% elif s.saves %}S{% elif s.holds %}H{% else %}-{% endif %}</td>
+                        {% else %}
+                            <td class="num">{{ s.atBats|default_if_none("0") }}</td>
+                            <td class="num">{{ s.runs|default_if_none("0") }}</td>
+                            <td class="num">{{ s.hits|default_if_none("0") }}</td>
+                            <td class="num">{{ s.doubles|default_if_none("0") }}</td>
+                            <td class="num">{{ s.triples|default_if_none("0") }}</td>
+                            <td class="num">{{ s.homeRuns|default_if_none("0") }}</td>
+                            <td class="num">{{ s.rbi|default_if_none("0") }}</td>
+                            <td class="num">{{ s.baseOnBalls|default_if_none("0") }}</td>
+                            <td class="num">{{ s.strikeOuts|default_if_none("0") }}</td>
+                            <td class="num">{{ s.stolenBases|default_if_none("0") }}</td>
+                            <td class="num">{{ s.caughtStealing|default_if_none("0") }}</td>
+                            <td class="num">{{ s.avg|num_dash }}</td>
+                            <td class="num">{{ s.ops|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass-panel empty-season-msg">
+        {{ selected_year }} 尚無出賽紀錄
+    </div>
+    {% endif %}
+</div>
+
+{# ── TAB 4: ADVANCED STATS ── #}
+<div class="tab-panel" id="panel-advanced">
+
+    {# Stat Definitions #}
+    <div class="adv-definitions glass-panel">
+        <h3>進階數據說明</h3>
+        {% if is_pitcher %}
+        <div class="def-grid">
+            <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">Strikeout-to-Walk Ratio — 三振保送比</span></div>
+            <div class="def-item"><span class="def-abbr">HR/9</span><span class="def-text">Home Runs per 9 IP — 每9局被全壘打數</span></div>
+            <div class="def-item"><span class="def-abbr">P/IP</span><span class="def-text">Pitches per Inning — 每局用球數</span></div>
+            <div class="def-item"><span class="def-abbr">S%</span><span class="def-text">Strike Percentage — 好球率</span></div>
+            <div class="def-item"><span class="def-abbr">WPCT</span><span class="def-text">Win Percentage — 勝率</span></div>
+            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
+            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比，>1 為滾地球型投手</span></div>
+            <div class="def-item"><span class="def-abbr">AVG</span><span class="def-text">Batting Average Against — 被打擊率</span></div>
+            <div class="def-item"><span class="def-abbr">OBP</span><span class="def-text">On-Base Percentage Against — 被上壘率</span></div>
+            <div class="def-item"><span class="def-abbr">SLG</span><span class="def-text">Slugging Against — 被長打率</span></div>
+            <div class="def-item"><span class="def-abbr">OPS</span><span class="def-text">OPS Against — 被攻擊指數</span></div>
+            <div class="def-item"><span class="def-abbr">NP</span><span class="def-text">Number of Pitches — 投球總數</span></div>
+            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
+            <div class="def-item"><span class="def-abbr">QS</span><span class="def-text">Quality Starts — 優質先發（6局以上且自責分3以下）</span></div>
+            <div class="def-item"><span class="def-abbr">GF</span><span class="def-text">Games Finished — 終結比賽數</span></div>
+            <div class="def-item"><span class="def-abbr">SVO</span><span class="def-text">Save Opportunities — 救援機會</span></div>
+            <div class="def-item"><span class="def-abbr">2B</span><span class="def-text">Doubles Allowed — 被二壘安打</span></div>
+            <div class="def-item"><span class="def-abbr">3B</span><span class="def-text">Triples Allowed — 被三壘安打</span></div>
+            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 製造雙殺</span></div>
+            <div class="def-item"><span class="def-abbr">CS</span><span class="def-text">Caught Stealing — 阻殺盜壘</span></div>
+            <div class="def-item"><span class="def-abbr">SB</span><span class="def-text">Stolen bases (against) — 投球時被盜壘成功次數</span></div>
+            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per Plate Appearance — 每打席用球數</span></div>
+            <div class="def-item"><span class="def-abbr">IR</span><span class="def-text">Inherited Runners — 繼承跑者</span></div>
+            <div class="def-item"><span class="def-abbr">IR_S</span><span class="def-text">Inherited Runners Scored — 繼承跑者得分</span></div>
+            <div class="def-item"><span class="def-abbr">WP</span><span class="def-text">Wild Pitches — 暴投</span></div>
+            <div class="def-item"><span class="def-abbr">BK</span><span class="def-text">Balks — 投手犯規</span></div>
+            <div class="def-item"><span class="def-abbr">PK</span><span class="def-text">Pickoffs — 牽制出局</span></div>
+        </div>
+        {% else %}
+        <div class="def-grid">
+            <div class="def-item"><span class="def-abbr">ISO</span><span class="def-text">Isolated Power — 純長打率 = SLG - AVG</span></div>
+            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
+            <div class="def-item"><span class="def-abbr">XBH</span><span class="def-text">Extra-Base Hits — 長打 = 2B + 3B + HR</span></div>
+            <div class="def-item"><span class="def-abbr">AB/HR</span><span class="def-text">At Bats per Home Run — 每幾個打數擊出一支全壘打</span></div>
+            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比</span></div>
+            <div class="def-item"><span class="def-abbr">SB%</span><span class="def-text">Stolen Base Percentage — 盜壘成功率</span></div>
+            <div class="def-item"><span class="def-abbr">LOB</span><span class="def-text">Left On Base — 殘壘數</span></div>
+            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per PA — 每打席面對球數</span></div>
+            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
+            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 打成雙殺</span></div>
+            <div class="def-item"><span class="def-abbr">GIDPO</span><span class="def-text">GIDP Opportunities — 雙殺機會</span></div>
+            <div class="def-item"><span class="def-abbr">ROE</span><span class="def-text">Reached On Error — 因失誤上壘</span></div>
+            <div class="def-item"><span class="def-abbr">WO</span><span class="def-text">Walk-Off — 再見安打</span></div>
+            <div class="def-item"><span class="def-abbr">SF</span><span class="def-text">Sacrifice Flies — 高飛犧牲打</span></div>
+            <div class="def-item"><span class="def-abbr">SH</span><span class="def-text">Sacrifice Hits — 犧牲觸擊</span></div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Advanced Stats Table #}
+    <div class="data-table-section glass-panel">
+        <h3>歷年進階數據</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>球隊</th>
+                        {% if is_pitcher %}
+                            <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
+                            <th>P/IP</th><th>S%</th><th>BABIP</th><th>GO/AO</th>
+                            <th>WPCT</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
+                            <th>NP</th><th>IBB</th><th>QS</th><th>GF</th><th>SVO</th>
+                            <th>2B</th><th>3B</th><th>GIDP</th><th>GIDPO</th><th>CS</th>
+                            <th>P/PA</th><th>RS/9</th><th>IR</th><th>IR_S</th><th>SB</th>
+                            <th>BQR</th><th>BQR_S</th><th>PK</th>
+                        {% else %}
+                            <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
+                            <th>P/PA</th><th>IBB</th><th>HBP</th><th>GIDP</th><th>GIDPO</th>
+                            <th>SF</th><th>SH</th><th>LOB</th><th>ROE</th><th>WO</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in all_stats %}
+                    <tr class="{% if stat.year == selected_year %}highlight-row{% endif %}">
+                        <td>{{ stat.year }}</td>
+                        <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
+                        <td>{{ stat.team_name }}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ stat.whip|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.bb_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.h_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.hr_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td>
+                            <td class="num">{{ stat.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.strike_pct|num_dash }}</td>
+                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ stat.win_pct|num_dash }}</td>
+                            <td class="num">{{ stat.p_avg|num_dash }}</td>
+                            <td class="num">{{ stat.p_obp|num_dash }}</td>
+                            <td class="num">{{ stat.p_slg|num_dash }}</td>
+                            <td class="num">{{ stat.p_ops|num_dash }}</td>
+                            <td class="num">{{ stat.np|num_dash }}</td>
+                            <td class="num">{{ stat.p_ibb|num_dash }}</td>
+                            <td class="num">{{ stat.qs|num_dash }}</td>
+                            <td class="num">{{ stat.gf|num_dash }}</td>
+                            <td class="num">{{ stat.svo|num_dash }}</td>
+                            <td class="num">{{ stat.p_doubles|num_dash }}</td>
+                            <td class="num">{{ stat.p_triples|num_dash }}</td>
+                            <td class="num">{{ stat.p_gdp|num_dash }}</td>
+                            <td class="num">{{ stat.p_gidpo|num_dash }}</td>
+                            <td class="num">{{ stat.p_cs|num_dash }}</td>
+                            <td class="num">{{ stat.pitches_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ stat.rs_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ stat.ir|num_dash }}</td>
+                            <td class="num">{{ stat.irs|num_dash }}</td>
+                            <td class="num">{{ stat.p_sb|num_dash }}</td>
+                            <td class="num">{{ stat.bqr|num_dash }}</td>
+                            <td class="num">{{ stat.bqr_s|num_dash }}</td>
+                            <td class="num">{{ stat.pickoffs|num_dash }}</td>
+                        {% else %}
+                            <td class="num">{{ stat.iso|floatformat(3) }}</td>
+                            <td class="num">{{ stat.babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.xbh|num_dash }}</td>
+                            <td class="num">{{ stat.ab_per_hr|floatformat(1) }}</td>
+                            <td class="num">{{ stat.go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ stat.sb_pct|num_dash }}</td>
+                            <td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ stat.ibb|num_dash }}</td>
+                            <td class="num">{{ stat.hbp|num_dash }}</td>
+                            <td class="num">{{ stat.gdp|num_dash }}</td>
+                            <td class="num">{{ stat.gidpo|num_dash }}</td>
+                            <td class="num">{{ stat.sac_flies|num_dash }}</td>
+                            <td class="num">{{ stat.sac_bunts|num_dash }}</td>
+                            <td class="num">{{ stat.lob|num_dash }}</td>
+                            <td class="num">{{ stat.roe|num_dash }}</td>
+                            <td class="num">{{ stat.wo|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="25" class="td-empty">尚無數據</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# FanGraphs Advanced Data #}
+    {% if fg_stats %}
+    <div class="data-table-section glass-panel">
+        <h3>FanGraphs 進階數據</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>球隊</th>
+                        {% if is_pitcher %}
+                            <th>FIP</th><th>xFIP</th><th>K%</th><th>BB%</th><th>LOB%</th>
+                            <th>GB%</th><th>FB%</th><th>HR/FB</th>
+                            <th>SwStr%</th><th>F-Strike%</th>
+                            <th>Hard%</th><th>ERA-</th><th>FIP-</th>
+                            <th>WAR</th>
+                        {% else %}
+                            <th>wOBA</th><th>wRC+</th><th>WAR</th><th>wRAA</th>
+                            <th>K%</th><th>BB%</th>
+                            <th>GB%</th><th>FB%</th><th>LD%</th>
+                            <th>Pull%</th><th>Cent%</th><th>Oppo%</th>
+                            <th>Hard%</th><th>SwStr%</th><th>Spd</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fg in fg_stats %}
+                    <tr class="{% if fg.year == selected_year %}highlight-row{% endif %}">
+                        <td>{{ fg.year }}</td>
+                        <td><span class="level-tag level-{{ fg.sport_level|lower }}">{{ fg.sport_level }}</span></td>
+                        <td>{{ fg.team_name }}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ fg.fip|num_dash }}</td>
+                            <td class="num">{{ fg.xfip|num_dash }}</td>
+                            <td class="num">{{ fg.k_pct|num_dash }}</td>
+                            <td class="num">{{ fg.bb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.lob_pct|num_dash }}</td>
+                            <td class="num">{{ fg.gb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.fb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.hr_fb|num_dash }}</td>
+                            <td class="num">{{ fg.swstr_pct|num_dash }}</td>
+                            <td class="num">{{ fg.fstrike_pct|num_dash }}</td>
+                            <td class="num">{{ fg.hard_pct|num_dash }}</td>
+                            <td class="num">{{ fg.era_minus|num_dash }}</td>
+                            <td class="num">{{ fg.fip_minus|num_dash }}</td>
+                            <td class="num">{{ fg.war|num_dash }}</td>
+                        {% else %}
+                            <td class="num">{{ fg.woba|num_dash }}</td>
+                            <td class="num">{{ fg.wrc_plus|num_dash }}</td>
+                            <td class="num">{{ fg.war|num_dash }}</td>
+                            <td class="num">{{ fg.wraa|num_dash }}</td>
+                            <td class="num">{{ fg.k_pct|num_dash }}</td>
+                            <td class="num">{{ fg.bb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.gb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.fb_pct|num_dash }}</td>
+                            <td class="num">{{ fg.ld_pct|num_dash }}</td>
+                            <td class="num">{{ fg.pull_pct|num_dash }}</td>
+                            <td class="num">{{ fg.cent_pct|num_dash }}</td>
+                            <td class="num">{{ fg.oppo_pct|num_dash }}</td>
+                            <td class="num">{{ fg.hard_pct|num_dash }}</td>
+                            <td class="num">{{ fg.swstr_pct|num_dash }}</td>
+                            <td class="num">{{ fg.spd|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{# ── TAB 5: FIELDING STATS ── #}
+<div class="tab-panel" id="panel-fielding">
+
+    <div class="adv-definitions glass-panel">
+        <h3>守備數據說明</h3>
+        <div class="def-grid">
+            <div class="def-item"><span class="def-abbr">POS</span><span class="def-text">Position — 守備位置</span></div>
+            <div class="def-item"><span class="def-abbr">INN</span><span class="def-text">Innings — 守備局數</span></div>
+            <div class="def-item"><span class="def-abbr">TC</span><span class="def-text">Total Chances — 守備機會 = PO + A + E</span></div>
+            <div class="def-item"><span class="def-abbr">PO</span><span class="def-text">Putouts — 刺殺</span></div>
+            <div class="def-item"><span class="def-abbr">A</span><span class="def-text">Assists — 助殺</span></div>
+            <div class="def-item"><span class="def-abbr">E</span><span class="def-text">Errors — 失誤</span></div>
+            <div class="def-item"><span class="def-abbr">FLD%</span><span class="def-text">Fielding Percentage — 守備率</span></div>
+            <div class="def-item"><span class="def-abbr">DP</span><span class="def-text">Double Plays — 雙殺</span></div>
+            <div class="def-item"><span class="def-abbr">RF/G</span><span class="def-text">Range Factor per Game — 每場守備範圍因子</span></div>
+            <div class="def-item"><span class="def-abbr">RF/9</span><span class="def-text">Range Factor per 9 Inn — 每9局守備範圍因子</span></div>
+        </div>
+    </div>
+
+    {% if all_fielding %}
+    <div class="data-table-section glass-panel">
+        <h3>歷年守備數據</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>球隊</th><th>POS</th>
+                        <th>GP</th><th>GS</th><th>INN</th>
+                        <th>TC</th><th>PO</th><th>A</th><th>E</th>
+                        <th>FLD%</th><th>DP</th><th>TP</th>
+                        <th>RF/G</th><th>RF/9</th><th>TE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in all_fielding %}
+                    <tr class="{% if f.year == selected_year %}highlight-row{% endif %}">
+                        <td>{{ f.year }}</td>
+                        <td><span class="level-tag level-{{ f.sport_level|lower }}">{{ f.sport_level }}</span></td>
+                        <td>{{ f.team_name }}</td>
+                        <td><span class="pos-tag">{{ f.position }}</span></td>
+                        <td class="num">{{ f.gp|num_dash }}</td>
+                        <td class="num">{{ f.gs|num_dash }}</td>
+                        <td class="num">{{ f.innings|num_dash }}</td>
+                        <td class="num">{{ f.chances|num_dash }}</td>
+                        <td class="num">{{ f.putouts|num_dash }}</td>
+                        <td class="num">{{ f.assists|num_dash }}</td>
+                        <td class="num">{{ f.errors|num_dash }}</td>
+                        <td class="num">{{ f.fielding_pct|num_dash }}</td>
+                        <td class="num">{{ f.dp|num_dash }}</td>
+                        <td class="num">{{ f.tp|num_dash }}</td>
+                        <td class="num">{{ f.range_factor_game|num_dash }}</td>
+                        <td class="num">{{ f.range_factor_9|num_dash }}</td>
+                        <td class="num">{{ f.throwing_errors|num_dash }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass-panel empty-season-msg">
+        尚無守備數據
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{# Chart JS - only loaded on pages with chart data (fixes D3) #}
+{% if chart_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="application/json" id="chart-labels">{{ chart_labels|tojson_safe }}</script>
+<script type="application/json" id="chart-data">{{ chart_data|tojson_safe }}</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const canvas = document.getElementById("performanceChart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const labels = JSON.parse(document.getElementById("chart-labels").textContent);
+    const data   = JSON.parse(document.getElementById("chart-data").textContent);
+
+    let grad = ctx.createLinearGradient(0, 0, 0, 300);
+    grad.addColorStop(0, "rgba(20,184,166,0.35)");
+    grad.addColorStop(1, "rgba(20,184,166,0.0)");
+
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "{% if is_pitcher %}ERA{% else %}AVG{% endif %}",
+                data,
+                borderColor: "#14b8a6",
+                backgroundColor: grad,
+                borderWidth: 2.5,
+                pointBackgroundColor: "#14b8a6",
+                pointBorderColor: "#09090b",
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.35,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: "#f8fafc" } } },
+            scales: {
+                x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#94a3b8" } },
+                y: {
+                    grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#94a3b8" },
+                    reverse: {% if is_pitcher %}true{% else %}false{% endif %}
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+{# Image fallback handler (fixes E2 - no inline onerror) #}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".avatar-img").forEach(function(img) {
+        img.addEventListener("error", function() {
+            if (!this.dataset.cdnTried) {
+                // First failure: try the MLB CDN URL
+                this.dataset.cdnTried = "1";
+                var cdn = this.dataset.cdnSrc;
+                if (cdn) { this.src = cdn; return; }
+            }
+            // CDN also failed: show initials fallback
+            this.style.display = "none";
+            var fallback = this.parentElement.querySelector(".avatar-fallback");
+            if (fallback) fallback.style.display = "flex";
+        });
+    });
+});
+</script>
+
+{# Tab restoration from query param #}
+<script>
+(function(){
+    var p = new URLSearchParams(location.search).get("tab");
+    if (p === "stats")    document.getElementById("tab-stats").checked = true;
+    if (p === "gamelogs") document.getElementById("tab-gamelogs").checked = true;
+    if (p === "advanced") document.getElementById("tab-advanced").checked = true;
+    if (p === "fielding") document.getElementById("tab-fielding").checked = true;
+})();
+</script>
+
+{# Wheel → horizontal scroll for all data tables #}
+<script>
+document.querySelectorAll(".table-scroll").forEach(function(el) {
+    el.addEventListener("wheel", function(e) {
+        if (e.deltaY === 0) return;
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+    }, { passive: false });
+});
+</script>
+{% endblock %}
+

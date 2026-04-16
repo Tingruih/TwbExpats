@@ -1,0 +1,8 @@
+dist/
+/data/
+__pycache__/
+*.pyc
+.ruff_cache/
+venv/
+
+.DS_Store
