@@ -1,11 +1,10 @@
 """
-MLB Stats API and FanGraphs API client helpers.
+MLB Stats API client helpers.
 """
 
 import datetime
 import json
 import logging
-import re
 from typing import Optional
 
 import requests
@@ -212,7 +211,7 @@ def get_next_game(team_id: int) -> Optional[dict]:
         for date_entry in dates:
             for game in date_entry.get("games", []):
                 status = game.get("status", {}).get("abstractGameState", "")
-                if status in ("Preview", "Pre-Game", "Warmup"):
+                if status == "Preview":
                     away_team = game.get("teams", {}).get("away", {}).get("team", {})
                     home_team = game.get("teams", {}).get("home", {}).get("team", {})
                     is_home = home_team.get("id") == team_id
@@ -228,8 +227,6 @@ def get_next_game(team_id: int) -> Optional[dict]:
                             game_time = dt.astimezone(utc8).strftime(
                                 "%m/%d %H:%M (UTC+8)"
                             )
-                        except Exception:
-                            game_time = game_date_str[:16]
                         except Exception:
                             game_time = game_date_str[:16]
 
@@ -262,138 +259,3 @@ def parse_roster_from_file(filepath: str) -> list:
         logger.error("Error reading %s: %s", filepath, e)
         return []
 
-
-# ── FanGraphs API ──
-
-FANGRAPHS_API = "https://www.fangraphs.com/api/players/stats"
-
-_FG_PITCHER_FIELDS = {
-    "FIP": "fip",
-    "xFIP": "xfip",
-    "SIERA": "siera",
-    "LOB%": "lob_pct",
-    "K%": "k_pct",
-    "BB%": "bb_pct",
-    "ERA-": "era_minus",
-    "FIP-": "fip_minus",
-    "GB%": "gb_pct",
-    "FB%": "fb_pct",
-    "LD%": "ld_pct",
-    "IFFB%": "iffb_pct",
-    "HR/FB": "hr_fb",
-    "SwStr%": "swstr_pct",
-    "F-Strike%": "fstrike_pct",
-    "CStr%": "cstr_pct",
-    "Hard%": "hard_pct",
-    "Med%": "med_pct",
-    "Soft%": "soft_pct",
-    "Pull%": "pull_pct",
-    "Cent%": "cent_pct",
-    "Oppo%": "oppo_pct",
-    "WAR": "war",
-    "RAR": "rar",
-    "WPA": "wpa",
-    "RE24": "re24",
-    "Clutch": "clutch",
-    "EV": "ev",
-    "LA": "la",
-    "Barrel%": "barrel_pct",
-    "HardHit%": "hardhit_pct",
-    "xERA": "xera",
-    "xFIP_SC": "xfip_statcast",
-}
-
-_FG_BATTER_FIELDS = {
-    "wOBA": "woba",
-    "wRC+": "wrc_plus",
-    "wRC": "wrc",
-    "wRAA": "wraa",
-    "WAR": "war",
-    "RAR": "rar",
-    "ISO": "iso",
-    "Spd": "spd",
-    "K%": "k_pct",
-    "BB%": "bb_pct",
-    "GB%": "gb_pct",
-    "FB%": "fb_pct",
-    "LD%": "ld_pct",
-    "IFFB%": "iffb_pct",
-    "HR/FB": "hr_fb",
-    "BABIP": "babip",
-    "BsR": "bsr",
-    "Off": "off",
-    "Def": "def",
-    "RE24": "re24",
-    "WPA": "wpa",
-    "Clutch": "clutch",
-    "EV": "ev",
-    "LA": "la",
-    "Barrel%": "barrel_pct",
-    "HardHit%": "hardhit_pct",
-    "Hard%": "hard_pct",
-    "Med%": "med_pct",
-    "Soft%": "soft_pct",
-    "Pull%": "pull_pct",
-    "Cent%": "cent_pct",
-    "Oppo%": "oppo_pct",
-    "SwStr%": "swstr_pct",
-    "F-Strike%": "fstrike_pct",
-    "xwOBA": "xwoba",
-    "xBA": "xba",
-    "xSLG": "xslg",
-}
-
-
-def get_fangraphs_stats(fg_playerid: str, position: str = "OF") -> dict:
-    """Fetch advanced stats from FanGraphs API. Returns dict keyed by '{season}_{team}'."""
-    url = f"{FANGRAPHS_API}?playerid={fg_playerid}&position={position}"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Accept": "application/json",
-    }
-
-    try:
-        resp = requests.get(url, headers=headers, timeout=20)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        logger.warning("FanGraphs API error for %s: %s", fg_playerid, e)
-        return {}
-
-    result = {}
-    rows = data if isinstance(data, list) else data.get("data", [])
-    field_map = _FG_PITCHER_FIELDS if position == "P" else _FG_BATTER_FIELDS
-
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        raw_season = row.get("Season")
-        if not raw_season:
-            continue
-
-        # FanGraphs sometimes returns Season as HTML link: <a href="...">2021</a>
-        if isinstance(raw_season, str):
-            m = re.search(r"(\d{4})", raw_season)
-            season = int(m.group(1)) if m else None
-        else:
-            season = int(raw_season) if raw_season else None
-        if not season:
-            continue
-
-        team = row.get("Team", "")
-        key = f"{season}_{team}"
-
-        fg_data = {"season": season, "team": team}
-        for fg_key, local_key in field_map.items():
-            val = row.get(fg_key)
-            if val is not None:
-                fg_data[local_key] = val
-
-        if len(fg_data) > 2:  # has actual stat fields beyond season/team
-            result[key] = fg_data
-
-    return result

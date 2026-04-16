@@ -1,12 +1,12 @@
 {
   "_comment": "台灣旅美球員設定檔。新增球員：在對應的 milb 或 mlb 區塊加入一筆即可。source 決定 API 抓取方式。",
   "players": [
-    {"mlb_id": 691907, "name_tw": "鄭宗哲", "source": "milb", "fg_id": "28344", "fg_position": "OF"},
+    {"mlb_id": 691907, "name_tw": "鄭宗哲", "source": "milb"},
     {"mlb_id": 692617, "name_tw": "劉致榮", "source": "milb"},
     {"mlb_id": 696040, "name_tw": "陳柏毓", "source": "milb"},
     {"mlb_id": 701678, "name_tw": "李灝宇", "source": "milb"},
     {"mlb_id": 800018, "name_tw": "莊陳仲敖", "source": "milb"},
-    {"mlb_id": 801179, "name_tw": "林昱珉", "source": "milb", "fg_id": "sa3019278", "fg_position": "P"},
+    {"mlb_id": 801179, "name_tw": "林昱珉", "source": "milb"},
     {"mlb_id": 800213, "name_tw": "張弘稜", "source": "milb"},
     {"mlb_id": 808486, "name_tw": "李晨薰", "source": "milb"},
     {"mlb_id": 808207, "name_tw": "潘文輝", "source": "milb"},

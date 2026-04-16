@@ -1,6 +1,10 @@
 name: Build and Deploy Static Site
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/tracker.sqlite3'
   workflow_dispatch:
   schedule:
     - cron: "30 2 * * *"   # 10:30 TST (UTC+8)
@@ -16,6 +20,8 @@ permissions:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     env:
       DEFAULT_SEASON_YEAR: "2026"
@@ -41,8 +47,16 @@ jobs:
             echo "PAGES_BASE_URL=/$REPO_NAME/" >> "$GITHUB_ENV"
           fi
 
-      - name: Sync & Build
-        run: python build.py all --base-url "$PAGES_BASE_URL"
+      - name: Refresh & Build
+        run: python build.py refresh --base-url "$PAGES_BASE_URL"
+
+      - name: Commit updated SQLite to main
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tracker.sqlite3
+          git diff --staged --quiet || (git commit -m "chore: update tracker.sqlite3 [skip ci]" && git push)
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

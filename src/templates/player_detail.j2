@@ -250,21 +250,13 @@
     </div>
     {% endif %}
 
-    {# Year indicator — static site shows default season year only #}
-    <div class="year-selector glass-panel">
-        <span class="year-label">表示年度：</span>
-        <span class="year-btn year-btn-active">{{ selected_year }}</span>
-        {% if years|length > 1 %}
-        <span class="year-note">（歷年數據請見下方表格）</span>
-        {% endif %}
-    </div>
-
     <div class="data-table-section glass-panel">
         <h3>歷年賽季成績</h3>
         <div class="table-scroll">
-            <table class="data-table">
+            <table class="data-table year-group-table" id="stats-table-basic">
                 <thead>
                     <tr>
+                        <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th><th>聯盟</th><th>G</th>
                         {% if is_pitcher %}
                             <th>W</th><th>L</th><th>ERA</th><th>GS</th><th>CG</th><th>SHO</th>
@@ -279,9 +271,73 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for stat in all_stats %}
-                    <tr class="{% if stat.year == selected_year %}highlight-row{% endif %}">
-                        <td>{{ stat.year }}</td>
+                    {% for grp in stats_year_groups %}
+                    {% set yr = grp.year %}
+                    {% set sm = grp.summary %}
+                    {# ── Summary row ── #}
+                    <tr class="year-summary-row {% if yr == selected_year %}highlight-row{% endif %}"
+                        data-year="{{ yr }}"
+                        {% if grp.multi %}onclick="toggleYearGroup('basic','{{ yr }}')" style="cursor:pointer;"{% endif %}>
+                        <td class="col-toggle">
+                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-basic-{{ yr }}">▶</span>{% endif %}
+                        </td>
+                        <td><strong>{{ yr }}</strong></td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
+                        <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
+                        <td class="td-league">{% if not grp.multi %}{{ grp.rows[0].league_name }}{% else %}—{% endif %}</td>
+                        <td>{{ sm.gp|num_dash }}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ sm.wins|num_dash }}</td>
+                            <td class="num">{{ sm.losses|num_dash }}</td>
+                            <td class="num">{{ sm.era|floatformat(2) }}</td>
+                            <td class="num">{{ sm.gs|num_dash }}</td>
+                            <td class="num">{{ sm.cg|num_dash }}</td>
+                            <td class="num">{{ sm.sho|num_dash }}</td>
+                            <td class="num">{{ sm.sv|num_dash }}</td>
+                            <td class="num">{{ sm.hld|num_dash }}</td>
+                            <td class="num">{{ sm.ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.p_hits|num_dash }}</td>
+                            <td class="num">{{ sm.runs_allowed|num_dash }}</td>
+                            <td class="num">{{ sm.earned_runs|num_dash }}</td>
+                            <td class="num">{{ sm.p_hr|num_dash }}</td>
+                            <td class="num">{{ sm.bb|num_dash }}</td>
+                            <td class="num">{{ sm.so|num_dash }}</td>
+                            <td class="num">{{ sm.p_hbp|num_dash }}</td>
+                            <td class="num">{{ sm.wp|num_dash }}</td>
+                            <td class="num">{{ sm.balks|num_dash }}</td>
+                            <td class="num">{{ sm.bf|num_dash }}</td>
+                        {% else %}
+                            <td class="num">{{ sm.pa|num_dash }}</td>
+                            <td class="num">{{ sm.ab|num_dash }}</td>
+                            <td class="num">{{ sm.runs|num_dash }}</td>
+                            <td class="num">{{ sm.hits|num_dash }}</td>
+                            <td class="num">{{ sm.doubles|num_dash }}</td>
+                            <td class="num">{{ sm.triples|num_dash }}</td>
+                            <td class="num">{{ sm.hr|num_dash }}</td>
+                            <td class="num">{{ sm.rbi|num_dash }}</td>
+                            <td class="num">{{ sm.sb|num_dash }}</td>
+                            <td class="num">{{ sm.cs|num_dash }}</td>
+                            <td class="num">{{ sm.hit_bb|num_dash }}</td>
+                            <td class="num">{{ sm.h_so|num_dash }}</td>
+                            <td class="num">{{ sm.avg|floatformat(3) }}</td>
+                            <td class="num">{{ sm.obp|floatformat(3) }}</td>
+                            <td class="num">{{ sm.slg|floatformat(3) }}</td>
+                            <td class="num">{{ sm.ops|floatformat(3) }}</td>
+                            <td class="num">{{ sm.tb|num_dash }}</td>
+                            <td class="num">{{ sm.xbh|num_dash }}</td>
+                            <td class="num">{{ sm.gdp|num_dash }}</td>
+                            <td class="num">{{ sm.gidpo|num_dash }}</td>
+                            <td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ sm.roe|num_dash }}</td>
+                            <td class="num">{{ sm.wo|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {# ── Per-team detail rows (hidden by default when multi) ── #}
+                    {% if grp.multi %}
+                    {% for stat in grp.rows %}
+                    <tr class="year-detail-row" data-tbl="basic" data-grp="{{ yr }}" style="display:none;">
+                        <td></td>
+                        <td></td>
                         <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
                         <td>{{ stat.team_name }}</td>
                         <td class="td-league">{{ stat.league_name }}</td>
@@ -332,8 +388,10 @@
                             <td class="num">{{ stat.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
+                    {% endfor %}
+                    {% endif %}
                     {% else %}
-                    <tr><td colspan="30" class="td-empty">尚無數據</td></tr>
+                    <tr><td colspan="32" class="td-empty">尚無數據</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -346,13 +404,18 @@
 
     {# Year indicator #}
     <div class="year-selector glass-panel">
-        <span class="year-label">表示年度：</span>
-        <span class="year-btn year-btn-active">{{ selected_year }}</span>
+        <span class="year-label">年度：</span>
+        {% for y in available_log_years %}
+            <span class="year-btn gamelog-year-btn {% if loop.first %}year-btn-active{% endif %}" data-year="{{ y }}" style="cursor: pointer;">{{ y }}</span>
+        {% else %}
+            <span class="year-btn year-btn-active">{{ selected_year }}</span>
+        {% endfor %}
     </div>
 
-    {% if game_logs %}
-    <div class="data-table-section glass-panel">
-        <h3>{{ selected_year }} 逐場比賽紀錄</h3>
+    {% for y in available_log_years %}
+    {% set year_logs = logs_by_year[y] %}
+    <div class="gamelog-table-container data-table-section glass-panel" id="gamelogs-{{ y }}" {% if not loop.first %}style="display: none;"{% endif %}>
+        <h3>{{ y }} 逐場比賽紀錄</h3>
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
@@ -366,7 +429,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for log in game_logs %}
+                    {% for log in year_logs %}
                     <tr>
                         <td>{{ log.date }}</td>
                         <td><span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">
@@ -406,7 +469,9 @@
             </table>
         </div>
     </div>
-    {% else %}
+    {% endfor %}
+    
+    {% if not available_log_years %}
     <div class="glass-panel empty-season-msg">
         {{ selected_year }} 尚無出賽紀錄
     </div>
@@ -474,9 +539,10 @@
     <div class="data-table-section glass-panel">
         <h3>歷年進階數據</h3>
         <div class="table-scroll">
-            <table class="data-table">
+            <table class="data-table year-group-table" id="stats-table-adv">
                 <thead>
                     <tr>
+                        <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
                             <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
@@ -494,9 +560,78 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for stat in all_stats %}
-                    <tr class="{% if stat.year == selected_year %}highlight-row{% endif %}">
-                        <td>{{ stat.year }}</td>
+                    {% for grp in stats_year_groups %}
+                    {% set yr = grp.year %}
+                    {% set sm = grp.summary %}
+                    {# ── Summary row ── #}
+                    <tr class="year-summary-row {% if yr == selected_year %}highlight-row{% endif %}"
+                        data-year="{{ yr }}"
+                        {% if grp.multi %}onclick="toggleYearGroup('adv','{{ yr }}')" style="cursor:pointer;"{% endif %}>
+                        <td class="col-toggle">
+                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-adv-{{ yr }}">▶</span>{% endif %}
+                        </td>
+                        <td><strong>{{ yr }}</strong></td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
+                        <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ sm.whip|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.bb_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.h_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.hr_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td>
+                            <td class="num">{{ sm.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.strike_pct|num_dash }}</td>
+                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ sm.win_pct|num_dash }}</td>
+                            <td class="num">{{ sm.p_avg|num_dash }}</td>
+                            <td class="num">{{ sm.p_obp|num_dash }}</td>
+                            <td class="num">{{ sm.p_slg|num_dash }}</td>
+                            <td class="num">{{ sm.p_ops|num_dash }}</td>
+                            <td class="num">{{ sm.np|num_dash }}</td>
+                            <td class="num">{{ sm.p_ibb|num_dash }}</td>
+                            <td class="num">{{ sm.qs|num_dash }}</td>
+                            <td class="num">{{ sm.gf|num_dash }}</td>
+                            <td class="num">{{ sm.svo|num_dash }}</td>
+                            <td class="num">{{ sm.p_doubles|num_dash }}</td>
+                            <td class="num">{{ sm.p_triples|num_dash }}</td>
+                            <td class="num">{{ sm.p_gdp|num_dash }}</td>
+                            <td class="num">{{ sm.p_gidpo|num_dash }}</td>
+                            <td class="num">{{ sm.p_cs|num_dash }}</td>
+                            <td class="num">{{ sm.pitches_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ sm.rs_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ sm.ir|num_dash }}</td>
+                            <td class="num">{{ sm.irs|num_dash }}</td>
+                            <td class="num">{{ sm.p_sb|num_dash }}</td>
+                            <td class="num">{{ sm.bqr|num_dash }}</td>
+                            <td class="num">{{ sm.bqr_s|num_dash }}</td>
+                            <td class="num">{{ sm.pickoffs|num_dash }}</td>
+                        {% else %}
+                            <td class="num">{{ sm.iso|floatformat(3) }}</td>
+                            <td class="num">{{ sm.babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.xbh|num_dash }}</td>
+                            <td class="num">{{ sm.ab_per_hr|floatformat(1) }}</td>
+                            <td class="num">{{ sm.go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ sm.sb_pct|num_dash }}</td>
+                            <td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ sm.ibb|num_dash }}</td>
+                            <td class="num">{{ sm.hbp|num_dash }}</td>
+                            <td class="num">{{ sm.gdp|num_dash }}</td>
+                            <td class="num">{{ sm.gidpo|num_dash }}</td>
+                            <td class="num">{{ sm.sac_flies|num_dash }}</td>
+                            <td class="num">{{ sm.sac_bunts|num_dash }}</td>
+                            <td class="num">{{ sm.lob|num_dash }}</td>
+                            <td class="num">{{ sm.roe|num_dash }}</td>
+                            <td class="num">{{ sm.wo|num_dash }}</td>
+                        {% endif %}
+                    </tr>
+                    {# ── Per-team detail rows ── #}
+                    {% if grp.multi %}
+                    {% for stat in grp.rows %}
+                    <tr class="year-detail-row" data-tbl="adv" data-grp="{{ yr }}" style="display:none;">
+                        <td></td>
+                        <td></td>
                         <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
                         <td>{{ stat.team_name }}</td>
                         {% if is_pitcher %}
@@ -552,83 +687,17 @@
                             <td class="num">{{ stat.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
+                    {% endfor %}
+                    {% endif %}
                     {% else %}
-                    <tr><td colspan="25" class="td-empty">尚無數據</td></tr>
+                    <tr><td colspan="30" class="td-empty">尚無數據</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
-    {# FanGraphs Advanced Data #}
-    {% if fg_stats %}
-    <div class="data-table-section glass-panel">
-        <h3>FanGraphs 進階數據</h3>
-        <div class="table-scroll">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>年度</th><th>層級</th><th>球隊</th>
-                        {% if is_pitcher %}
-                            <th>FIP</th><th>xFIP</th><th>K%</th><th>BB%</th><th>LOB%</th>
-                            <th>GB%</th><th>FB%</th><th>HR/FB</th>
-                            <th>SwStr%</th><th>F-Strike%</th>
-                            <th>Hard%</th><th>ERA-</th><th>FIP-</th>
-                            <th>WAR</th>
-                        {% else %}
-                            <th>wOBA</th><th>wRC+</th><th>WAR</th><th>wRAA</th>
-                            <th>K%</th><th>BB%</th>
-                            <th>GB%</th><th>FB%</th><th>LD%</th>
-                            <th>Pull%</th><th>Cent%</th><th>Oppo%</th>
-                            <th>Hard%</th><th>SwStr%</th><th>Spd</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for fg in fg_stats %}
-                    <tr class="{% if fg.year == selected_year %}highlight-row{% endif %}">
-                        <td>{{ fg.year }}</td>
-                        <td><span class="level-tag level-{{ fg.sport_level|lower }}">{{ fg.sport_level }}</span></td>
-                        <td>{{ fg.team_name }}</td>
-                        {% if is_pitcher %}
-                            <td class="num">{{ fg.fip|num_dash }}</td>
-                            <td class="num">{{ fg.xfip|num_dash }}</td>
-                            <td class="num">{{ fg.k_pct|num_dash }}</td>
-                            <td class="num">{{ fg.bb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.lob_pct|num_dash }}</td>
-                            <td class="num">{{ fg.gb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.fb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.hr_fb|num_dash }}</td>
-                            <td class="num">{{ fg.swstr_pct|num_dash }}</td>
-                            <td class="num">{{ fg.fstrike_pct|num_dash }}</td>
-                            <td class="num">{{ fg.hard_pct|num_dash }}</td>
-                            <td class="num">{{ fg.era_minus|num_dash }}</td>
-                            <td class="num">{{ fg.fip_minus|num_dash }}</td>
-                            <td class="num">{{ fg.war|num_dash }}</td>
-                        {% else %}
-                            <td class="num">{{ fg.woba|num_dash }}</td>
-                            <td class="num">{{ fg.wrc_plus|num_dash }}</td>
-                            <td class="num">{{ fg.war|num_dash }}</td>
-                            <td class="num">{{ fg.wraa|num_dash }}</td>
-                            <td class="num">{{ fg.k_pct|num_dash }}</td>
-                            <td class="num">{{ fg.bb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.gb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.fb_pct|num_dash }}</td>
-                            <td class="num">{{ fg.ld_pct|num_dash }}</td>
-                            <td class="num">{{ fg.pull_pct|num_dash }}</td>
-                            <td class="num">{{ fg.cent_pct|num_dash }}</td>
-                            <td class="num">{{ fg.oppo_pct|num_dash }}</td>
-                            <td class="num">{{ fg.hard_pct|num_dash }}</td>
-                            <td class="num">{{ fg.swstr_pct|num_dash }}</td>
-                            <td class="num">{{ fg.spd|num_dash }}</td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
+
 </div>
 
 {# ── TAB 5: FIELDING STATS ── #}
@@ -699,7 +768,40 @@
 {% endblock %}
 
 {% block extra_scripts %}
-{# Chart JS - only loaded on pages with chart data (fixes D3) #}
+{# Year-group expand/collapse for stats tables #}
+<script>
+function toggleYearGroup(tableId, yr) {
+    // Find all detail rows for this table + year
+    const table = document.getElementById('stats-table-' + tableId);
+    if (!table) return;
+    const rows = table.querySelectorAll('tr[data-tbl="' + tableId + '"][data-grp="' + yr + '"]');
+    const arrow = document.getElementById('arrow-' + tableId + '-' + yr);
+    const open = rows.length > 0 && rows[0].style.display !== 'none';
+    rows.forEach(r => r.style.display = open ? 'none' : '');
+    if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
+}
+</script>
+
+{# Game log year toggle #}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const btns = document.querySelectorAll(".gamelog-year-btn");
+    const tables = document.querySelectorAll(".gamelog-table-container");
+    btns.forEach(btn => {
+        btn.addEventListener("click", function() {
+            btns.forEach(b => b.classList.remove("year-btn-active"));
+            tables.forEach(t => t.style.display = "none");
+            
+            this.classList.add("year-btn-active");
+            const y = this.dataset.year;
+            const tbl = document.getElementById("gamelogs-" + y);
+            if (tbl) tbl.style.display = "block";
+        });
+    });
+});
+</script>
+
+{# Chart.js — CDN only loaded when chart data exists to avoid unused requests #}
 {% if chart_data %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="application/json" id="chart-labels">{{ chart_labels|tojson_safe }}</script>

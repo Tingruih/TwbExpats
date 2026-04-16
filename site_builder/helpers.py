@@ -103,6 +103,7 @@ _COUNTING_FIELDS = [
     "bqr_s",
     "run_support",
     "p_gidpo",
+    "xbh",
 ]
 
 
@@ -329,14 +330,259 @@ def compute_season_combined(stats, year):
     return combined
 
 
+def _fmt_avg(value):
+    """Format a float as a baseball average string with no leading zero.
+
+    Examples:
+        0.333  -> ".333"
+        1.000  -> "1.000"
+        None   -> None
+    """
+    if value is None:
+        return None
+    s = f"{value:.3f}"
+    return s[1:] if s.startswith("0.") else s
+
+
+def _compute_advanced_stats(s):
+    """Fill in derived advanced stats on an Obj (or any dict-like).
+
+    Only sets a field when its current value is None so that API-supplied
+    values are never overwritten.  Works for both per-row and summary rows,
+    and for both batters and pitchers (all fields guarded by None-checks).
+    """
+    # ── IP as real fractional innings (needed for pitcher /9 rates) ──
+    ip_actual = None
+    if s.get("ip") is not None:
+        ip_actual = ip_to_outs(s["ip"]) / 3.0
+    elif s.get("outs"):
+        ip_actual = s["outs"] / 3.0
+
+    # ─────────────────────────── BATTER fields ───────────────────────────
+
+    # P/PA: prefer pitches_per_pa alias, then compute from pitches_seen / PA
+    if s.get("p_per_pa") is None and s.get("pitches_per_pa") is not None:
+        s["p_per_pa"] = s.get("pitches_per_pa")
+    if s.get("p_per_pa") is None:
+        ps = s.get("pitches_seen")
+        pa = s.get("pa")
+        if ps is not None and pa and pa > 0:
+            s["p_per_pa"] = round(ps / pa, 2)
+
+    # XBH fallback from components
+    if s.get("xbh") is None:
+        d = s.get("doubles") or 0
+        t = s.get("triples") or 0
+        h = s.get("hr") or 0
+        if d or t or h:
+            s["xbh"] = d + t + h
+
+    # ISO = SLG - AVG
+    if s.get("iso") is None:
+        slg = s.get("slg")
+        avg = s.get("avg")
+        if slg is not None and avg is not None:
+            s["iso"] = round(slg - avg, 3)
+
+    # BABIP = (H - HR) / (AB - SO - HR + SF)
+    if s.get("babip") is None:
+        hits = s.get("hits")
+        hr   = s.get("hr")
+        ab   = s.get("ab")
+        so   = s.get("h_so")
+        sf   = s.get("sac_flies") or 0
+        if all(v is not None for v in [hits, hr, ab, so]):
+            denom = ab - so - hr + sf
+            if denom > 0:
+                s["babip"] = round((hits - hr) / denom, 3)
+
+    # AB/HR
+    if s.get("ab_per_hr") is None:
+        ab = s.get("ab")
+        hr = s.get("hr")
+        if ab is not None and hr and hr > 0:
+            s["ab_per_hr"] = round(ab / hr, 1)
+
+    # Batter GO/AO
+    if s.get("go_ao") is None:
+        go = s.get("h_ground_outs")
+        ao = s.get("h_air_outs")
+        if go is not None and ao is not None and ao > 0:
+            s["go_ao"] = round(go / ao, 2)
+
+    # SB% = SB / (SB + CS)
+    if s.get("sb_pct") is None:
+        sb = s.get("sb")
+        cs = s.get("cs")
+        if sb is not None and cs is not None:
+            total = sb + cs
+            if total > 0:
+                s["sb_pct"] = _fmt_avg(sb / total)
+
+    # ─────────────────────────── PITCHER fields ──────────────────────────
+
+    # Pitcher P/PA alias: pitches_per_pa = pitches / BF
+    if s.get("pitches_per_pa") is None:
+        pitches = s.get("pitches")
+        bf = s.get("bf")
+        if pitches is not None and bf and bf > 0:
+            s["pitches_per_pa"] = round(pitches / bf, 2)
+
+    # /9 rate stats require IP
+    if ip_actual and ip_actual > 0:
+        so     = s.get("so")
+        bb     = s.get("bb")
+        p_hits = s.get("p_hits")
+        p_hr   = s.get("p_hr")
+
+        if s.get("k_per_9") is None and so is not None:
+            s["k_per_9"] = round(so * 9 / ip_actual, 1)
+
+        if s.get("bb_per_9") is None and bb is not None:
+            s["bb_per_9"] = round(bb * 9 / ip_actual, 1)
+
+        if s.get("h_per_9") is None and p_hits is not None:
+            s["h_per_9"] = round(p_hits * 9 / ip_actual, 1)
+
+        if s.get("hr_per_9") is None and p_hr is not None:
+            s["hr_per_9"] = round(p_hr * 9 / ip_actual, 2)
+
+        if s.get("p_per_ip") is None:
+            pitches = s.get("pitches")
+            if pitches is not None:
+                s["p_per_ip"] = round(pitches / ip_actual, 1)
+
+        if s.get("rs_per_9") is None:
+            rs = s.get("run_support")
+            if rs is not None:
+                s["rs_per_9"] = round(rs * 9 / ip_actual, 2)
+
+    # K/BB
+    if s.get("k_bb_ratio") is None:
+        so = s.get("so")
+        bb = s.get("bb")
+        if so is not None and bb is not None and bb > 0:
+            s["k_bb_ratio"] = round(so / bb, 2)
+
+    # Strike% = strikes / pitches
+    if s.get("strike_pct") is None:
+        strikes = s.get("strikes")
+        pitches = s.get("pitches")
+        if strikes is not None and pitches and pitches > 0:
+            s["strike_pct"] = _fmt_avg(strikes / pitches)
+
+    # Pitcher BABIP = (H - HR) / (BF - SO - HR - BB)
+    if s.get("p_babip") is None:
+        p_hits = s.get("p_hits")
+        p_hr   = s.get("p_hr")
+        bf     = s.get("bf")
+        so     = s.get("so")
+        bb     = s.get("bb")
+        if all(v is not None for v in [p_hits, p_hr, bf, so, bb]):
+            denom = bf - so - p_hr - bb
+            if denom > 0:
+                s["p_babip"] = round((p_hits - p_hr) / denom, 3)
+
+    # Pitcher GO/AO
+    if s.get("p_go_ao") is None:
+        go = s.get("p_ground_outs")
+        ao = s.get("p_air_outs")
+        if go is not None and ao is not None and ao > 0:
+            s["p_go_ao"] = round(go / ao, 2)
+
+    # Win% = W / (W + L)
+    if s.get("win_pct") is None:
+        w = s.get("wins")
+        l = s.get("losses")
+        if w is not None and l is not None:
+            total = w + l
+            if total > 0:
+                s["win_pct"] = _fmt_avg(w / total)
+
+    # Pitcher batting line (opponents): p_avg, p_obp, p_slg, p_ops
+    p_ab = s.get("p_ab")
+    if p_ab and p_ab > 0:
+        p_hits = s.get("p_hits")
+        p_tb   = s.get("p_tb")
+        bb     = s.get("bb")
+        p_hbp  = s.get("p_hbp")
+        p_sf   = s.get("p_sac_flies") or 0
+
+        if s.get("p_avg") is None and p_hits is not None:
+            s["p_avg"] = _fmt_avg(p_hits / p_ab)
+
+        p_obp_f = None
+        if p_hits is not None and bb is not None and p_hbp is not None:
+            obp_denom = p_ab + bb + p_hbp + p_sf
+            if obp_denom > 0:
+                p_obp_f = (p_hits + bb + p_hbp) / obp_denom
+        if s.get("p_obp") is None and p_obp_f is not None:
+            s["p_obp"] = _fmt_avg(p_obp_f)
+
+        p_slg_f = None
+        if p_tb is not None:
+            p_slg_f = p_tb / p_ab
+        if s.get("p_slg") is None and p_slg_f is not None:
+            s["p_slg"] = _fmt_avg(p_slg_f)
+
+        if s.get("p_ops") is None:
+            # Use already-computed floats if available, else parse strings
+            obp_f = p_obp_f if p_obp_f is not None else safe_float(s.get("p_obp"))
+            slg_f = p_slg_f if p_slg_f is not None else safe_float(s.get("p_slg"))
+            if obp_f is not None and slg_f is not None:
+                s["p_ops"] = _fmt_avg(obp_f + slg_f)
+
+
 def annotate_computed_stats(all_stats):
-    """Add derived fields (np, p_per_pa, iso) to each stat row."""
+    """Add derived fields to each stat row (np alias + all advanced stats)."""
     for stat in all_stats:
         stat.np = stat.pitches
-        if stat.p_per_pa is None:
-            stat.p_per_pa = stat.pitches_per_pa
-        if stat.get("slg") is not None and stat.get("avg") is not None:
-            stat.iso = stat.slg - stat.avg
-        else:
-            stat.iso = None
+        _compute_advanced_stats(stat)
     return all_stats
+
+
+def compute_year_groups(all_stats):
+    """Group stats by year, producing a summary row + per-team detail rows.
+
+    Returns a list of dicts (ordered most-recent year first)::
+
+        [
+          {
+            "year": 2024,
+            "summary": <Obj with summed counts + recalculated rates>,
+            "rows": [<Obj per team/level row for that year>],
+            "multi": True/False,   # True when player was on 2+ teams that year
+          },
+          ...
+        ]
+
+    ERA and WHIP on the summary row are computed from total outs (IP via
+    ip_to_outs) so cross-team ERA is always accurate.
+    """
+    years = sorted({s.year for s in all_stats}, reverse=True)
+    groups = []
+    for yr in years:
+        yr_stats = [s for s in all_stats if s.year == yr]
+        # Sort rows: MLB first, then by level order
+        yr_stats.sort(key=lambda s: s.level_order)
+
+        summary = Obj()
+        _sum_counting(yr_stats, summary)
+        total_outs = sum(ip_to_outs(s.ip) for s in yr_stats)
+        summary["ip"] = outs_to_ip(total_outs)
+        _compute_rate_stats(summary)
+        summary["year"] = yr
+
+        # np alias for template compatibility
+        summary["np"] = summary.get("pitches")
+
+        # Fill in all advanced / derived stats
+        _compute_advanced_stats(summary)
+
+        groups.append({
+            "year": yr,
+            "summary": summary,
+            "rows": yr_stats,
+            "multi": len(yr_stats) > 1,
+        })
+    return groups

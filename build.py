@@ -3,13 +3,24 @@
 Taiwan MLB Tracker — build pipeline.
 
 Usage:
-    python build.py sync                # fetch latest data from APIs
-    python build.py build               # generate static site
-    python build.py all                 # sync + build (full pipeline)
+    python build.py sync                # full sync: fetch ALL years of data for ALL players
+    python build.py refresh             # update current-year stats & logs, then build site
+    python build.py build               # generate static site from existing database
+    python build.py all                 # full sync + build (first-time / backfill)
 
-Options are auto-detected from project defaults but can be overridden:
-    python build.py sync  --player 678906
-    python build.py build --base-url /twbexpats/
+Commands:
+    sync     Fetches yearByYear stats AND game logs for every historical season.
+             Use this the first time or to backfill complete game log history.
+    refresh  Fetches yearByYear stats (all seasons) but only game logs for the
+             current year, then immediately builds the static site.
+             Use this for daily/CI updates — requires an existing database.
+    build    Reads the SQLite database and renders HTML to the dist/ directory.
+    all      Runs full sync then build in one step.
+
+Options:
+    python build.py sync    --player 678906   # single player only
+    python build.py refresh --player 678906   # single player only
+    python build.py build   --base-url /twbexpats/
 """
 
 import argparse
@@ -40,6 +51,25 @@ def cmd_build(args):
     )
 
 
+def cmd_refresh(args):
+    """Fast update (current-year logs only) then immediately build the site."""
+    from site_builder.sync import update_database
+    from site_builder.builder import build_static_site
+
+    update_database(
+        db_path=args.db,
+        roster_file=args.roster,
+        year=args.year,
+        only_player=args.player,
+    )
+    build_static_site(
+        db_path=args.db,
+        year=args.year,
+        output_dir=args.output,
+        base_url=args.base_url,
+    )
+
+
 def cmd_all(args):
     cmd_sync(args)
     cmd_build(args)
@@ -58,9 +88,11 @@ def main():
         "--year", type=int, default=DEFAULT_SEASON_YEAR, help="Season year"
     )
 
-    # sync
+    # sync — full historical sync (all years, all game logs)
     sp_sync = sub.add_parser(
-        "sync", parents=[common], help="Fetch data from MLB/FanGraphs APIs"
+        "sync",
+        parents=[common],
+        help="Full sync: fetch ALL years of stats + game logs for every player",
     )
     sp_sync.add_argument(
         "--roster", default="src/data/roster.json", help="Roster JSON path"
@@ -70,17 +102,35 @@ def main():
     )
     sp_sync.set_defaults(func=cmd_sync)
 
-    # build
+    # refresh — fast update + build (the standard daily/CI command)
+    sp_refresh = sub.add_parser(
+        "refresh",
+        parents=[common],
+        help="Fast update (current-year stats & logs) then build the static site",
+    )
+    sp_refresh.add_argument(
+        "--roster", default="src/data/roster.json", help="Roster JSON path"
+    )
+    sp_refresh.add_argument(
+        "--player", type=int, default=None, help="Refresh single MLB ID only"
+    )
+    sp_refresh.add_argument("--output", default="dist", help="Output directory")
+    sp_refresh.add_argument(
+        "--base-url", default="/", help="Site base URL (e.g. /repo/)"
+    )
+    sp_refresh.set_defaults(func=cmd_refresh)
+
+    # build — render HTML from existing database
     sp_build = sub.add_parser(
-        "build", parents=[common], help="Generate static HTML site"
+        "build", parents=[common], help="Generate static HTML site from existing database"
     )
     sp_build.add_argument("--output", default="dist", help="Output directory")
     sp_build.add_argument("--base-url", default="/", help="Site base URL (e.g. /repo/)")
     sp_build.set_defaults(func=cmd_build)
 
-    # all (sync + build)
+    # all — full sync then build
     sp_all = sub.add_parser(
-        "all", parents=[common], help="Sync then build (full pipeline)"
+        "all", parents=[common], help="Full sync then build (first-time / backfill pipeline)"
     )
     sp_all.add_argument(
         "--roster", default="src/data/roster.json", help="Roster JSON path"

@@ -1,5 +1,5 @@
 """
-Data synchronization: fetch from MLB/FanGraphs APIs and store in SQLite.
+Data synchronization: fetch from MLB APIs and store in SQLite.
 
 Uses concurrent.futures to fetch player data in parallel for faster syncs.
 """
@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Optional
 
 from site_builder.api import (
-    get_fangraphs_stats,
     get_game_logs,
     get_next_game,
     get_player_advanced_stats,
@@ -24,8 +23,6 @@ from site_builder.helpers import (
     SPORT_LEVEL_ORDER,
     dumps_json,
     loads_json,
-    loads_json_dict,
-    loads_json_list,
     safe_float,
     safe_int,
 )
@@ -36,7 +33,6 @@ MAX_WORKERS = 8  # parallel API fetch threads
 
 
 # ── Database schema ──
-
 
 def _init_db(conn: sqlite3.Connection):
     conn.executescript("""
@@ -75,7 +71,6 @@ def _init_db(conn: sqlite3.Connection):
             sport_level TEXT NOT NULL DEFAULT '',
             stat_json TEXT NOT NULL DEFAULT '{}',
             fielding_json TEXT NOT NULL DEFAULT '[]',
-            advanced_json TEXT NOT NULL DEFAULT '{}',
             UNIQUE(player_mlb_id, year, team_name)
         );
 
@@ -103,7 +98,7 @@ def _init_db(conn: sqlite3.Connection):
 
 def _load_season_row(cur, mlb_id: int, year: int, team_name: str) -> dict:
     cur.execute(
-        "SELECT league_name, sport_level, stat_json, fielding_json, advanced_json "
+        "SELECT league_name, sport_level, stat_json, fielding_json "
         "FROM season_stats WHERE player_mlb_id = ? AND year = ? AND team_name = ?",
         (mlb_id, year, team_name),
     )
@@ -114,14 +109,12 @@ def _load_season_row(cur, mlb_id: int, year: int, team_name: str) -> dict:
             "sport_level": "",
             "stat_json": {},
             "fielding_json": [],
-            "advanced_json": {},
         }
     return {
         "league_name": row[0] or "",
         "sport_level": row[1] or "",
         "stat_json": loads_json(row[2], {}),
         "fielding_json": loads_json(row[3], []),
-        "advanced_json": loads_json(row[4], {}),
     }
 
 
@@ -134,17 +127,14 @@ def _save_season_row(
     sport_level,
     stat_json,
     fielding_json,
-    advanced_json,
 ):
     cur.execute(
         "INSERT INTO season_stats "
-        "(player_mlb_id, year, team_name, league_name, sport_level, "
-        " stat_json, fielding_json, advanced_json) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+        "(player_mlb_id, year, team_name, league_name, sport_level, stat_json, fielding_json) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?) "
         "ON CONFLICT(player_mlb_id, year, team_name) DO UPDATE SET "
         " league_name=excluded.league_name, sport_level=excluded.sport_level, "
-        " stat_json=excluded.stat_json, fielding_json=excluded.fielding_json, "
-        " advanced_json=excluded.advanced_json",
+        " stat_json=excluded.stat_json, fielding_json=excluded.fielding_json",
         (
             mlb_id,
             year,
@@ -153,7 +143,6 @@ def _save_season_row(
             sport_level or "",
             dumps_json(stat_json),
             dumps_json(fielding_json),
-            dumps_json(advanced_json),
         ),
     )
 
@@ -184,7 +173,6 @@ def _apply_yearbyyear_fields(stat_doc: dict, group_name: str, stat: dict):
                 "k_bb_ratio": safe_float(stat.get("strikeoutWalkRatio")),
                 "hr_per_9": safe_float(stat.get("homeRunsPer9")),
                 "p_per_ip": safe_float(stat.get("pitchesPerInning")),
-                "r_per_9": safe_float(stat.get("runsScoredPer9")),
                 "win_pct": str(stat.get("winPercentage", "")),
                 "strike_pct": str(stat.get("strikePercentage", "")),
                 "p_ground_outs": safe_int(stat.get("groundOuts")),
@@ -202,7 +190,6 @@ def _apply_yearbyyear_fields(stat_doc: dict, group_name: str, stat: dict):
                 "p_tb": safe_int(stat.get("totalBases")),
                 "p_ab": safe_int(stat.get("atBats")),
                 "svo": safe_int(stat.get("saveOpportunities")),
-                "bs": safe_int(stat.get("blownSaves")),
                 "outs": safe_int(stat.get("outs")),
                 "cg": safe_int(stat.get("completeGames")),
                 "sho": safe_int(stat.get("shutouts")),
@@ -306,8 +293,18 @@ def _apply_advanced_fields(stat_doc: dict, group_name: str, stat: dict):
 # ── Parallel data fetching ──
 
 
-def _fetch_player_data(pconf: dict, year: int) -> Optional[dict]:
-    """Fetch all API data for one player (no DB writes). Thread-safe."""
+def _fetch_player_data(
+    pconf: dict, year: int, fetch_all_years: bool = True
+) -> Optional[dict]:
+    """Fetch all API data for one player (no DB writes). Thread-safe.
+
+    Args:
+        pconf: Player configuration dict from roster.
+        year: The target/current season year.
+        fetch_all_years: If True (sync mode), fetch game logs for ALL historical
+            years. If False (update mode), only fetch the current year's logs
+            for a faster update.
+    """
     mlb_id = pconf["mlb_id"]
     source = pconf.get("source", "milb")
     name_tw = pconf.get("name_tw", "")
@@ -338,18 +335,21 @@ def _fetch_player_data(pconf: dict, year: int) -> Optional[dict]:
     adv_groups = []
     try:
         years_to_fetch = sorted(years_with_data) if years_with_data else [year]
+        if not fetch_all_years:
+            # update mode: only fetch advanced stats for the current year
+            years_to_fetch = [year]
         adv_groups = get_player_advanced_stats(
             mlb_id, years=years_to_fetch, source=source
         )
     except Exception as e:
         logger.warning("seasonAdvanced failed for %s: %s", mlb_id, e)
 
-    # Game logs
-    if years_with_data:
-        fetch_years = sorted(y for y in years_with_data if y == year) or sorted(
-            years_with_data
-        )
+    # Game logs — in sync mode fetch ALL historical years so the game log
+    # tab shows data for every season, not just the current one.
+    if fetch_all_years:
+        fetch_years = sorted(years_with_data) if years_with_data else [year]
     else:
+        # update mode: only refresh the current year's logs (fast)
         fetch_years = [year]
 
     log_groups = {}
@@ -368,16 +368,6 @@ def _fetch_player_data(pconf: dict, year: int) -> Optional[dict]:
     except Exception as e:
         logger.warning("next-game failed for %s: %s", mlb_id, e)
 
-    # FanGraphs
-    fg_data = {}
-    fg_id = pconf.get("fg_id")
-    if fg_id:
-        try:
-            fg_position = pconf.get("fg_position", "OF")
-            fg_data = get_fangraphs_stats(fg_id, position=fg_position)
-        except Exception as e:
-            logger.warning("fangraphs failed for %s: %s", mlb_id, e)
-
     return {
         "pconf": pconf,
         "profile": profile,
@@ -385,7 +375,6 @@ def _fetch_player_data(pconf: dict, year: int) -> Optional[dict]:
         "adv_groups": adv_groups,
         "log_groups": log_groups,
         "next_game": next_game,
-        "fg_data": fg_data,
         "years_with_data": years_with_data,
     }
 
@@ -496,7 +485,6 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
                 split.get("sport", {}).get("abbreviation", ""),
                 stat_doc,
                 fielding_doc,
-                row["advanced_json"],
             )
 
     # seasonAdvanced stats
@@ -521,7 +509,6 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
                 row["sport_level"],
                 stat_doc,
                 row["fielding_json"],
-                row["advanced_json"],
             )
 
     # Update level/team
@@ -587,46 +574,21 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
         (dumps_json(bundle["next_game"] or {}), now, year, mlb_id),
     )
 
-    # FanGraphs merge
-    fg_data = bundle["fg_data"]
-    for _key, stats_dict in fg_data.items():
-        season = stats_dict.get("season")
-        if not season:
-            continue
-        cur.execute(
-            "SELECT team_name, league_name, sport_level, stat_json, fielding_json, advanced_json "
-            "FROM season_stats WHERE player_mlb_id = ? AND year = ?",
-            (mlb_id, season),
-        )
-        rows = cur.fetchall()
-        for row in rows:
-            advanced_doc = loads_json_dict(row[5])
-            advanced_doc["fangraphs"] = stats_dict
-            _save_season_row(
-                cur,
-                mlb_id,
-                season,
-                row[0],
-                row[1],
-                row[2],
-                loads_json_dict(row[3]),
-                loads_json_list(row[4]),
-                advanced_doc,
-            )
-
     conn.commit()
 
 
 # ── Public entry point ──
 
 
-def sync_database(
+def _run_pipeline(
     db_path: str,
     roster_file: str,
     year: int,
     only_player: Optional[int] = None,
+    fetch_all_years: bool = True,
+    mode_label: str = "Sync",
 ):
-    """Sync all player data from APIs into SQLite, using parallel fetches."""
+    """Shared fetch-and-write pipeline used by both sync and update."""
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -639,15 +601,18 @@ def sync_database(
         players_config = [p for p in players_config if p.get("mlb_id") == only_player]
 
     total = len(players_config)
-    print(f"Syncing {total} players into {db_file} (max {MAX_WORKERS} parallel)")
+    print(
+        f"{mode_label}: {total} players into {db_file} "
+        f"(max {MAX_WORKERS} parallel, all_years={fetch_all_years})"
+    )
 
     # Phase 1: Fetch all data in parallel
     bundles = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_name = {
-            executor.submit(_fetch_player_data, pconf, year): pconf.get(
-                "name_tw", pconf["mlb_id"]
-            )
+            executor.submit(
+                _fetch_player_data, pconf, year, fetch_all_years
+            ): pconf.get("name_tw", pconf["mlb_id"])
             for pconf in players_config
         }
         for i, future in enumerate(as_completed(future_to_name), 1):
@@ -674,4 +639,47 @@ def sync_database(
             logger.exception("DB write failed for %s", name)
 
     conn.close()
-    print("Sync complete")
+    print(f"{mode_label} complete")
+
+
+def sync_database(
+    db_path: str,
+    roster_file: str,
+    year: int,
+    only_player: Optional[int] = None,
+):
+    """Full sync: fetch ALL historical years of stats + game logs for every player.
+
+    Use this to build the database from scratch or ensure complete historical data.
+    Slower than update_database because it fetches game logs for every season.
+    """
+    _run_pipeline(
+        db_path=db_path,
+        roster_file=roster_file,
+        year=year,
+        only_player=only_player,
+        fetch_all_years=True,
+        mode_label="Sync",
+    )
+
+
+def update_database(
+    db_path: str,
+    roster_file: str,
+    year: int,
+    only_player: Optional[int] = None,
+):
+    """Fast update: refresh player profiles and current-year stats/logs only.
+
+    Use this for daily/regular updates during the season. It fetches yearByYear
+    stats (all years) for the season-stats table, but only downloads game logs
+    for the current year, making it significantly faster than a full sync.
+    """
+    _run_pipeline(
+        db_path=db_path,
+        roster_file=roster_file,
+        year=year,
+        only_player=only_player,
+        fetch_all_years=False,
+        mode_label="Update",
+    )

@@ -17,6 +17,7 @@ from site_builder.helpers import (
     annotate_computed_stats,
     compute_career,
     compute_season_combined,
+    compute_year_groups,
     has_appearance,
     height_to_cm,
     lbs_to_kg,
@@ -116,7 +117,7 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
     # Season stats
     cur.execute(
         "SELECT year, team_name, league_name, sport_level, stat_json, "
-        "       fielding_json, advanced_json "
+        "       fielding_json "
         "FROM season_stats WHERE player_mlb_id = ? ORDER BY year DESC",
         (player.mlb_id,),
     )
@@ -130,7 +131,6 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         stat_json = loads_json_dict(row[4])
         data.update(stat_json)
         data.fielding_json = loads_json_list(row[5])
-        data.advanced_json = loads_json_dict(row[6])
         data.level_order = SPORT_LEVEL_ORDER.get(data.sport_level, 50)
         slg = safe_float(data.get("slg"))
         avg = safe_float(data.get("avg"))
@@ -237,8 +237,18 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
     player_template = env.get_template("player_detail.j2")
     for player, all_stats, all_logs in bundles:
         selected_year = year
-        game_logs = [g for g in all_logs if g.date and g.date.year == selected_year]
-        game_logs.sort(key=lambda g: g.date, reverse=True)
+
+        logs_by_year = {}
+        for log in all_logs:
+            if not log.date: continue
+            y = log.date.year
+            logs_by_year.setdefault(y, []).append(log)
+
+        for y in logs_by_year:
+            logs_by_year[y].sort(key=lambda g: g.date, reverse=True)
+
+        available_log_years = sorted(logs_by_year.keys(), reverse=True)
+        game_logs = logs_by_year.get(selected_year, [])
 
         # Chart data
         chart_labels = []
@@ -254,6 +264,7 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
             chart_data.append(val)
 
         all_stats = annotate_computed_stats(all_stats)
+        stats_year_groups = compute_year_groups(all_stats)
 
         # Career aggregations
         milb_career = compute_career(all_stats, level_filter="milb")
@@ -298,24 +309,15 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     entry["sport_level"] = s.sport_level
                     all_fielding.append(entry)
 
-        # FanGraphs data
-        fg_stats = []
-        for s in all_stats:
-            if s.advanced_json and isinstance(s.advanced_json, dict):
-                fg = s.advanced_json.get("fangraphs")
-                if fg:
-                    entry = dict(fg)
-                    entry["year"] = s.year
-                    entry["team_name"] = s.team_name
-                    entry["sport_level"] = s.sport_level
-                    fg_stats.append(entry)
-
         context = {
             "player": player,
             "all_stats": all_stats,
+            "stats_year_groups": stats_year_groups,
             "years": player.available_years,
             "selected_year": selected_year,
             "game_logs": game_logs,
+            "logs_by_year": logs_by_year,
+            "available_log_years": available_log_years,
             "chart_labels": chart_labels,
             "chart_data": chart_data,
             "is_pitcher": player.is_pitcher,
@@ -325,14 +327,11 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
             "next_game": next_game,
             "next_game_updated_at": next_game_updated_at,
             "transactions": player.transactions_json or [],
-            "fielding_data": [],  # kept for template compatibility
             "all_fielding": all_fielding,
             "height_cm": height_to_cm(player.height),
             "weight_kg": lbs_to_kg(player.weight),
-            "fg_stats": fg_stats,
             "latest_team_stat": latest_team_stat,
             "season_combined": season_combined,
-            "default_season_year": year,
         }
 
         html = player_template.render(**context)

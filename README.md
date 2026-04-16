@@ -11,7 +11,7 @@ players in the American professional baseball system (MLB/MiLB).
 │   ├── static/css/         # Stylesheets
 │   └── data/roster.json    # Tracked player roster
 ├── site_builder/           # Python package
-│   ├── api.py              # MLB Stats API + FanGraphs client
+│   ├── api.py              # MLB Stats API
 │   ├── sync.py             # Data sync (parallel fetch)
 │   ├── builder.py          # Static site renderer
 │   ├── helpers.py          # Shared utilities & stat computation
@@ -24,7 +24,7 @@ players in the American professional baseball system (MLB/MiLB).
 ## Commands
 
 ```bash
-# Sync latest data from MLB/FanGraphs APIs
+# Sync latest data from MLB
 python build.py sync
 
 # Build static site to dist/
