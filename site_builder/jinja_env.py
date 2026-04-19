@@ -24,7 +24,7 @@ def floatformat(value, digits=2):
         return "-"
     try:
         return f"{float(value):.{int(digits)}f}"
-    except (ValueError, TypeError):
+    except Exception:
         return "-"
 
 
@@ -50,6 +50,20 @@ def slice_prefix(value, n):
 def tojson_safe(value):
     """Serialize to JSON and mark safe for embedding in <script>."""
     return Markup(json.dumps(value, ensure_ascii=False))
+
+
+def pct_fmt(value, digits=1):
+    """Format a decimal fraction (e.g. 0.345) as a percentage string (34.5%).
+
+    Returns '-' for None.  Commonly used for Statcast percentages stored as
+    0.XXX in the database.
+    """
+    if value is None:
+        return "-"
+    try:
+        return f"{float(value) * 100:.{int(digits)}f}%"
+    except Exception:
+        return "-"
 
 
 # ── URL Factories ──
@@ -93,6 +107,7 @@ def create_jinja_env(template_dir=None, base_url="/"):
     env.filters["num_dash"] = num_dash
     env.filters["slice_prefix"] = slice_prefix
     env.filters["tojson_safe"] = tojson_safe
+    env.filters["pct_fmt"] = pct_fmt
 
     env.globals["player_url"] = player_url
     env.globals["static_url"] = static_url

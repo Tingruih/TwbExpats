@@ -3,7 +3,6 @@ Static site builder: reads SQLite data and renders Jinja2 templates to HTML.
 """
 
 import datetime
-import os
 import shutil
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
@@ -27,8 +26,180 @@ from site_builder.helpers import (
     safe_float,
 )
 from site_builder.jinja_env import create_jinja_env
+from site_builder.statcast import summarize_pitch_for_display
 
-_PROJECT_ROOT = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _combine_pitch_type_data(
+    entries: list[dict],
+    sc_key: str,
+    rate_fields: list[str],
+    include_pct: bool = False,
+) -> list[dict]:
+    """Shared helper: combine per-level pitch-type data via count-weighted averages.
+
+    Args:
+        entries: list of {sport_level, team_name, sc} dicts.
+        sc_key: key inside ``sc`` to read (``"vs_pitch_types"`` or ``"pitch_arsenal"``).
+        rate_fields: field names to weight-average by pitch count.
+        include_pct: if True, compute ``pct`` (type count / grand total) in output.
+
+    Returns:
+        Combined list sorted by pitch count descending.
+        ``put_away_pct`` is always weighted by ``two_strike_count`` for accuracy.
+    """
+    total_count = 0
+    by_type: dict[str, dict] = {}
+
+    for e in entries:
+        if e.get("sport_level") == "_combined":
+            continue
+        items = (e.get("sc") or {}).get(sc_key) or []
+        for pt in items:
+            t = pt.get("type", "UN")
+            n = pt.get("count", 0)
+            total_count += n
+            if t not in by_type:
+                by_type[t] = {
+                    "name": pt.get("name", t),
+                    "count": 0,
+                    "two_strike_count": 0,
+                    "wsums": {f: 0.0 for f in rate_fields},
+                    "wcounts": {f: 0.0 for f in rate_fields},
+                    "pa_wsum": 0.0,
+                    "pa_wcount": 0.0,
+                }
+            bucket = by_type[t]
+            bucket["count"] += n
+            two_k_n = pt.get("two_strike_count", 0)
+            bucket["two_strike_count"] += two_k_n
+            pa_pct = pt.get("put_away_pct")
+            if pa_pct is not None and two_k_n:
+                bucket["pa_wsum"] += pa_pct * two_k_n
+                bucket["pa_wcount"] += two_k_n
+            for f in rate_fields:
+                v = pt.get(f)
+                if v is not None:
+                    bucket["wsums"][f] += v * n
+                    bucket["wcounts"][f] += n
+
+    out = []
+    for t, bucket in by_type.items():
+        n = bucket["count"]
+        row: dict = {"type": t, "name": bucket["name"], "count": n}
+        if include_pct:
+            row["pct"] = round(n / total_count, 4) if total_count else None
+        for f in rate_fields:
+            wc = bucket["wcounts"][f]
+            row[f] = round(bucket["wsums"][f] / wc, 4) if wc else None
+        pa_wc = bucket["pa_wcount"]
+        row["put_away_pct"] = round(bucket["pa_wsum"] / pa_wc, 4) if pa_wc else None
+        out.append(row)
+    out.sort(key=lambda r: r.get("count", 0), reverse=True)
+    return out
+
+
+def _combine_vs_pitch_types(entries: list[dict]) -> list[dict]:
+    """Combine per-level vs_pitch_types into a single count-weighted list."""
+    return _combine_pitch_type_data(
+        entries,
+        sc_key="vs_pitch_types",
+        rate_fields=[
+            "strike_pct", "zone_pct", "z_swing_pct", "o_swing_pct",
+            "whiff_pct", "swstr_pct", "csw_pct",
+            "avg", "woba", "barrel_pct", "hard_hit_pct",
+        ],
+    )
+
+
+def _combine_pitch_arsenal(entries: list[dict]) -> list[dict]:
+    """Combine per-level pitch_arsenal into a single count-weighted list."""
+    return _combine_pitch_type_data(
+        entries,
+        sc_key="pitch_arsenal",
+        rate_fields=[
+            "velo", "ivb", "hb", "spin", "extension", "v_rel", "h_rel",
+            "zone_pct", "chase_pct", "whiff_pct", "woba",
+        ],
+        include_pct=True,
+    )
+
+
+def _combine_statcast_dicts(entries: list[dict]) -> dict:
+    """Compute a weighted-average combined statcast dict from multiple level entries.
+
+    Args:
+        entries: list of {sport_level, team_name, sc} dicts (the per-level entries).
+
+    Returns:
+        A combined sc dict suitable for display in a summary row.
+        pitch_arsenal and vs_pitch_types are computed as count-weighted averages.
+    """
+    scs = [e["sc"] for e in entries if e.get("sc")]
+    if not scs:
+        return {}
+    if len(scs) == 1:
+        return dict(scs[0])
+
+    def _wsum(field, weight_field):
+        """Weighted sum of (value * weight) and sum of weights."""
+        total_w = 0.0
+        total_wv = 0.0
+        for sc in scs:
+            v = sc.get(field)
+            w = sc.get(weight_field) or 0
+            if v is not None and w:
+                total_w += w
+                total_wv += v * w
+        return total_wv, total_w
+
+    def _wpct(field, weight_field, digits=3):
+        wv, w = _wsum(field, weight_field)
+        if not w:
+            return None
+        return round(wv / w, digits)
+
+    total_p = sum((sc.get("total_pitches") or 0) for sc in scs)
+    total_bbe = sum((sc.get("bbe") or 0) for sc in scs)
+    total_pa = sum((sc.get("pa_count") or 0) for sc in scs)
+
+    # Pitch-discipline fields — weight by total_pitches
+    pitch_pct_fields = [
+        "swing_pct", "swstr_pct", "csw_pct", "zone_pct", "strike_pct",
+        "z_swing_pct", "o_swing_pct", "z_contact_pct", "whiff_pct",
+        "avg_extension",
+    ]
+    # BBE-based fields — weight by bbe
+    bbe_fields = [
+        "barrel_pct", "hard_hit_pct", "avg_ev", "avg_la", "swsp_pct",
+        "gb_pct", "ld_pct", "fb_pct", "pu_pct", "pull_pct",
+        "straight_pct", "oppo_pct", "hr_fb_pct", "ev90",
+    ]
+    # PA-based fields — weight by pa_count
+    pa_fields = ["woba", "woba_against"]
+
+    combined: dict = {
+        "total_pitches": total_p,
+        "bbe": total_bbe,
+        "pa_count": total_pa,
+    }
+    for f in pitch_pct_fields:
+        combined[f] = _wpct(f, "total_pitches")
+    for f in bbe_fields:
+        combined[f] = _wpct(f, "bbe")
+    for f in pa_fields:
+        combined[f] = _wpct(f, "pa_count")
+
+    # max_ev — take the maximum across levels
+    max_evs = [sc.get("max_ev") for sc in scs if sc.get("max_ev") is not None]
+    combined["max_ev"] = round(max(max_evs), 1) if max_evs else None
+
+    # pitch_arsenal / vs_pitch_types: combine using count-weighted averages
+    combined["pitch_arsenal"] = _combine_pitch_arsenal(entries)
+    combined["vs_pitch_types"] = _combine_vs_pitch_types(entries)
+
+    return combined
 
 
 def _prefetch_headshots(mlb_ids: list, cache_dir: Path, dest_dir: Path):
@@ -141,12 +312,26 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
     player.latest_stat = stats[0] if stats else None
     player.available_years = sorted({s.year for s in stats}, reverse=True)
 
-    # Game logs
-    cur.execute(
-        "SELECT date, game_id, opponent, is_home, stats_json "
-        "FROM game_logs WHERE player_mlb_id = ? ORDER BY date DESC",
-        (player.mlb_id,),
-    )
+    # Game logs — pitches_json may not exist on older DBs (before Statcast support)
+    has_pitches_col = False
+    try:
+        cur.execute("SELECT pitches_json FROM game_logs LIMIT 0")
+        has_pitches_col = True
+    except Exception:
+        pass
+
+    if has_pitches_col:
+        log_sql = (
+            "SELECT date, game_id, opponent, is_home, stats_json, pitches_json "
+            "FROM game_logs WHERE player_mlb_id = ? ORDER BY date DESC"
+        )
+    else:
+        log_sql = (
+            "SELECT date, game_id, opponent, is_home, stats_json "
+            "FROM game_logs WHERE player_mlb_id = ? ORDER BY date DESC"
+        )
+
+    cur.execute(log_sql, (player.mlb_id,))
     logs = []
     for row in cur.fetchall():
         log = Obj()
@@ -155,6 +340,7 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         log.opponent = row[2]
         log.is_home = None if row[3] is None else bool(row[3])
         log.stats_json = loads_json_dict(row[4])
+        log.pitches_json = loads_json_list(row[5]) if has_pitches_col else []
         logs.append(log)
 
     return player, stats, logs
@@ -309,6 +495,43 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     entry["sport_level"] = s.sport_level
                     all_fielding.append(entry)
 
+        # ── Statcast context ──
+        # Summarised pitch logs per game (for expandable rows in game log tab)
+        for y_key in logs_by_year:
+            for log in logs_by_year[y_key]:
+                if log.pitches_json:
+                    log.pitch_display = [
+                        summarize_pitch_for_display(p) for p in log.pitches_json
+                    ]
+                else:
+                    log.pitch_display = []
+
+        # Season-level Statcast data keyed by year → list of {sport_level, team_name, sc}
+        statcast_by_year: dict[int, list] = {}
+        for s in all_stats:
+            sc = s.get("statcast")
+            if sc:
+                statcast_by_year.setdefault(s.year, []).append({
+                    "sport_level": s.sport_level,
+                    "team_name": s.team_name,
+                    "sc": sc,
+                })
+        # For years with multiple levels, prepend a combined summary entry so the
+        # summary row in the template can display real weighted-average values.
+        for yr_key, yr_entries in statcast_by_year.items():
+            if len(yr_entries) > 1:
+                combined_sc = _combine_statcast_dicts(yr_entries)
+                yr_entries.insert(0, {
+                    "sport_level": "_combined",
+                    "team_name": "合計",
+                    "sc": combined_sc,
+                })
+
+        statcast_available = bool(statcast_by_year)
+
+        # Determine available Statcast years (sorted desc)
+        available_statcast_years = sorted(statcast_by_year.keys(), reverse=True)
+
         context = {
             "player": player,
             "all_stats": all_stats,
@@ -332,6 +555,9 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
             "weight_kg": lbs_to_kg(player.weight),
             "latest_team_stat": latest_team_stat,
             "season_combined": season_combined,
+            "statcast_by_year": statcast_by_year,
+            "statcast_available": statcast_available,
+            "available_statcast_years": available_statcast_years,
         }
 
         html = player_template.render(**context)

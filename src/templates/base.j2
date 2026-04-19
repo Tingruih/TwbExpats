@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Taiwan MLB Tracker{% endblock %}</title>
     <meta name="description" content="追蹤台灣旅外棒球員於美國職棒體系(MLB/MiLB)的最新數據與表現。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
@@ -32,5 +35,23 @@
         </main>
     </div>
     {% block extra_scripts %}{% endblock %}
+
+{# Shared image fallback handler — tries CDN URL first, then shows initials #}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".avatar-img").forEach(function(img) {
+        img.addEventListener("error", function() {
+            if (!this.dataset.cdnTried) {
+                this.dataset.cdnTried = "1";
+                var cdn = this.dataset.cdnSrc;
+                if (cdn) { this.src = cdn; return; }
+            }
+            this.style.display = "none";
+            var fallback = this.parentElement.querySelector(".avatar-fallback");
+            if (fallback) fallback.style.display = "flex";
+        });
+    });
+});
+</script>
 </body>
 </html>

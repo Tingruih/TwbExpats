@@ -35,75 +35,22 @@ class Obj(dict):
 # ── Counting stat fields summed in career / season-combined aggregations ──
 
 _COUNTING_FIELDS = [
+    # ── Shared ──
     "gp",
-    "wins",
-    "losses",
-    "sv",
-    "hld",
-    "so",
-    "bb",
-    "hr",
-    "rbi",
-    "sb",
-    "cs",
-    "hits",
-    "ab",
-    "hit_bb",
-    "earned_runs",
-    "pitches",
-    "bf",
-    "gs",
-    "pa",
-    "doubles",
-    "triples",
-    "tb",
-    "hbp",
-    "gdp",
-    "runs",
-    "h_so",
-    "ibb",
-    "lob",
-    "sac_bunts",
-    "sac_flies",
-    "p_ground_outs",
-    "p_air_outs",
-    "runs_allowed",
-    "p_hits",
-    "p_hr",
-    "p_hbp",
-    "p_ibb",
-    "p_sb",
-    "p_cs",
-    "p_gdp",
-    "p_doubles",
-    "p_triples",
-    "p_tb",
-    "p_ab",
-    "svo",
-    "outs",
-    "cg",
-    "sho",
-    "strikes",
-    "balks",
-    "wp",
-    "pickoffs",
-    "gf",
-    "ir",
-    "irs",
-    "p_sac_bunts",
-    "p_sac_flies",
-    "h_ground_outs",
-    "h_air_outs",
-    "pitches_seen",
-    "gidpo",
-    "roe",
-    "wo",
-    "qs",
-    "bqr",
-    "bqr_s",
-    "run_support",
-    "p_gidpo",
-    "xbh",
+    # ── Hitting ──
+    "pa", "ab", "runs", "hits", "doubles", "triples", "hr", "rbi", "tb",
+    "hit_bb", "h_so", "hbp", "ibb", "sb", "cs", "gdp", "lob",
+    "sac_bunts", "sac_flies", "h_ground_outs", "h_air_outs", "pitches_seen",
+    "gidpo", "roe", "wo", "xbh",
+    # ── Pitching ──
+    "wins", "losses", "sv", "hld", "so", "bb", "gs", "bf",
+    "earned_runs", "pitches", "svo", "outs", "cg", "sho", "strikes",
+    "balks", "wp", "pickoffs", "gf", "ir", "irs", "qs",
+    "runs_allowed", "p_hits", "p_hr", "p_hbp", "p_ibb",
+    "p_sb", "p_cs", "p_gdp", "p_doubles", "p_triples", "p_tb", "p_ab",
+    "p_ground_outs", "p_air_outs", "p_sac_bunts", "p_sac_flies",
+    # ── Advanced / derived counting ──
+    "bqr", "bqr_s", "run_support", "p_gidpo",
 ]
 
 
@@ -279,6 +226,20 @@ def _compute_rate_stats(agg):
         agg["era"] = agg["whip"] = None
 
 
+def _aggregate_stats(stats):
+    """Sum counting stats, compute IP, and derive rate stats for a list of rows.
+
+    Shared core of :func:`compute_career` and :func:`compute_season_combined`.
+    Returns a new :class:`Obj`.
+    """
+    agg = Obj()
+    _sum_counting(stats, agg)
+    total_outs = sum(ip_to_outs(s.ip) for s in stats)
+    agg["ip"] = outs_to_ip(total_outs)
+    _compute_rate_stats(agg)
+    return agg
+
+
 def compute_career(stats, level_filter=None):
     """Aggregate counting stats across multiple seasons and compute rates."""
     if level_filter == "mlb":
@@ -289,12 +250,7 @@ def compute_career(stats, level_filter=None):
     if not stats:
         return None
 
-    career = Obj()
-    _sum_counting(stats, career)
-
-    total_outs = sum(ip_to_outs(s.ip) for s in stats)
-    career["ip"] = outs_to_ip(total_outs)
-    _compute_rate_stats(career)
+    career = _aggregate_stats(stats)
 
     teams = [f"{s.sport_level} {s.team_name}" for s in stats]
     career["teams_display"] = " / ".join(teams)
@@ -316,12 +272,7 @@ def compute_season_combined(stats, year):
     if not stats:
         return None
 
-    combined = Obj()
-    _sum_counting(stats, combined)
-
-    total_outs = sum(ip_to_outs(s.ip) for s in stats)
-    combined["ip"] = outs_to_ip(total_outs)
-    _compute_rate_stats(combined)
+    combined = _aggregate_stats(stats)
 
     teams = [f"{s.sport_level} {s.team_name}" for s in stats]
     combined["teams_display"] = " / ".join(teams)
@@ -419,6 +370,20 @@ def _compute_advanced_stats(s):
             if total > 0:
                 s["sb_pct"] = _fmt_avg(sb / total)
 
+    # Batter K% = SO / PA
+    if s.get("k_pct") is None:
+        so = s.get("h_so")
+        pa = s.get("pa")
+        if so is not None and pa and pa > 0:
+            s["k_pct"] = round(so / pa, 3)
+
+    # Batter BB% = BB / PA
+    if s.get("bb_pct") is None:
+        bb = s.get("hit_bb")
+        pa = s.get("pa")
+        if bb is not None and pa and pa > 0:
+            s["bb_pct"] = round(bb / pa, 3)
+
     # ─────────────────────────── PITCHER fields ──────────────────────────
 
     # Pitcher P/PA alias: pitches_per_pa = pitches / BF
@@ -463,6 +428,20 @@ def _compute_advanced_stats(s):
         bb = s.get("bb")
         if so is not None and bb is not None and bb > 0:
             s["k_bb_ratio"] = round(so / bb, 2)
+
+    # Pitcher K% = SO / BF
+    if s.get("k_pct") is None:
+        so = s.get("so")
+        bf = s.get("bf")
+        if so is not None and bf and bf > 0:
+            s["k_pct"] = round(so / bf, 3)
+
+    # Pitcher BB% = BB / BF
+    if s.get("bb_pct") is None:
+        bb = s.get("bb")
+        bf = s.get("bf")
+        if bb is not None and bf and bf > 0:
+            s["bb_pct"] = round(bb / bf, 3)
 
     # Strike% = strikes / pitches
     if s.get("strike_pct") is None:

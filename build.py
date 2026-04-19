@@ -4,23 +4,28 @@ Taiwan MLB Tracker — build pipeline.
 
 Usage:
     python build.py sync                # full sync: fetch ALL years of data for ALL players
+    python build.py statcast            # fetch playByPlay + compute Statcast aggregates
     python build.py refresh             # update current-year stats & logs, then build site
     python build.py build               # generate static site from existing database
-    python build.py all                 # full sync + build (first-time / backfill)
+    python build.py all                 # full sync + statcast + build (first-time / backfill)
 
 Commands:
     sync     Fetches yearByYear stats AND game logs for every historical season.
              Use this the first time or to backfill complete game log history.
+    statcast Fetches playByPlay for every un-processed game, extracts pitch-level
+             data, and computes Statcast aggregates (FIP, Whiff%, arsenal, etc.).
+             Run after sync; uses a cache table to avoid re-fetching games.
     refresh  Fetches yearByYear stats (all seasons) but only game logs for the
              current year, then immediately builds the static site.
              Use this for daily/CI updates — requires an existing database.
     build    Reads the SQLite database and renders HTML to the dist/ directory.
-    all      Runs full sync then build in one step.
+    all      Runs full sync → statcast → build in one step.
 
 Options:
-    python build.py sync    --player 678906   # single player only
-    python build.py refresh --player 678906   # single player only
-    python build.py build   --base-url /twbexpats/
+    python build.py sync     --player 678906   # single player only
+    python build.py statcast --player 678906   # single player only
+    python build.py refresh  --player 678906   # single player only
+    python build.py build    --base-url /twbexpats/
 """
 
 import argparse
@@ -51,6 +56,18 @@ def cmd_build(args):
     )
 
 
+def cmd_statcast(args):
+    """Fetch playByPlay for all un-processed games and compute Statcast aggregates."""
+    from site_builder.sync import sync_statcast
+
+    sync_statcast(
+        db_path=args.db,
+        roster_file=args.roster,
+        year=args.year,
+        only_player=args.player,
+    )
+
+
 def cmd_refresh(args):
     """Fast update (current-year logs only) then immediately build the site."""
     from site_builder.sync import update_database
@@ -72,6 +89,7 @@ def cmd_refresh(args):
 
 def cmd_all(args):
     cmd_sync(args)
+    cmd_statcast(args)
     cmd_build(args)
 
 
@@ -101,6 +119,20 @@ def main():
         "--player", type=int, default=None, help="Sync single MLB ID only"
     )
     sp_sync.set_defaults(func=cmd_sync)
+
+    # statcast — fetch playByPlay and compute Statcast aggregates
+    sp_statcast = sub.add_parser(
+        "statcast",
+        parents=[common],
+        help="Fetch playByPlay for un-processed games and compute Statcast aggregates",
+    )
+    sp_statcast.add_argument(
+        "--roster", default="src/data/roster.json", help="Roster JSON path"
+    )
+    sp_statcast.add_argument(
+        "--player", type=int, default=None, help="Single MLB ID only"
+    )
+    sp_statcast.set_defaults(func=cmd_statcast)
 
     # refresh — fast update + build (the standard daily/CI command)
     sp_refresh = sub.add_parser(

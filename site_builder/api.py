@@ -22,6 +22,7 @@ _SPORT_ID_MAP = {
     14: "A",
     15: "A-",
     16: "ROK",
+    17: "ROK",
 }
 
 
@@ -97,18 +98,25 @@ def get_player_profile(mlb_id: int) -> dict:
     }
 
 
-def get_player_stats(mlb_id: int, source: str = "milb") -> list:
-    """Fetch yearByYear stats (hitting, pitching, fielding)."""
+def get_player_stats(mlb_id: int) -> list:
+    """Fetch yearByYear stats (hitting, pitching, fielding) from both MLB and MiLB endpoints.
+
+    Always fetches both endpoints so shuttle players (MLB ↔ MiLB) get complete data
+    regardless of current assignment. The MLB endpoint returns empty for pure MiLB players.
+    """
     all_stats = []
     groups = "hitting,pitching,fielding"
 
-    if source == "mlb":
+    # MLB endpoint — returns MLB-level seasons only; empty for players without MLB time
+    try:
         url = f"{BASE_URL}/people/{mlb_id}/stats?stats=yearByYear&group={groups}"
         resp = requests.get(url, timeout=TIMEOUT)
         resp.raise_for_status()
         all_stats.extend(resp.json().get("stats", []))
+    except Exception as e:
+        logger.warning("MLB yearByYear failed for %s: %s", mlb_id, e)
 
-    # Always include MiLB history
+    # MiLB endpoint — always needed for minor-league history
     url = (
         f"{BASE_URL}/people/{mlb_id}/stats"
         f"?stats=yearByYear&leagueListId=milb_all&group={groups}"
@@ -121,9 +129,12 @@ def get_player_stats(mlb_id: int, source: str = "milb") -> list:
 
 
 def get_player_advanced_stats(
-    mlb_id: int, years: Optional[list[int]] = None, source: str = "milb"
+    mlb_id: int, years: Optional[list[int]] = None
 ) -> list:
-    """Fetch seasonAdvanced stats (hitting + pitching) for specified years."""
+    """Fetch seasonAdvanced stats (hitting + pitching) for specified years.
+
+    Always fetches both MLB and MiLB endpoints so shuttle players get complete data.
+    """
     all_stats = []
     groups = "hitting,pitching"
     fetch_years = years if years else [None]
@@ -131,16 +142,16 @@ def get_player_advanced_stats(
     for yr in fetch_years:
         year_param = f"&season={yr}" if yr else ""
 
-        if source == "mlb":
-            url = f"{BASE_URL}/people/{mlb_id}/stats?stats=seasonAdvanced&group={groups}{year_param}"
-            try:
-                resp = requests.get(url, timeout=TIMEOUT)
-                resp.raise_for_status()
-                all_stats.extend(resp.json().get("stats", []))
-            except Exception as e:
-                logger.warning(
-                    "MLB seasonAdvanced failed for %s year=%s: %s", mlb_id, yr, e
-                )
+        # MLB endpoint — returns empty for players without MLB time
+        url = f"{BASE_URL}/people/{mlb_id}/stats?stats=seasonAdvanced&group={groups}{year_param}"
+        try:
+            resp = requests.get(url, timeout=TIMEOUT)
+            resp.raise_for_status()
+            all_stats.extend(resp.json().get("stats", []))
+        except Exception as e:
+            logger.warning(
+                "MLB seasonAdvanced failed for %s year=%s: %s", mlb_id, yr, e
+            )
 
         url = (
             f"{BASE_URL}/people/{mlb_id}/stats"
@@ -158,21 +169,25 @@ def get_player_advanced_stats(
     return all_stats
 
 
-def get_game_logs(mlb_id: int, season: int, source: str = "milb") -> list:
-    """Fetch game logs for a specific season."""
+def get_game_logs(mlb_id: int, season: int) -> list:
+    """Fetch game logs for a specific season from both MLB and MiLB endpoints.
+
+    Always fetches both endpoints so shuttle players (MLB ↔ MiLB) get all
+    game logs regardless of current assignment.
+    """
     all_logs = []
 
-    if source == "mlb":
-        url = (
-            f"{BASE_URL}/people/{mlb_id}/stats"
-            f"?stats=gameLog&season={season}&group=hitting,pitching"
-        )
-        try:
-            resp = requests.get(url, timeout=TIMEOUT)
-            resp.raise_for_status()
-            all_logs.extend(resp.json().get("stats", []))
-        except Exception as e:
-            logger.warning("MLB game logs failed for %s/%s: %s", mlb_id, season, e)
+    # MLB endpoint — returns MLB game logs; empty for players without MLB time
+    url = (
+        f"{BASE_URL}/people/{mlb_id}/stats"
+        f"?stats=gameLog&season={season}&group=hitting,pitching"
+    )
+    try:
+        resp = requests.get(url, timeout=TIMEOUT)
+        resp.raise_for_status()
+        all_logs.extend(resp.json().get("stats", []))
+    except Exception as e:
+        logger.warning("MLB game logs failed for %s/%s: %s", mlb_id, season, e)
 
     url = (
         f"{BASE_URL}/people/{mlb_id}/stats"
@@ -247,6 +262,131 @@ def get_next_game(team_id: int) -> Optional[dict]:
         return None
 
     return None
+
+
+def get_game_play_by_play(game_pk: int) -> dict:
+    """Fetch the full live-feed JSON for a single game.
+
+    Returns the raw dict from MLB Stats API. Caller is responsible for
+    walking ``liveData.plays.allPlays`` and extracting pitches.
+    """
+    url = f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live"
+    try:
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        logger.warning("playByPlay failed for game_pk=%s: %s", game_pk, e)
+        return {}
+
+
+_SPORT_NAME_TO_ABBR: dict[str, str] = {
+    "Major League Baseball": "MLB",
+    "Triple-A": "AAA",
+    "Double-A": "AA",
+    "High-A": "A+",
+    "Single-A": "A",
+    "Low-A": "A",
+    "Rookie": "ROK",
+    "Rookie Advanced": "ROK",
+}
+
+
+def sport_obj_to_abbr(sport: dict) -> str:
+    """Convert an MLB Stats API sport object to an abbreviation string."""
+    if not sport:
+        return ""
+    abbr = _SPORT_ID_MAP.get(sport.get("id", 0))
+    if abbr:
+        return abbr
+    return _SPORT_NAME_TO_ABBR.get(sport.get("name", ""), "")
+
+
+def get_game_sport_level(game_pk: int) -> str:
+    """Fetch only the sport abbreviation (e.g. 'MLB', 'AAA') for a single game.
+
+    The live-feed ``gameData.game`` node does not expose a sport field; the
+    authoritative sport info is at ``gameData.teams.home.sport``.
+    Uses a fields-filtered request so the payload is small.
+
+    Returns an empty string on failure.
+    """
+    url = (
+        f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live"
+        "?fields=gameData,teams,home,sport,id,name"
+    )
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        sport = (
+            data.get("gameData", {})
+            .get("teams", {})
+            .get("home", {})
+            .get("sport", {})
+        )
+        return sport_obj_to_abbr(sport)
+    except Exception as e:
+        logger.warning("get_game_sport_level failed for game_pk=%s: %s", game_pk, e)
+        return ""
+
+
+def get_player_sabermetrics(mlb_id: int, years: Optional[list[int]] = None) -> list:
+    """Fetch sabermetrics stats (FIP/xFIP/WAR) — MLB only.
+
+    Returns the raw ``stats`` list from the API; caller walks splits.
+    """
+    all_stats = []
+    fetch_years = years if years else [None]
+    for yr in fetch_years:
+        year_param = f"&season={yr}" if yr else ""
+        url = (
+            f"{BASE_URL}/people/{mlb_id}/stats"
+            f"?stats=sabermetrics&group=pitching,hitting{year_param}"
+        )
+        try:
+            resp = requests.get(url, timeout=TIMEOUT)
+            resp.raise_for_status()
+            all_stats.extend(resp.json().get("stats", []))
+        except Exception as e:
+            logger.warning("sabermetrics failed for %s year=%s: %s", mlb_id, yr, e)
+    return all_stats
+
+
+def get_player_expected_stats(
+    mlb_id: int,
+    years: Optional[list[int]] = None,
+    group: str = "pitching",
+) -> list:
+    """Fetch expectedStatistics (xwOBA, xBA, xSLG) — MLB only.
+
+    Only fetches the MLB endpoint. The MiLB endpoint (leagueListId=milb_all)
+    always returns 0.0 for all expected stats fields — the MLB Stats API does
+    not publish Statcast-derived expected stats for minor-league play — so
+    calling it wastes bandwidth and latency.
+
+    Note: API fields are named ``avg``/``slg``/``woba``/``wobaCon`` (no x prefix).
+    """
+    all_stats = []
+    fetch_years = years if years else [None]
+    for yr in fetch_years:
+        year_param = f"&season={yr}" if yr else ""
+
+        # MLB endpoint — returns valid xBA/xSLG/xwOBA for MLB seasons only
+        url = (
+            f"{BASE_URL}/people/{mlb_id}/stats"
+            f"?stats=expectedStatistics&group={group}{year_param}"
+        )
+        try:
+            resp = requests.get(url, timeout=TIMEOUT)
+            resp.raise_for_status()
+            all_stats.extend(resp.json().get("stats", []))
+        except Exception as e:
+            logger.warning(
+                "MLB expectedStatistics failed for %s year=%s: %s", mlb_id, yr, e
+            )
+
+    return all_stats
 
 
 def parse_roster_from_file(filepath: str) -> list:

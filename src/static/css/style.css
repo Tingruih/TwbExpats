@@ -2,7 +2,7 @@
    Taiwan MLB Tracker — Global Stylesheet
    Minimal Dark Mode (shadcn/ui inspired)
 ═══════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Google Fonts loaded via <link> in base.j2 for non-blocking render */
 
 :root {
     --bg: #09090b;
@@ -552,9 +552,7 @@ header nav a:hover {
 /* ═══════════════════════════════════════
    PLAYER DETAIL TABS
 ═══════════════════════════════════════ */
-.tab-radio {
-    display: none;
-}
+/* Tab radios removed — now JS-driven */
 
 /* ── HERO SECTION ── */
 .profile-hero {
@@ -701,10 +699,13 @@ header nav a:hover {
     letter-spacing: 0.2px;
     color: var(--text-2);
     cursor: pointer;
-    transition: var(--ease);
+    transition: color 0.15s ease-in-out, background 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     border: 1px solid var(--border);
     border-radius: 7px;
     background: var(--card-surface);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 .tab-label:hover {
@@ -741,7 +742,10 @@ header nav a:hover {
     font-weight: 600;
     letter-spacing: 0.2px;
     cursor: pointer;
-    transition: var(--ease);
+    transition: color 0.15s ease-in-out, background 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 .tab-mobile-label:hover {
@@ -749,22 +753,14 @@ header nav a:hover {
     border-color: #575762;
 }
 
-#tab-bio:checked~.tab-nav label[for="tab-bio"],
-#tab-stats:checked~.tab-nav label[for="tab-stats"],
-#tab-gamelogs:checked~.tab-nav label[for="tab-gamelogs"],
-#tab-advanced:checked~.tab-nav label[for="tab-advanced"],
-#tab-fielding:checked~.tab-nav label[for="tab-fielding"] {
+.tab-label.tab-label--active {
     color: #d9fffa;
     background: linear-gradient(180deg, rgba(20, 184, 166, 0.28) 0%, rgba(20, 184, 166, 0.12) 100%);
     border-color: rgba(20, 184, 166, 0.45);
     box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.2) inset;
 }
 
-#tab-bio:checked~.tab-nav-mobile .tab-mobile-label[for="tab-bio"],
-#tab-stats:checked~.tab-nav-mobile .tab-mobile-label[for="tab-stats"],
-#tab-gamelogs:checked~.tab-nav-mobile .tab-mobile-label[for="tab-gamelogs"],
-#tab-advanced:checked~.tab-nav-mobile .tab-mobile-label[for="tab-advanced"],
-#tab-fielding:checked~.tab-nav-mobile .tab-mobile-label[for="tab-fielding"] {
+.tab-mobile-label.tab-label--active {
     color: #d9fffa;
     border-color: rgba(20, 184, 166, 0.5);
     background: rgba(20, 184, 166, 0.16);
@@ -773,26 +769,13 @@ header nav a:hover {
 /* ── TAB PANELS ── */
 .tab-panel {
     display: none;
+    contain: layout style paint;
+    content-visibility: hidden;
 }
 
-#tab-bio:checked~#panel-bio {
+.tab-panel.tab-panel--active {
     display: block;
-}
-
-#tab-stats:checked~#panel-stats {
-    display: block;
-}
-
-#tab-gamelogs:checked~#panel-gamelogs {
-    display: block;
-}
-
-#tab-advanced:checked~#panel-advanced {
-    display: block;
-}
-
-#tab-fielding:checked~#panel-fielding {
-    display: block;
+    content-visibility: visible;
 }
 
 /* ── BIO GRID ── */
@@ -919,6 +902,7 @@ header nav a:hover {
 .data-table-section {
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    contain: layout style;
 }
 
 .data-table-section h3 {
@@ -928,17 +912,11 @@ header nav a:hover {
 
 .table-scroll {
     overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-gutter: stable;
+    overflow-y: clip; /* clip instead of hidden — doesn't suppress descendant scroll containers */
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) - 1px);
     background: var(--card-surface);
-    /* Hide scrollbar by default, show on hover */
-    scrollbar-color: transparent transparent;
-    transition: scrollbar-color 0.2s ease;
-}
-
-.table-scroll:hover {
+    /* Scrollbar always visible for discoverability, no transition overhead */
     scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
@@ -947,25 +925,16 @@ header nav a:hover {
 }
 
 .table-scroll::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--scroll-track);
     border-radius: 999px;
 }
 
 .table-scroll::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 999px;
-    transition: background 0.2s ease;
-}
-
-.table-scroll:hover::-webkit-scrollbar-track {
-    background: var(--scroll-track);
-}
-
-.table-scroll:hover::-webkit-scrollbar-thumb {
     background: var(--scroll-thumb);
+    border-radius: 999px;
 }
 
-.table-scroll:hover::-webkit-scrollbar-thumb:hover {
+.table-scroll::-webkit-scrollbar-thumb:hover {
     background: var(--scroll-thumb-hover);
 }
 
@@ -988,10 +957,6 @@ header nav a:hover {
     font-weight: 500;
     color: var(--text-2);
     font-size: .75rem;
-}
-
-.data-table tbody tr {
-    transition: var(--ease);
 }
 
 .data-table tbody tr:hover {
@@ -1121,7 +1086,6 @@ header nav a:hover {
     position: absolute;
     left: -1.43rem;
     border: 2px solid #111114;
-    transition: var(--ease);
 }
 
 .tx-item:first-child .tx-dot {
@@ -1137,7 +1101,6 @@ header nav a:hover {
     border-radius: 10px;
     border: 1px solid var(--border);
     background: #141419;
-    transition: var(--ease);
 }
 
 .tx-item:hover .tx-content {
@@ -1329,7 +1292,7 @@ header nav a:hover {
 }
 
 .year-summary-row {
-    transition: background 0.15s ease;
+    /* no transition — reduces style recalc overhead on large tables */
 }
 
 .year-summary-row td:first-child {
@@ -1435,4 +1398,129 @@ header nav a:hover {
     .data-table {
         min-width: 760px;
     }
+}
+
+/* ── Statcast / Pitch Log styles ── */
+
+/* Gamelog year containers: skip rendering when hidden */
+.gamelog-table-container {
+    contain: layout style paint;
+}
+
+.pitch-log-cell {
+    padding: 0 !important;
+    background: var(--card-bg);
+}
+
+/* Pitch log rows: skip rendering when collapsed */
+.pitch-log-row {
+    contain: layout style paint;
+}
+
+.pitch-log-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    height: auto;
+    max-height: 360px;
+    border-top: 1px solid var(--border);
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+    scrollbar-width: thin;
+}
+
+.pitch-log-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.pitch-log-scroll::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+}
+
+.pitch-log-scroll::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 999px;
+}
+
+.pitch-log-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+}
+
+.pitch-log-scroll::-webkit-scrollbar-corner {
+    background: var(--scroll-track);
+}
+
+.pitch-log-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    color: var(--text-1);
+}
+
+.pitch-log-table th,
+.pitch-log-table td {
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+}
+
+.pitch-log-table th {
+    position: sticky;
+    top: 0;
+    background: var(--card-surface);
+    color: var(--text-2);
+    font-weight: 500;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.pitch-log-table tbody tr:hover {
+    background: var(--secondary);
+}
+
+.pitch-pa-final {
+    border-bottom: 2px solid rgba(20, 184, 166, 0.25) !important;
+}
+
+.pa-event-tag {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(20, 184, 166, 0.15);
+    color: #14b8a6;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.pitch-arrow {
+    display: inline-block;
+    transition: transform 0.15s;
+    font-size: 0.65rem;
+    margin-right: 0.3rem;
+    color: #64748b;
+}
+
+.pitch-tag {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(100,116,139,0.2);
+    color: #e2e8f0;
+}
+
+/* Pitch type colour coding */
+.pitch-ff, .pitch-fa { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.pitch-si { background: rgba(249,115,22,0.2); color: #fdba74; }
+.pitch-fc { background: rgba(234,179,8,0.2); color: #fde047; }
+.pitch-sl { background: rgba(59,130,246,0.2); color: #93c5fd; }
+.pitch-st { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+.pitch-cu, .pitch-cs, .pitch-kc { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+.pitch-ch, .pitch-fs { background: rgba(34,197,94,0.2); color: #86efac; }
+.pitch-kn { background: rgba(236,72,153,0.2); color: #f9a8d4; }
+
+.game-row-expandable:hover {
+    background: rgba(20, 184, 166, 0.04);
 }

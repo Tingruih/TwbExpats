@@ -13,18 +13,32 @@ from typing import Optional
 
 from site_builder.api import (
     get_game_logs,
+    get_game_play_by_play,
+    get_game_sport_level,
     get_next_game,
     get_player_advanced_stats,
+    get_player_expected_stats,
     get_player_profile,
+    get_player_sabermetrics,
     get_player_stats,
     parse_roster_from_file,
+    sport_obj_to_abbr,
 )
 from site_builder.helpers import (
     SPORT_LEVEL_ORDER,
     dumps_json,
     loads_json,
+    loads_json_dict,
+    loads_json_list,
     safe_float,
     safe_int,
+)
+from site_builder.statcast import (
+    compute_batter_statcast,
+    compute_fip,
+    compute_pitcher_statcast,
+    compute_xwpct,
+    extract_pitch_logs,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +58,6 @@ def _init_db(conn: sqlite3.Connection):
             team TEXT NOT NULL DEFAULT 'N/A',
             level TEXT NOT NULL DEFAULT 'Minors',
             position TEXT NOT NULL DEFAULT '',
-            source TEXT NOT NULL DEFAULT 'milb',
             height TEXT NOT NULL DEFAULT '',
             weight INTEGER,
             birth_date TEXT,
@@ -82,7 +95,13 @@ def _init_db(conn: sqlite3.Connection):
             opponent TEXT NOT NULL,
             is_home INTEGER,
             stats_json TEXT NOT NULL DEFAULT '{}',
+            pitches_json TEXT NOT NULL DEFAULT '[]',
             UNIQUE(player_mlb_id, game_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS playbyplay_processed (
+            game_pk INTEGER PRIMARY KEY,
+            processed_at TEXT NOT NULL
         );
 
         CREATE INDEX IF NOT EXISTS idx_season_stats_player_year
@@ -90,6 +109,17 @@ def _init_db(conn: sqlite3.Connection):
         CREATE INDEX IF NOT EXISTS idx_game_logs_player_date
             ON game_logs(player_mlb_id, date);
     """)
+    # Forward-migration: add pitches_json column if it does not yet exist
+    # (needed for databases created before Statcast support).
+    try:
+        conn.execute("ALTER TABLE game_logs ADD COLUMN pitches_json TEXT NOT NULL DEFAULT '[]'")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    # Forward-migration: add sport_level column to game_logs if it does not yet exist.
+    try:
+        conn.execute("ALTER TABLE game_logs ADD COLUMN sport_level TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
 
 
@@ -306,7 +336,6 @@ def _fetch_player_data(
             for a faster update.
     """
     mlb_id = pconf["mlb_id"]
-    source = pconf.get("source", "milb")
     name_tw = pconf.get("name_tw", "")
 
     profile = get_player_profile(mlb_id)
@@ -317,7 +346,7 @@ def _fetch_player_data(
     # yearByYear stats
     stats_groups = []
     try:
-        stats_groups = get_player_stats(mlb_id, source=source)
+        stats_groups = get_player_stats(mlb_id)
     except Exception as e:
         logger.warning("yearByYear failed for %s: %s", mlb_id, e)
 
@@ -339,7 +368,7 @@ def _fetch_player_data(
             # update mode: only fetch advanced stats for the current year
             years_to_fetch = [year]
         adv_groups = get_player_advanced_stats(
-            mlb_id, years=years_to_fetch, source=source
+            mlb_id, years=years_to_fetch
         )
     except Exception as e:
         logger.warning("seasonAdvanced failed for %s: %s", mlb_id, e)
@@ -355,7 +384,7 @@ def _fetch_player_data(
     log_groups = {}
     for y in fetch_years:
         try:
-            log_groups[y] = get_game_logs(mlb_id, y, source=source)
+            log_groups[y] = get_game_logs(mlb_id, y)
         except Exception as e:
             logger.warning("gameLog failed for %s/%s: %s", mlb_id, y, e)
 
@@ -385,21 +414,20 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
     pconf = bundle["pconf"]
     profile = bundle["profile"]
     mlb_id = pconf["mlb_id"]
-    source = pconf.get("source", "milb")
     name_tw = pconf.get("name_tw", "")
     years_with_data = bundle["years_with_data"]
 
     # Upsert player profile
     cur.execute(
         "INSERT INTO players "
-        "(mlb_id, name_en, name_tw, team, level, position, source, "
+        "(mlb_id, name_en, name_tw, team, level, position, "
         " height, weight, birth_date, birth_city, birth_country, is_active, "
         " bat_side, pitch_hand, latest_transaction, roster_status, team_id, "
         " transactions_json) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
         "ON CONFLICT(mlb_id) DO UPDATE SET "
         " name_en=excluded.name_en, name_tw=excluded.name_tw, "
-        " position=excluded.position, source=excluded.source, "
+        " position=excluded.position, "
         " height=excluded.height, weight=excluded.weight, "
         " birth_date=excluded.birth_date, birth_city=excluded.birth_city, "
         " birth_country=excluded.birth_country, is_active=excluded.is_active, "
@@ -412,10 +440,8 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
             profile.get("full_name", ""),
             name_tw,
             profile.get("current_team_name") or "N/A",
-            profile.get("current_team_level")
-            or ("MLB" if source == "mlb" else "Minors"),
+            profile.get("current_team_level") or "Minors",
             profile.get("position", ""),
-            source,
             profile.get("height", ""),
             profile.get("weight"),
             profile.get("birth_date"),
@@ -544,18 +570,26 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
         for log_group in log_groups:
             if log_group.get("type", {}).get("displayName", "") != "gameLog":
                 continue
+            group_sport_level = log_group.get("sport", {}).get("abbreviation", "")
             for split in log_group.get("splits", []):
                 game_date = split.get("date")
                 game_pk = split.get("game", {}).get("gamePk")
                 if not game_date or not game_pk:
                     continue
+                # Prefer split-level sport, fall back to group-level
+                split_sport_level = (
+                    split.get("sport", {}).get("abbreviation", "")
+                    or group_sport_level
+                )
                 cur.execute(
                     "INSERT INTO game_logs "
-                    "(player_mlb_id, date, game_id, opponent, is_home, stats_json) "
-                    "VALUES (?,?,?,?,?,?) "
+                    "(player_mlb_id, date, game_id, opponent, is_home, stats_json, sport_level) "
+                    "VALUES (?,?,?,?,?,?,?) "
                     "ON CONFLICT(player_mlb_id, game_id) DO UPDATE SET "
                     " date=excluded.date, opponent=excluded.opponent, "
-                    " is_home=excluded.is_home, stats_json=excluded.stats_json",
+                    " is_home=excluded.is_home, stats_json=excluded.stats_json, "
+                    " sport_level = CASE WHEN excluded.sport_level != '' "
+                    "   THEN excluded.sport_level ELSE game_logs.sport_level END",
                     (
                         mlb_id,
                         game_date,
@@ -563,6 +597,7 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
                         split.get("opponent", {}).get("name", "Unknown"),
                         1 if split.get("isHome") else 0,
                         dumps_json(split.get("stat", {})),
+                        split_sport_level,
                     ),
                 )
 
@@ -593,7 +628,6 @@ def _run_pipeline(
     db_file.parent.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(db_file)
-    conn.row_factory = sqlite3.Row
     _init_db(conn)
 
     players_config = parse_roster_from_file(roster_file)
@@ -683,3 +717,503 @@ def update_database(
         fetch_all_years=False,
         mode_label="Update",
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# STATCAST SYNC
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def _build_roster_map(roster_file: str) -> dict:
+    """Return {mlb_id: pconf} for quick lookup during statcast sync."""
+    return {p["mlb_id"]: p for p in parse_roster_from_file(roster_file)}
+
+
+def _fetch_and_extract_game(
+    game_pk: int, players_in_game: list[tuple[int, str]]
+) -> tuple[dict[int, list[dict]], str]:
+    """Fetch one game's live feed and extract pitches for every relevant player.
+
+    Args:
+        game_pk: the game primary key.
+        players_in_game: list of (mlb_id, position) tuples — players we
+                         care about that appeared in this game.
+
+    Returns:
+        A 2-tuple of:
+          - {mlb_id: [pitch_dict, ...]}  (may be empty per player)
+          - sport_level string (e.g. "MLB", "AAA") extracted from the live feed,
+            or "" if unavailable.
+    """
+    game_data = get_game_play_by_play(game_pk)
+    out: dict[int, list[dict]] = {}
+    if not game_data:
+        return out, ""
+    sport_obj = (
+        game_data.get("gameData", {})
+        .get("teams", {})
+        .get("home", {})
+        .get("sport", {})
+    )
+    sport_level: str = sport_obj_to_abbr(sport_obj)
+    for mlb_id, position in players_in_game:
+        role = "pitcher" if position == "P" else "batter"
+        pitches = extract_pitch_logs(game_data, mlb_id, role)
+        if not pitches:
+            # try the opposite role as fallback (two-way / misconfigured roster)
+            alt = "batter" if role == "pitcher" else "pitcher"
+            pitches = extract_pitch_logs(game_data, mlb_id, alt)
+        out[mlb_id] = pitches
+    return out, sport_level
+
+
+def _load_all_pitches_for_player(cur, mlb_id: int) -> dict[tuple, list[dict]]:
+    """Return {(year, sport_level): [pitch_dict, ...]} merged across all cached games.
+
+    When a game_logs row has an empty sport_level, we attempt to resolve it
+    from season_stats.  If the player only appeared at one level in that year,
+    the resolution is unambiguous; otherwise the pitches are grouped under
+    ``(year, "")`` and the caller must handle the ambiguity.
+    """
+    cur.execute(
+        "SELECT date, sport_level, pitches_json FROM game_logs "
+        "WHERE player_mlb_id = ? AND pitches_json != '[]' AND pitches_json IS NOT NULL",
+        (mlb_id,),
+    )
+    by_year_level: dict[tuple, list[dict]] = {}
+    # Buffer games with empty sport_level for resolution
+    unresolved: list[tuple[int, list[dict]]] = []  # (year, pitches)
+
+    for row in cur.fetchall():
+        date_str = row[0] or ""
+        sport_level = row[1] or ""
+        if len(date_str) < 4:
+            continue
+        try:
+            yr = int(date_str[:4])
+        except ValueError:
+            continue
+        pitches = loads_json_list(row[2])
+        if not pitches:
+            continue
+        if sport_level:
+            by_year_level.setdefault((yr, sport_level), []).extend(pitches)
+        else:
+            unresolved.append((yr, pitches))
+
+    if not unresolved:
+        return by_year_level
+
+    # Build {year: [sport_level, ...]} from season_stats for resolution
+    cur.execute(
+        "SELECT year, sport_level FROM season_stats "
+        "WHERE player_mlb_id = ? AND sport_level != ''",
+        (mlb_id,),
+    )
+    levels_by_year: dict[int, set[str]] = {}
+    for row in cur.fetchall():
+        levels_by_year.setdefault(row[0], set()).add(row[1])
+
+    for yr, pitches in unresolved:
+        known_levels = levels_by_year.get(yr, set())
+        if len(known_levels) == 1:
+            # Unambiguous: assign to the single known level
+            lvl = next(iter(known_levels))
+            by_year_level.setdefault((yr, lvl), []).extend(pitches)
+        else:
+            # Ambiguous or unknown: keep under empty key for caller to handle
+            by_year_level.setdefault((yr, ""), []).extend(pitches)
+
+    return by_year_level
+
+
+def _merge_statcast_into_season(
+    cur,
+    mlb_id: int,
+    year: int,
+    position: str,
+    statcast_data: dict,
+    sport_level: str = "",
+    sabermetrics: Optional[dict] = None,
+    expected_stats: Optional[dict] = None,
+):
+    """Merge computed Statcast + sabermetrics + expected-stats into season_stats.
+
+    ``statcast_data`` is written only to rows whose sport_level matches
+    ``sport_level`` (when provided and non-empty). This ensures that players
+    who played at multiple levels in the same year get per-level Statcast data
+    rather than the same season-aggregate written to every row.
+
+    When ``sport_level`` is empty (legacy data with unresolved levels):
+      - If there is exactly ONE season_stats row for the year, write to it.
+      - If there are MULTIPLE rows, skip writing statcast to prevent the bug
+        where identical combined data appears for every level.
+
+    ``sabermetrics`` (MLB-only) and ``expected_stats`` are also written only
+    to the row whose sport_level matches ``sport_level`` (not broadcast to all
+    rows). This prevents shuttle-player rows at MiLB levels from receiving
+    MLB-derived aggregate stats.
+    """
+    cur.execute(
+        "SELECT team_name, league_name, sport_level, stat_json, fielding_json "
+        "FROM season_stats WHERE player_mlb_id = ? AND year = ?",
+        (mlb_id, year),
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return
+
+    is_pitcher = position == "P"
+
+    for row in rows:
+        team_name = row[0]
+        league_name = row[1]
+        row_sport_level = row[2]
+        stat_doc = loads_json_dict(row[3])
+        fielding_doc = loads_json_list(row[4])
+
+        # Write statcast only to the matching level row.
+        # If sport_level is empty (unresolved legacy data), only write when
+        # there is a single row for the year (unambiguous).
+        if sport_level:
+            if row_sport_level == sport_level:
+                stat_doc["statcast"] = statcast_data
+        elif len(rows) == 1:
+            stat_doc["statcast"] = statcast_data
+        # else: multiple rows + unknown level → skip to avoid duplicates
+
+        # Attach sabermetrics (MLB only) — only write to the matching sport_level row.
+        # Sabermetrics are always fetched from the MLB endpoint; broadcasting them
+        # to MiLB rows of the same year would be misleading.
+        if sabermetrics and row_sport_level == "MLB":
+            if not sport_level or row_sport_level == sport_level:
+                stat_doc["saber"] = sabermetrics
+
+        # Attach expected stats — only write to the matching sport_level row.
+        # MiLB expected stats are all 0.0 (API limitation), so valid data only
+        # arrives for MLB rows; still guard by sport_level match for correctness.
+        if expected_stats:
+            if sport_level and row_sport_level == sport_level:
+                stat_doc["expected"] = expected_stats
+            elif not sport_level and len(rows) == 1:
+                stat_doc["expected"] = expected_stats
+
+        # Compute FIP (MiLB path) if we have enough inputs
+        if is_pitcher and row_sport_level and row_sport_level != "MLB":
+            ip = stat_doc.get("ip")
+            fip_val = compute_fip(
+                hr=stat_doc.get("p_hr"),
+                bb=stat_doc.get("bb"),
+                hbp=stat_doc.get("p_hbp"),
+                k=stat_doc.get("so"),
+                ip=safe_float(ip),
+                sport_level=row_sport_level,
+                year=year,
+            )
+            if fip_val is not None:
+                stat_doc["fip"] = fip_val
+                stat_doc["xwpct"] = compute_xwpct(fip_val, row_sport_level)
+        elif is_pitcher and row_sport_level == "MLB" and sabermetrics:
+            fip_val = safe_float(sabermetrics.get("fip"))
+            if fip_val is not None:
+                stat_doc["fip"] = round(fip_val, 2)
+                stat_doc["xfip"] = safe_float(sabermetrics.get("xfip"))
+                stat_doc["war"] = safe_float(sabermetrics.get("war"))
+                stat_doc["xwpct"] = compute_xwpct(fip_val, "MLB")
+        elif not is_pitcher and row_sport_level == "MLB" and sabermetrics:
+            # Batter sabermetrics — extract WAR and wRC+ to top-level fields
+            stat_doc["war"] = safe_float(sabermetrics.get("war"))
+            wrc_plus_val = safe_int(sabermetrics.get("wRcPlus"))
+            if wrc_plus_val is not None:
+                stat_doc["wrc_plus"] = wrc_plus_val
+
+        _save_season_row(
+            cur, mlb_id, year, team_name,
+            league_name, row_sport_level, stat_doc, fielding_doc,
+        )
+
+
+def sync_statcast(
+    db_path: str,
+    roster_file: str,
+    year: int,
+    only_player: Optional[int] = None,
+):
+    """Fetch playByPlay for every un-processed game and compute Statcast.
+
+    Pipeline:
+      1. Load roster map (mlb_id -> player config from roster.json).
+      2. For each player: collect all (game_pk, date) from game_logs where
+         pitches_json is empty AND game_pk is not in playbyplay_processed.
+      3. Group by game_pk (one fetch per unique game, parallelised).
+      4. Extract pitches for every roster player in that game.
+      5. Write pitches_json back to game_logs (per-player row), mark game_pk
+         as processed.
+      6. For each affected player-year, recompute Statcast aggregates and
+         merge into season_stats.stat_json. Also fetch sabermetrics (MLB)
+         and expectedStatistics (all levels).
+    """
+    db_file = Path(db_path)
+    conn = sqlite3.connect(db_file)
+    _init_db(conn)
+    cur = conn.cursor()
+
+    roster_map = _build_roster_map(roster_file)
+    if only_player is not None:
+        roster_map = {k: v for k, v in roster_map.items() if k == only_player}
+
+    if not roster_map:
+        print("Statcast: no matching players in roster")
+        conn.close()
+        return
+
+    # Pull position for each roster player from the DB (fallback to empty)
+    positions: dict[int, str] = {}
+    for mlb_id in roster_map:
+        cur.execute("SELECT position FROM players WHERE mlb_id = ?", (mlb_id,))
+        row = cur.fetchone()
+        positions[mlb_id] = (row[0] if row else "") or ""
+
+    # ── Phase 0: backfill sport_level for historical game_logs ──
+    # Historical rows written before sport_level tracking was added will have
+    # sport_level=''. Find them (scoped to the current roster selection), fetch
+    # the level from a lightweight live-feed call, and fill it in.  Once
+    # filled, subsequent runs skip this entirely.
+    placeholders = ",".join("?" * len(roster_map))
+    cur.execute(
+        f"SELECT DISTINCT game_id FROM game_logs "
+        f"WHERE player_mlb_id IN ({placeholders}) AND sport_level = '' "
+        f"AND pitches_json != '[]' AND pitches_json IS NOT NULL",
+        list(roster_map.keys()),
+    )
+    backfill_game_ids = [row[0] for row in cur.fetchall() if row[0] is not None]
+
+    if backfill_game_ids:
+        print(
+            f"Statcast: backfilling sport_level for {len(backfill_game_ids)} "
+            f"historical game(s) ..."
+        )
+        backfill_levels: dict[int, str] = {}
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_to_gpk = {
+                executor.submit(get_game_sport_level, gpk): gpk
+                for gpk in backfill_game_ids
+            }
+            for future in as_completed(future_to_gpk):
+                gpk = future_to_gpk[future]
+                try:
+                    lvl = future.result()
+                    backfill_levels[gpk] = lvl
+                except Exception as e:
+                    logger.warning(
+                        "backfill sport_level failed for game_pk=%s: %s", gpk, e
+                    )
+        for gpk, lvl in backfill_levels.items():
+            if lvl:
+                cur.execute(
+                    "UPDATE game_logs SET sport_level = ? "
+                    "WHERE game_id = ? AND sport_level = ''",
+                    (lvl, gpk),
+                )
+        conn.commit()
+        filled = sum(1 for v in backfill_levels.values() if v)
+        print(f"  backfilled sport_level for {filled}/{len(backfill_game_ids)} games")
+
+    # ── Phase 1: build list of (game_pk, [players in game]) to fetch ──
+    game_to_players: dict[int, list[tuple[int, str]]] = {}
+    target_count = 0  # count of player-game rows needing pitch data
+
+    # Get already-processed set
+    cur.execute("SELECT game_pk FROM playbyplay_processed")
+    processed = {r[0] for r in cur.fetchall()}
+
+    for mlb_id in roster_map:
+        cur.execute(
+            "SELECT game_id FROM game_logs "
+            "WHERE player_mlb_id = ? AND (pitches_json = '[]' OR pitches_json IS NULL)",
+            (mlb_id,),
+        )
+        for (gpk,) in cur.fetchall():
+            if gpk is None:
+                continue
+            target_count += 1
+            if gpk in processed:
+                # game was fetched before but this player row was never updated
+                # (e.g. added to roster later) — we'll still need to re-extract
+                # for this player, so keep it in the fetch list.
+                pass
+            game_to_players.setdefault(gpk, []).append((mlb_id, positions.get(mlb_id, "")))
+
+    total_games = len(game_to_players)
+    print(
+        f"Statcast: {len(roster_map)} players, {total_games} unique games to fetch "
+        f"({target_count} player-game rows to update)"
+    )
+    if total_games == 0:
+        conn.close()
+        return
+
+    # ── Phase 2: parallel fetch + extract ──
+    extracted: dict[tuple[int, int], list[dict]] = {}  # (player_id, game_pk) -> pitches
+    game_sport_levels: dict[int, str] = {}  # game_pk -> sport_level
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future_to_gpk = {
+            executor.submit(_fetch_and_extract_game, gpk, players): gpk
+            for gpk, players in game_to_players.items()
+        }
+        for i, future in enumerate(as_completed(future_to_gpk), 1):
+            gpk = future_to_gpk[future]
+            try:
+                result, sport_level = future.result()
+                game_sport_levels[gpk] = sport_level
+                for mlb_id, pitches in result.items():
+                    extracted[(mlb_id, gpk)] = pitches
+                if i % 25 == 0 or i == total_games:
+                    print(f"  [{i}/{total_games}] games fetched")
+            except Exception as e:
+                print(f"  game {gpk} failed: {e}")
+                logger.exception("Statcast fetch failed for game_pk=%s", gpk)
+
+    # ── Phase 3: write pitch logs back to DB ──
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    affected_years_by_player: dict[int, set[int]] = {}
+
+    for (mlb_id, gpk), pitches in extracted.items():
+        # Look up the game's date so we know which year is affected
+        cur.execute(
+            "SELECT date FROM game_logs WHERE player_mlb_id = ? AND game_id = ?",
+            (mlb_id, gpk),
+        )
+        row = cur.fetchone()
+        if not row:
+            continue
+        date_str = row[0] or ""
+        yr = None
+        if len(date_str) >= 4:
+            try:
+                yr = int(date_str[:4])
+            except ValueError:
+                pass
+
+        lvl = game_sport_levels.get(gpk, "")
+        # Only overwrite sport_level when we got a valid one from the live
+        # feed; otherwise preserve whatever the main sync already stored.
+        if lvl:
+            cur.execute(
+                "UPDATE game_logs SET pitches_json = ?, sport_level = ? "
+                "WHERE player_mlb_id = ? AND game_id = ?",
+                (dumps_json(pitches), lvl, mlb_id, gpk),
+            )
+        else:
+            cur.execute(
+                "UPDATE game_logs SET pitches_json = ? "
+                "WHERE player_mlb_id = ? AND game_id = ?",
+                (dumps_json(pitches), mlb_id, gpk),
+            )
+        if yr is not None:
+            affected_years_by_player.setdefault(mlb_id, set()).add(yr)
+
+    # Mark games as processed
+    for gpk in game_to_players:
+        cur.execute(
+            "INSERT OR REPLACE INTO playbyplay_processed (game_pk, processed_at) "
+            "VALUES (?, ?)",
+            (gpk, now),
+        )
+    conn.commit()
+    print(f"  wrote pitch logs for {len(extracted)} player-games")
+
+    # ── Phase 4: recompute Statcast aggregates per player-year-level ──
+    print("  aggregating statcast per player-year-level ...")
+    for mlb_id, pconf in roster_map.items():
+        position = positions.get(mlb_id, "")
+        is_pitcher = position == "P"
+
+        # Always recompute for every year that has pitch data (not only newly
+        # updated years) because mixing old+new pitches might produce different
+        # aggregates and this is cheap.
+        pitches_by_year_level = _load_all_pitches_for_player(cur, mlb_id)
+        if not pitches_by_year_level:
+            continue
+
+        # Optionally fetch sabermetrics (MLB only) + expectedStats (all).
+        # Guard sabermetrics fetch by checking whether the player has any MLB-level
+        # rows in season_stats (avoids unnecessary API calls for pure MiLB players).
+        years = sorted({k[0] for k in pitches_by_year_level.keys()})
+        saber_by_year: dict[int, dict] = {}
+        expected_by_year: dict[tuple, dict] = {}
+
+        cur.execute(
+            "SELECT COUNT(*) FROM season_stats WHERE player_mlb_id = ? AND sport_level = 'MLB'",
+            (mlb_id,),
+        )
+        has_mlb_stats = (cur.fetchone() or [0])[0] > 0
+
+        if has_mlb_stats:
+            try:
+                target_group = "pitching" if is_pitcher else "hitting"
+                saber_groups = get_player_sabermetrics(mlb_id, years=years)
+                for grp in saber_groups:
+                    if grp.get("group", {}).get("displayName", "").lower() != target_group:
+                        continue
+                    for sp in grp.get("splits", []):
+                        yr = safe_int(sp.get("season"))
+                        if yr:
+                            saber_by_year[yr] = sp.get("stat", {})
+            except Exception as e:
+                logger.warning("sabermetrics fetch failed for %s: %s", mlb_id, e)
+
+        try:
+            group = "pitching" if is_pitcher else "hitting"
+            exp_groups = get_player_expected_stats(
+                mlb_id, years=years, group=group
+            )
+            for grp in exp_groups:
+                for sp in grp.get("splits", []):
+                    yr = safe_int(sp.get("season"))
+                    if yr:
+                        stat = sp.get("stat", {})
+                        xba = safe_float(stat.get("avg"))
+                        xslg = safe_float(stat.get("slg"))
+                        xwoba = safe_float(stat.get("woba"))
+                        xwobacon = safe_float(stat.get("wobaCon"))
+                        # Filter out all-zero/None splits (MiLB endpoint returns 0.0
+                        # for all fields — API does not publish MiLB expected stats).
+                        if not any([xba, xslg, xwoba, xwobacon]):
+                            continue
+                        # Key by (year, sport_level) so MLB and MiLB splits for the
+                        # same year don't overwrite each other.
+                        split_sport_level = (
+                            sp.get("sport", {}).get("abbreviation", "") or "MLB"
+                        )
+                        expected_by_year[(yr, split_sport_level)] = {
+                            "xba": xba,
+                            "xslg": xslg,
+                            "xwoba": xwoba,
+                            "xwobacon": xwobacon,
+                        }
+        except Exception as e:
+            logger.warning("expectedStats fetch failed for %s: %s", mlb_id, e)
+
+        for (yr, lvl), pitches in pitches_by_year_level.items():
+            if is_pitcher:
+                statcast_data = compute_pitcher_statcast(pitches, year=yr)
+            else:
+                statcast_data = compute_batter_statcast(pitches, year=yr)
+
+            _merge_statcast_into_season(
+                cur,
+                mlb_id=mlb_id,
+                year=yr,
+                position=position,
+                statcast_data=statcast_data,
+                sport_level=lvl,
+                sabermetrics=saber_by_year.get(yr),
+                expected_stats=expected_by_year.get((yr, lvl)),
+            )
+
+        conn.commit()
+        print(f"    {mlb_id}: aggregated {len(pitches_by_year_level)} season-level(s)")
+
+    conn.close()
+    print("Statcast sync complete")

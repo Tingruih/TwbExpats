@@ -5,7 +5,7 @@
 {# ─── Controls bar: sort buttons + build time ─── #}
 <div class="index-controls">
     <div class="sort-bar glass-panel" id="sort-bar">
-        <span class="sort-label">排序</span>
+        <span class="sort-label">排序：</span>
         <button class="sort-btn sort-btn-active" id="btn-level" onclick="sortCards('level')">層級</button>
         <button class="sort-btn" id="btn-recent" onclick="sortCards('recent')">最近出賽</button>
     </div>
@@ -95,40 +95,27 @@
 {% block extra_scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".avatar-img").forEach(function(img) {
-        img.addEventListener("error", function() {
-            if (!this.dataset.cdnTried) {
-                // First failure: try the MLB CDN URL
-                this.dataset.cdnTried = "1";
-                var cdn = this.dataset.cdnSrc;
-                if (cdn) { this.src = cdn; return; }
+    function sortCards(mode) {
+        var grid = document.getElementById("player-grid");
+        var cards = Array.from(grid.querySelectorAll(".player-card"));
+
+        cards.sort(function(a, b) {
+            if (mode === "level") {
+                return parseInt(a.dataset.levelOrder) - parseInt(b.dataset.levelOrder);
+            } else {
+                var da = a.dataset.lastGame || "0000-00-00";
+                var db = b.dataset.lastGame || "0000-00-00";
+                return da > db ? -1 : da < db ? 1 : 0;
             }
-            // CDN also failed: show initials fallback
-            this.style.display = "none";
-            var fallback = this.parentElement.querySelector(".avatar-fallback");
-            if (fallback) fallback.style.display = "flex";
         });
-    });
+
+        cards.forEach(function(c) { grid.appendChild(c); });
+
+        document.getElementById("btn-level").classList.toggle("sort-btn-active", mode === "level");
+        document.getElementById("btn-recent").classList.toggle("sort-btn-active", mode === "recent");
+    }
+    // Expose to inline onclick
+    window.sortCards = sortCards;
 });
-
-function sortCards(mode) {
-    var grid = document.getElementById("player-grid");
-    var cards = Array.from(grid.querySelectorAll(".player-card"));
-
-    cards.sort(function(a, b) {
-        if (mode === "level") {
-            return parseInt(a.dataset.levelOrder) - parseInt(b.dataset.levelOrder);
-        } else {
-            var da = a.dataset.lastGame || "0000-00-00";
-            var db = b.dataset.lastGame || "0000-00-00";
-            return da > db ? -1 : da < db ? 1 : 0;
-        }
-    });
-
-    cards.forEach(function(c) { grid.appendChild(c); });
-
-    document.getElementById("btn-level").classList.toggle("sort-btn-active", mode === "level");
-    document.getElementById("btn-recent").classList.toggle("sort-btn-active", mode === "recent");
-}
 </script>
 {% endblock %}
