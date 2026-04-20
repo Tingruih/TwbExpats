@@ -1,77 +1,103 @@
-name: Build and Deploy Static Site
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - 'data/tracker.sqlite3'
-  workflow_dispatch:
+    branches:
+      - main
   schedule:
-    - cron: "30 2 * * *"   # 10:30 TST (UTC+8)
-    - cron: "30 4 * * *"   # 12:30 TST backup
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+    - cron: "0 3 * * *" # 11:00 AM (UTC+8)
+    - cron: "0 6 * * *" # 2:00 PM (UTC+8)
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  DEFAULT_SEASON_YEAR: "2026"
+  GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+  GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+  GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+  GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
+  PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || '/' }}
 
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    env:
-      DEFAULT_SEASON_YEAR: "2026"
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13.12"
           cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Resolve GitHub Pages base URL
+      - name: Restore DB from Google Drive
         run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          OWNER_NAME="${GITHUB_REPOSITORY_OWNER}"
-          if [ "$REPO_NAME" = "$OWNER_NAME.github.io" ]; then
-            echo "PAGES_BASE_URL=/" >> "$GITHUB_ENV"
-          else
-            echo "PAGES_BASE_URL=/$REPO_NAME/" >> "$GITHUB_ENV"
+          mkdir -p data
+          TOKEN_JSON="$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="$GDRIVE_CLIENT_ID" \
+            -d client_secret="$GDRIVE_CLIENT_SECRET" \
+            -d refresh_token="$GDRIVE_REFRESH_TOKEN" \
+            -d grant_type=refresh_token)"
+          ACCESS_TOKEN="$(echo "$TOKEN_JSON" | jq -r '.access_token')"
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "Failed to get access token"
+            echo "$TOKEN_JSON"
+            exit 1
           fi
+
+          curl -fL \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.googleapis.com/drive/v3/files/$GDRIVE_FILE_ID?alt=media" \
+            -o data/tracker.sqlite3
+
+          ls -lh data/tracker.sqlite3
 
       - name: Refresh & Build
         run: python build.py refresh --base-url "$PAGES_BASE_URL"
 
-      - name: Commit updated SQLite to main
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+      - name: Upload DB to Google Drive
+        if: success()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tracker.sqlite3
-          git diff --staged --quiet || (git commit -m "chore: update tracker.sqlite3 [skip ci]" && git push)
+          TOKEN_JSON="$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="$GDRIVE_CLIENT_ID" \
+            -d client_secret="$GDRIVE_CLIENT_SECRET" \
+            -d refresh_token="$GDRIVE_REFRESH_TOKEN" \
+            -d grant_type=refresh_token)"
+          ACCESS_TOKEN="$(echo "$TOKEN_JSON" | jq -r '.access_token')"
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "Failed to get access token"
+            echo "$TOKEN_JSON"
+            exit 1
+          fi
 
-      - name: Upload pages artifact
+          curl -fL -X PATCH \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @data/tracker.sqlite3 \
+            "https://www.googleapis.com/upload/drive/v3/files/$GDRIVE_FILE_ID?uploadType=media"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
-  deploy:
-    needs: build-deploy
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

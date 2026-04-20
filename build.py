@@ -5,7 +5,7 @@ Taiwan MLB Tracker — build pipeline.
 Usage:
     python build.py sync                # full sync: fetch ALL years of data for ALL players
     python build.py statcast            # fetch playByPlay + compute Statcast aggregates
-    python build.py refresh             # update current-year stats & logs, then build site
+    python build.py refresh             # update stats & Statcast, then build site
     python build.py build               # generate static site from existing database
     python build.py all                 # full sync + statcast + build (first-time / backfill)
 
@@ -15,8 +15,12 @@ Commands:
     statcast Fetches playByPlay for every un-processed game, extracts pitch-level
              data, and computes Statcast aggregates (FIP, Whiff%, arsenal, etc.).
              Run after sync; uses a cache table to avoid re-fetching games.
-    refresh  Fetches yearByYear stats (all seasons) but only game logs for the
-             current year, then immediately builds the static site.
+    refresh  Three-step daily update pipeline:
+               1. update_database  — yearByYear stats (all seasons) + current-year
+                                     game logs only (fast path).
+               2. sync_statcast    — fetch playByPlay for any new unprocessed games
+                                     and recompute Statcast / FIP / expected stats.
+               3. build_static_site — render HTML to the dist/ directory.
              Use this for daily/CI updates — requires an existing database.
     build    Reads the SQLite database and renders HTML to the dist/ directory.
     all      Runs full sync → statcast → build in one step.
@@ -69,11 +73,17 @@ def cmd_statcast(args):
 
 
 def cmd_refresh(args):
-    """Fast update (current-year logs only) then immediately build the site."""
-    from site_builder.sync import update_database
+    """Three-step daily update: basic stats → Statcast → build."""
+    from site_builder.sync import update_database, sync_statcast
     from site_builder.builder import build_static_site
 
     update_database(
+        db_path=args.db,
+        roster_file=args.roster,
+        year=args.year,
+        only_player=args.player,
+    )
+    sync_statcast(
         db_path=args.db,
         roster_file=args.roster,
         year=args.year,
@@ -134,11 +144,11 @@ def main():
     )
     sp_statcast.set_defaults(func=cmd_statcast)
 
-    # refresh — fast update + build (the standard daily/CI command)
+    # refresh — fast update + statcast + build (the standard daily/CI command)
     sp_refresh = sub.add_parser(
         "refresh",
         parents=[common],
-        help="Fast update (current-year stats & logs) then build the static site",
+        help="Update stats + Statcast, then build the static site (daily pipeline)",
     )
     sp_refresh.add_argument(
         "--roster", default="src/data/roster.json", help="Roster JSON path"

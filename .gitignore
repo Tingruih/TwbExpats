@@ -1,5 +1,5 @@
 dist/
-data/headshots/
+data/
 __pycache__/
 *.pyc
 .ruff_cache/

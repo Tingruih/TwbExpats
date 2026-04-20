@@ -26,6 +26,7 @@ _SPORT_ID_MAP = {
 }
 
 
+# 對 people/mlb_id?hydrate=transactions,rosterEntries,currentTeam 取得基本資料，transactions status 
 def get_player_profile(mlb_id: int) -> dict:
     """Fetch player bio, transactions, and current roster status."""
     url = f"{BASE_URL}/people/{mlb_id}?hydrate=transactions,rosterEntries,currentTeam"
