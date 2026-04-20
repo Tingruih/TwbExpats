@@ -24,7 +24,6 @@ env:
   GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
   GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
   GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
-  PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || '/' }}
 
 jobs:
   build-and-deploy:
@@ -43,6 +42,16 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Resolve GitHub Pages base URL
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          OWNER_NAME="${GITHUB_REPOSITORY_OWNER}"
+          if [ "$REPO_NAME" = "$OWNER_NAME.github.io" ]; then
+            echo "PAGES_BASE_URL=/" >> "$GITHUB_ENV"
+          else
+            echo "PAGES_BASE_URL=/$REPO_NAME/" >> "$GITHUB_ENV"
+          fi
 
       - name: Restore DB from Google Drive
         run: |

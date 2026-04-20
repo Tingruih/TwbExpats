@@ -3,6 +3,10 @@
 Pure Python + Jinja2 static site generator that tracks Taiwanese baseball
 players in the American professional baseball system (MLB/MiLB).
 
+## Live Website
+
+https://tingruih.github.io/twbexpats/
+
 ## Project Layout
 
 ```
@@ -17,8 +21,6 @@ players in the American professional baseball system (MLB/MiLB).
 │   ├── builder.py          # Static site renderer
 │   ├── helpers.py          # Shared utilities & stat computation
 │   └── jinja_env.py        # Jinja2 environment config
-├── data/
-│   └── tracker.sqlite3     # SQLite database (git-ignored)
 ├── build.py                # CLI entry point
 ├── requirements.txt
 └── .github/workflows/pages.yml
@@ -54,6 +56,12 @@ python build.py build
 
 # Or run all three in one command
 python build.py all
+
+# 4. Start a local static server (default: http://localhost:8000)
+python -m http.server 8000 --directory dist
+
+# 5. Open site in browser
+open http://localhost:8000
 ```
 
 ### Individual commands
@@ -82,10 +90,3 @@ python build.py refresh --output dist --base-url /twbexpats/
 python build.py refresh --db data/tracker.sqlite3 --year 2025
 ```
 
-## Quick Smoke Test
-
-```bash
-python build.py build --output dist-smoke --base-url /
-test -f dist-smoke/index.html && test -f dist-smoke/404.html && echo "OK"
-rm -rf dist-smoke
-```
