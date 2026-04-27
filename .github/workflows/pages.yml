@@ -5,8 +5,8 @@ on:
     branches:
       - main
   schedule:
-    - cron: "0 3 * * *" # 11:00 AM (UTC+8)
-    - cron: "0 6 * * *" # 2:00 PM (UTC+8)
+    - cron: "17 3 * * *" # 11:17 AM (UTC+8)
+    - cron: "17 6 * * *" # 2:17 PM (UTC+8)
   workflow_dispatch:
 
 permissions:

@@ -1050,8 +1050,7 @@ def sync_statcast(
         f"({target_count} player-game rows to update)"
     )
     if total_games == 0:
-        conn.close()
-        return
+        print("  no new games to fetch; recomputing statcast from existing pitch data ...")
 
     # ── Phase 2: parallel fetch + extract ──
     extracted: dict[tuple[int, int], list[dict]] = {}  # (player_id, game_pk) -> pitches

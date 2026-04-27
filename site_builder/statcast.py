@@ -549,10 +549,12 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
             oppo += 1 if bat == "R" else 0
             pull += 1 if bat != "R" else 0
 
-    ev_values = sorted([p["ev"] for p in agg["bbe_ev"]], reverse=True)
+    # 此部分若ev_values數據量小於10 則算出數據與tjstats不符
+    ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])  # ascending for percentile
     ev90 = None
     if ev_values:
-        idx = max(0, int(len(ev_values) * 0.1) - 1)
+        # 90th percentile: the single value below which 90% of BBEs fall
+        idx = min(int(len(ev_values) * 0.9), len(ev_values) - 1)
         ev90 = round(ev_values[idx], 1)
 
     la_values = [p["la"] for p in agg["bbe_ev"] if p.get("la") is not None]
@@ -581,10 +583,18 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
 
 def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
     """Per-pitch-type breakdown for a batter."""
+    # EP (Eephus) and FA (generic Fastball) almost exclusively appear in
+    # position-player-pitching situations (e.g. catcher or shortstop mops up
+    # in a blowout).  Exclude them so they don't pollute the breakdown or
+    # show as spurious pitch types (matching TJStats / Baseball Savant behaviour).
+    _SKIP_TYPES = {"EP", "FA"}
+
     woba_w = get_woba_weights(year)
     by_type: dict[str, list[dict]] = {}
     for p in pitches:
         t = p.get("pitch_type") or "UN"
+        if t in _SKIP_TYPES:
+            continue
         by_type.setdefault(t, []).append(p)
 
     # Drop the UN (unknown) bucket when there are real named pitch types,

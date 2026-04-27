@@ -56,10 +56,11 @@
 {# ── TAB NAV ── #}
 <div class="tab-nav glass-panel desktop-only">
     <label data-tab="bio" class="tab-label tab-label--active">球員資料</label>
-    <label data-tab="stats" class="tab-label">歷年數據</label>
+    <label data-tab="stats" class="tab-label">基礎數據</label>
     <label data-tab="gamelogs" class="tab-label">逐場紀錄</label>
     <label data-tab="advanced" class="tab-label">進階數據</label>
     <label data-tab="fielding" class="tab-label">守備數據</label>
+    <label data-tab="plot" class="tab-label">數據圖表</label>
 </div>
 
 {# ── MOBILE TAB NAV ── #}
@@ -70,6 +71,7 @@
         <label data-tab="gamelogs" class="tab-mobile-label">逐場紀錄</label>
         <label data-tab="advanced" class="tab-mobile-label">進階數據</label>
         <label data-tab="fielding" class="tab-mobile-label">守備數據</label>
+        <label data-tab="plot" class="tab-mobile-label">數據圖表</label>
     </div>
 </div>
 
@@ -237,13 +239,6 @@
 {# ── TAB 2: SEASON STATS ── #}
 <div class="tab-panel" id="panel-stats">
 
-    {% if chart_data %}
-    <div class="chart-wrap glass-panel">
-        <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
-        <canvas id="performanceChart" height="80"></canvas>
-    </div>
-    {% endif %}
-
     <div class="data-table-section glass-panel">
         <h3>歷年賽季成績</h3>
         <div class="table-scroll">
@@ -257,11 +252,9 @@
                             <th>SV</th><th>HLD</th><th>IP</th><th>H</th><th>R</th><th>ER</th>
                             <th>HR</th><th>BB</th><th>SO</th><th>K%</th><th>BB%</th><th>HB</th><th>WP</th><th>BK</th><th>TBF</th>
                         {% else %}
-                            <th>PA</th><th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th>
-                            <th>HR</th><th>RBI</th><th>SB</th><th>CS</th><th>BB</th><th>SO</th>
-                            <th>K%</th><th>BB%</th>
-                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th><th>TB</th>
-                            <th>XBH</th><th>GIDP</th><th>GIDPO</th><th>P/PA</th><th>ROE</th><th>WO</th>
+                            <th>PA</th><th>AB</th><th>R</th><th>RBI</th><th>H</th><th>2B</th><th>3B</th>
+                            <th>HR</th><th>SB</th><th>CS</th><th>BB</th><th>SO</th>
+                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -274,7 +267,7 @@
                         data-year="{{ yr }}"
                         {% if grp.multi %}onclick="toggleYearGroup('basic','{{ yr }}')" style="cursor:pointer;"{% endif %}>
                         <td class="col-toggle">
-                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-basic-{{ yr }}">▶</span>{% endif %}
+                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-basic-{{ yr }}"></span>{% endif %}
                         </td>
                         <td><strong>{{ yr }}</strong></td>
                         <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
@@ -307,28 +300,19 @@
                             <td class="num">{{ sm.pa|num_dash }}</td>
                             <td class="num">{{ sm.ab|num_dash }}</td>
                             <td class="num">{{ sm.runs|num_dash }}</td>
+                            <td class="num">{{ sm.rbi|num_dash }}</td>
                             <td class="num">{{ sm.hits|num_dash }}</td>
                             <td class="num">{{ sm.doubles|num_dash }}</td>
                             <td class="num">{{ sm.triples|num_dash }}</td>
                             <td class="num">{{ sm.hr|num_dash }}</td>
-                            <td class="num">{{ sm.rbi|num_dash }}</td>
                             <td class="num">{{ sm.sb|num_dash }}</td>
                             <td class="num">{{ sm.cs|num_dash }}</td>
                             <td class="num">{{ sm.hit_bb|num_dash }}</td>
                             <td class="num">{{ sm.h_so|num_dash }}</td>
-                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.avg|floatformat(3) }}</td>
                             <td class="num">{{ sm.obp|floatformat(3) }}</td>
                             <td class="num">{{ sm.slg|floatformat(3) }}</td>
                             <td class="num">{{ sm.ops|floatformat(3) }}</td>
-                            <td class="num">{{ sm.tb|num_dash }}</td>
-                            <td class="num">{{ sm.xbh|num_dash }}</td>
-                            <td class="num">{{ sm.gdp|num_dash }}</td>
-                            <td class="num">{{ sm.gidpo|num_dash }}</td>
-                            <td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ sm.roe|num_dash }}</td>
-                            <td class="num">{{ sm.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
                     {# ── Per-team detail rows (hidden by default when multi) ── #}
@@ -367,28 +351,19 @@
                             <td class="num">{{ stat.pa|num_dash }}</td>
                             <td class="num">{{ stat.ab|num_dash }}</td>
                             <td class="num">{{ stat.runs|num_dash }}</td>
+                            <td class="num">{{ stat.rbi|num_dash }}</td>
                             <td class="num">{{ stat.hits|num_dash }}</td>
                             <td class="num">{{ stat.doubles|num_dash }}</td>
                             <td class="num">{{ stat.triples|num_dash }}</td>
                             <td class="num">{{ stat.hr|num_dash }}</td>
-                            <td class="num">{{ stat.rbi|num_dash }}</td>
                             <td class="num">{{ stat.sb|num_dash }}</td>
                             <td class="num">{{ stat.cs|num_dash }}</td>
                             <td class="num">{{ stat.hit_bb|num_dash }}</td>
                             <td class="num">{{ stat.h_so|num_dash }}</td>
-                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.avg|floatformat(3) }}</td>
                             <td class="num">{{ stat.obp|floatformat(3) }}</td>
                             <td class="num">{{ stat.slg|floatformat(3) }}</td>
                             <td class="num">{{ stat.ops|floatformat(3) }}</td>
-                            <td class="num">{{ stat.tb|num_dash }}</td>
-                            <td class="num">{{ stat.xbh|num_dash }}</td>
-                            <td class="num">{{ stat.gdp|num_dash }}</td>
-                            <td class="num">{{ stat.gidpo|num_dash }}</td>
-                            <td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ stat.roe|num_dash }}</td>
-                            <td class="num">{{ stat.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
                     {% endfor %}
@@ -423,11 +398,11 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>日期</th><th>H/A</th><th>對手</th>
+                        <th>日期</th><th>主/客</th><th>對手</th>
                         {% if is_pitcher %}
                             <th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>SO</th><th>HR</th><th>HB</th><th>ERA</th><th>結果</th>
                         {% else %}
-                            <th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>SO</th><th>SB</th><th>CS</th><th>AVG</th><th>OPS</th>
+                            <th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>SB</th><th>CS</th><th>AVG</th><th>OPS</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -435,7 +410,7 @@
                     {% for log in year_logs %}
                     <tr {% if log.pitch_display %}class="game-row-expandable" onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
                         <td>
-                            {% if log.pitch_display %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}">▶</span>{% endif %}
+                            {% if log.pitch_display %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>{% endif %}
                             {{ log.date }}
                         </td>
                         <td><span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">
@@ -572,6 +547,7 @@
                             <th>P/PA</th><th>RS/9</th><th>IR</th><th>IR_S</th><th>SB</th>
                             <th>BQR</th><th>BQR_S</th><th>PK</th>
                         {% else %}
+                            <th>K%</th><th>BB%</th>
                             <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
                             <th>P/PA</th><th>IBB</th><th>HBP</th><th>GIDP</th><th>GIDPO</th>
                             <th>SF</th><th>SH</th><th>LOB</th><th>ROE</th><th>WO</th>
@@ -587,7 +563,7 @@
                         data-year="{{ yr }}"
                         {% if grp.multi %}onclick="toggleYearGroup('adv','{{ yr }}')" style="cursor:pointer;"{% endif %}>
                         <td class="col-toggle">
-                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-adv-{{ yr }}">▶</span>{% endif %}
+                            {% if grp.multi %}<span class="toggle-arrow" id="arrow-adv-{{ yr }}"></span>{% endif %}
                         </td>
                         <td><strong>{{ yr }}</strong></td>
                         <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
@@ -627,6 +603,8 @@
                             <td class="num">{{ sm.bqr_s|num_dash }}</td>
                             <td class="num">{{ sm.pickoffs|num_dash }}</td>
                         {% else %}
+                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.iso|floatformat(3) }}</td>
                             <td class="num">{{ sm.babip|floatformat(3) }}</td>
                             <td class="num">{{ sm.xbh|num_dash }}</td>
@@ -688,6 +666,8 @@
                             <td class="num">{{ stat.bqr_s|num_dash }}</td>
                             <td class="num">{{ stat.pickoffs|num_dash }}</td>
                         {% else %}
+                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.iso|floatformat(3) }}</td>
                             <td class="num">{{ stat.babip|floatformat(3) }}</td>
                             <td class="num">{{ stat.xbh|num_dash }}</td>
@@ -744,7 +724,7 @@
                     {% for entry in level_entries %}
                     {% set sc = entry.sc %}
                     {% set ns = namespace(ss_row=None) %}
-                    {% for s in all_stats if s.year == yr and s.sport_level == entry.sport_level %}
+                    {% for s in all_stats if s.year == yr and s.sport_level == entry.sport_level and s.team_name == entry.team_name %}
                         {% if ns.ss_row is none %}{% set ns.ss_row = s %}{% endif %}
                     {% endfor %}
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
@@ -1025,6 +1005,20 @@
     </div>
     {% endif %}
 </div>
+
+{# ── TAB 6: PLOT ── #}
+<div class="tab-panel" id="panel-plot">
+    {% if chart_data %}
+    <div class="chart-wrap glass-panel">
+        <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
+        <canvas id="performanceChart" height="80"></canvas>
+    </div>
+    {% else %}
+    <div class="glass-panel" style="padding:2rem;text-align:center;color:var(--text-2);">
+        尚無本賽季數據圖表
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -1217,7 +1211,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {# Tab restoration from query param #}
 <script>
 (function(){
-    var TABS = ['bio','stats','gamelogs','advanced','fielding'];
+    var TABS = ['bio','stats','gamelogs','advanced','fielding','plot'];
     var panels = {};
     TABS.forEach(function(t){ panels[t] = document.getElementById('panel-' + t); });
 
