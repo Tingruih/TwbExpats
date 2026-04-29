@@ -55,9 +55,7 @@
                 </div>
                 <div class="stat-box">
                     <span class="stat-label">W-L</span>
-                    <span class="stat-value stat-value-sm">
-                        {{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}
-                    </span>
+                    <span class="stat-value">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span>
                 </div>
             {% else %}
                 <div class="stat-box">
