@@ -408,9 +408,9 @@
                 </thead>
                 <tbody>
                     {% for log in year_logs %}
-                    <tr {% if log.pitch_display %}class="game-row-expandable" onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
+                    <tr {% if log.pitch_data_url %}class="game-row-expandable" onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
                         <td>
-                            {% if log.pitch_display %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>{% endif %}
+                            {% if log.pitch_data_url %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>{% endif %}
                             {{ log.date }}
                         </td>
                         <td><span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">
@@ -445,14 +445,13 @@
                             <td class="num">{{ s.ops|num_dash }}</td>
                         {% endif %}
                     </tr>
-                    {% if log.pitch_display %}
-                    {# Pitch log: placeholder row + JSON data for lazy rendering #}
-                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" style="display:none;">
+                    {% if log.pitch_data_url %}
+                    {# Pitch log: placeholder row; JSON is fetched on first expand. #}
+                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" style="display:none;">
                         <td colspan="{% if is_pitcher %}13{% else %}16{% endif %}" class="pitch-log-cell">
                             <div class="pitch-log-scroll" id="pitchlog-content-{{ y }}-{{ loop.index }}"></div>
                         </td>
                     </tr>
-                    <script type="application/json" id="pitchlog-data-{{ y }}-{{ loop.index }}">{{ log.pitch_display|tojson_safe }}</script>
                     {% endif %}
                     {% endfor %}
                 </tbody>
@@ -723,18 +722,15 @@
                     {% set level_entries = entries if entries|length == 1 else entries[1:] %}
                     {% for entry in level_entries %}
                     {% set sc = entry.sc %}
-                    {% set ns = namespace(ss_row=None) %}
-                    {% for s in all_stats if s.year == yr and s.sport_level == entry.sport_level and s.team_name == entry.team_name %}
-                        {% if ns.ss_row is none %}{% set ns.ss_row = s %}{% endif %}
-                    {% endfor %}
+                    {% set ss_row = entry.stat %}
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
                         <td><strong>{{ yr }}</strong></td>
                         <td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
                         {% if is_pitcher %}
-                            <td class="num">{% if ns.ss_row and ns.ss_row.fip %}{{ ns.ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td>
-                            <td class="num">{% if ns.ss_row and ns.ss_row.xwpct %}{{ ns.ss_row.xwpct|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.fip %}{{ ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.xwpct %}{{ ss_row.xwpct|floatformat(3) }}{% else %}—{% endif %}</td>
                             <td class="num">{{ sc.woba_against|floatformat(3) }}</td>
-                            <td class="num">{% if ns.ss_row and ns.ss_row.expected and ns.ss_row.expected.xwoba %}{{ ns.ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
                             <td class="num">{{ sc.barrel_pct|pct_fmt }}</td>
                             <td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td>
                             <td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
@@ -745,9 +741,9 @@
                         {% else %}
                             <td class="num">{{ sc.bbe|num_dash }}</td>
                             <td class="num">{{ sc.woba|floatformat(3) }}</td>
-                            <td class="num">{% if ns.ss_row and ns.ss_row.expected and ns.ss_row.expected.xwoba %}{{ ns.ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
-                            <td class="num">{% if ns.ss_row and ns.ss_row.wrc_plus is not none %}{{ ns.ss_row.wrc_plus }}{% else %}—{% endif %}</td>
-                            <td class="num">{% if ns.ss_row and ns.ss_row.war %}{{ ns.ss_row.war|floatformat(1) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.war %}{{ ss_row.war|floatformat(1) }}{% else %}—{% endif %}</td>
                             <td class="num">{{ sc.barrel_pct|pct_fmt }}</td>
                             <td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td>
                             <td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
@@ -1110,13 +1106,25 @@ function togglePitchLog(id) {
     if (!open) {
         var container = document.getElementById(id.replace('pitchlog-', 'pitchlog-content-'));
         if (container && !container.dataset.rendered) {
-            var dataEl = document.getElementById(id.replace('pitchlog-', 'pitchlog-data-'));
-            if (dataEl) {
-                var pitches = JSON.parse(dataEl.textContent);
-                container.innerHTML = _buildPitchTable(pitches);
-                container.dataset.rendered = '1';
-                // Free memory: remove the JSON source
-                dataEl.remove();
+            var src = row.dataset.src;
+            if (src && !container.dataset.loading) {
+                container.dataset.loading = '1';
+                container.innerHTML = '<div class="pitch-log-loading">載入逐球資料中...</div>';
+                fetch(src)
+                    .then(function(resp) {
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function(pitches) {
+                        container.innerHTML = _buildPitchTable(pitches);
+                        container.dataset.rendered = '1';
+                    })
+                    .catch(function() {
+                        container.innerHTML = '<div class="pitch-log-loading">逐球資料載入失敗</div>';
+                    })
+                    .finally(function() {
+                        delete container.dataset.loading;
+                    });
             }
         }
     }
@@ -1243,4 +1251,3 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 {% endblock %}
-

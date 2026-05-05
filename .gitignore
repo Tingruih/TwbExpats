@@ -7,5 +7,5 @@ venv/
 
 .DS_Store
 
-/ztest.py
 /data_now.md
+logs.md

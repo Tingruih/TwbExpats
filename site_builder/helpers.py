@@ -98,7 +98,7 @@ def loads_json_list(text: Any) -> list:
 
 
 def dumps_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False)
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
 # ── Date / unit helpers ──

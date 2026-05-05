@@ -19,6 +19,7 @@ from site_builder.helpers import (
     compute_year_groups,
     has_appearance,
     height_to_cm,
+    dumps_json,
     lbs_to_kg,
     loads_json_dict,
     loads_json_list,
@@ -359,6 +360,7 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
         shutil.copytree(static_src, out_dir / "static")
 
     env = create_jinja_env(base_url=base_url)
+    normalized_base_url = env.globals["base_url"]
 
     # Build timestamp in UTC+8
     now_utc8 = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
@@ -496,15 +498,30 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     all_fielding.append(entry)
 
         # ── Statcast context ──
-        # Summarised pitch logs per game (for expandable rows in game log tab)
+        # Summarised pitch logs are written as external JSON and lazy-loaded by
+        # the browser when a game row is expanded. This keeps player HTML small.
+        pitchlog_dir = out_dir / "data" / "pitchlogs" / str(player.mlb_id)
+        pitchlog_url_base = f"{normalized_base_url}data/pitchlogs/{player.mlb_id}"
         for y_key in logs_by_year:
             for log in logs_by_year[y_key]:
                 if log.pitches_json:
-                    log.pitch_display = [
+                    pitch_display = [
                         summarize_pitch_for_display(p) for p in log.pitches_json
                     ]
+                    if pitch_display:
+                        pitchlog_dir.mkdir(parents=True, exist_ok=True)
+                        pitchlog_filename = f"{log.game_id}.json"
+                        (pitchlog_dir / pitchlog_filename).write_text(
+                            dumps_json(pitch_display), encoding="utf-8"
+                        )
+                        log.pitch_data_url = f"{pitchlog_url_base}/{pitchlog_filename}"
+                        log.pitch_count = len(pitch_display)
+                    else:
+                        log.pitch_data_url = ""
+                        log.pitch_count = 0
                 else:
-                    log.pitch_display = []
+                    log.pitch_data_url = ""
+                    log.pitch_count = 0
 
         # Season-level Statcast data keyed by year → list of {sport_level, team_name, sc}
         statcast_by_year: dict[int, list] = {}
@@ -515,6 +532,7 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     "sport_level": s.sport_level,
                     "team_name": s.team_name,
                     "sc": sc,
+                    "stat": s,
                 })
         # For years with multiple levels, prepend a combined summary entry so the
         # summary row in the template can display real weighted-average values.
@@ -525,6 +543,7 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     "sport_level": "_combined",
                     "team_name": "合計",
                     "sc": combined_sc,
+                    "stat": None,
                 })
 
         statcast_available = bool(statcast_by_year)
