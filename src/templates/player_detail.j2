@@ -1035,6 +1035,34 @@ function toggleYearGroup(tableId, yr) {
 document.addEventListener("DOMContentLoaded", function() {
     var yearSel = document.getElementById("gamelog-year-select");
     var levelSel = document.getElementById("gamelog-level-select");
+    var prefetchScheduled = false;
+
+    function isGamelogsPanelActive() {
+        var panel = document.getElementById("panel-gamelogs");
+        return !!panel && panel.classList.contains("tab-panel--active");
+    }
+
+    function schedulePitchLogWarmup() {
+        if (!isGamelogsPanelActive() || prefetchScheduled || typeof prefetchFilteredPitchLogs !== 'function') return;
+        prefetchScheduled = true;
+        var run = function() {
+            prefetchScheduled = false;
+            if (isGamelogsPanelActive()) prefetchFilteredPitchLogs();
+        };
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(run, { timeout: 900 });
+        } else {
+            window.setTimeout(run, 150);
+        }
+    }
+
+    function prefetchRowFromGameRow(gameRow) {
+        if (!gameRow || typeof prefetchPitchLogRow !== 'function') return;
+        var detailRow = gameRow.nextElementSibling;
+        if (detailRow && detailRow.classList.contains("pitch-log-row")) {
+            prefetchPitchLogRow(detailRow);
+        }
+    }
 
     function updateLevelOptions() {
         if (!yearSel || !levelSel) return;
@@ -1075,6 +1103,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (!show) next.style.display = "none";
             }
         });
+        schedulePitchLogWarmup();
     }
 
     function showYear() {
@@ -1087,10 +1116,23 @@ document.addEventListener("DOMContentLoaded", function() {
         if (tbl) tbl.style.display = "block";
         updateLevelOptions();
         filterRows();
+        schedulePitchLogWarmup();
     }
 
     if (yearSel) yearSel.addEventListener("change", showYear);
     if (levelSel) levelSel.addEventListener("change", filterRows);
+
+    document.querySelectorAll(".game-row-expandable").forEach(function(row) {
+        row.addEventListener("pointerdown", function() {
+            prefetchRowFromGameRow(row);
+        });
+    });
+
+    document.addEventListener("player-tab-change", function(event) {
+        if (event.detail && event.detail.tab === "gamelogs") {
+            schedulePitchLogWarmup();
+        }
+    });
 
     // Init
     if (yearSel) showYear();
@@ -1099,6 +1141,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 {# Pitch log expand/collapse in game logs — lazy-renders from JSON #}
 <script>
+var pitchLogCache = Object.create(null);
+
 function _fmt(v, d) {
     if (v == null || v === '') return '-';
     return d != null ? Number(v).toFixed(d) : v;
@@ -1141,6 +1185,99 @@ function _buildPitchTable(pitches) {
     h += '</tbody></table>';
     return h;
 }
+
+function _getPitchLogEntry(src) {
+    if (!src) return null;
+    if (!pitchLogCache[src]) pitchLogCache[src] = {};
+    return pitchLogCache[src];
+}
+
+function _loadPitchLogData(src) {
+    var entry = _getPitchLogEntry(src);
+    if (!entry) return Promise.resolve(null);
+    if (entry.html) return Promise.resolve(entry);
+    if (entry.promise) return entry.promise;
+
+    entry.promise = fetch(src)
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+        })
+        .then(function(pitches) {
+            entry.pitches = Array.isArray(pitches) ? pitches : [];
+            entry.html = _buildPitchTable(entry.pitches);
+            return entry;
+        })
+        .catch(function(err) {
+            delete pitchLogCache[src];
+            throw err;
+        })
+        .finally(function() {
+            if (pitchLogCache[src]) delete pitchLogCache[src].promise;
+        });
+
+    return entry.promise;
+}
+
+function _renderPitchLog(container, entry) {
+    container.innerHTML = entry && entry.html ? entry.html : _buildPitchTable([]);
+    container.dataset.rendered = '1';
+}
+
+function prefetchPitchLogRow(row) {
+    if (!row || !row.dataset || !row.dataset.src) return Promise.resolve(null);
+    return _loadPitchLogData(row.dataset.src).catch(function() {
+        return null;
+    });
+}
+
+function _getFilteredPitchLogRows() {
+    var yearSel = document.getElementById('gamelog-year-select');
+    var yr = yearSel ? yearSel.value : '';
+    var tbl = yr ? document.getElementById('gamelogs-' + yr) : null;
+    var rows = [];
+    if (!tbl) return rows;
+
+    tbl.querySelectorAll('tbody tr.game-row-expandable').forEach(function(gameRow) {
+        if (gameRow.offsetParent === null || gameRow.style.display === 'none') return;
+        var detailRow = gameRow.nextElementSibling;
+        if (!detailRow || !detailRow.classList.contains('pitch-log-row') || !detailRow.dataset.src) return;
+        rows.push(detailRow);
+    });
+
+    return rows;
+}
+
+function prefetchPitchLogRows(rows, concurrency) {
+    var queue = (rows || []).filter(function(row) {
+        if (!row || !row.dataset || !row.dataset.src) return false;
+        var entry = pitchLogCache[row.dataset.src];
+        return !entry || (!entry.html && !entry.promise);
+    });
+    var maxConcurrent = Math.max(1, concurrency || 6);
+    var index = 0;
+
+    if (!queue.length) return Promise.resolve([]);
+
+    function worker() {
+        if (index >= queue.length) return Promise.resolve();
+        var row = queue[index++];
+        return prefetchPitchLogRow(row).then(worker);
+    }
+
+    var workers = [];
+    var workerCount = Math.min(maxConcurrent, queue.length);
+    for (var i = 0; i < workerCount; i++) {
+        workers.push(worker());
+    }
+
+    return Promise.all(workers);
+}
+
+function prefetchFilteredPitchLogs() {
+    return prefetchPitchLogRows(_getFilteredPitchLogRows(), 6);
+}
+
 function togglePitchLog(id) {
     var row = document.getElementById(id);
     if (!row) return;
@@ -1154,16 +1291,16 @@ function togglePitchLog(id) {
         if (container && !container.dataset.rendered) {
             var src = row.dataset.src;
             if (src && !container.dataset.loading) {
+                var cached = pitchLogCache[src];
+                if (cached && cached.html) {
+                    _renderPitchLog(container, cached);
+                    return;
+                }
                 container.dataset.loading = '1';
                 container.innerHTML = '<div class="pitch-log-loading">載入逐球資料中...</div>';
-                fetch(src)
-                    .then(function(resp) {
-                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                        return resp.json();
-                    })
-                    .then(function(pitches) {
-                        container.innerHTML = _buildPitchTable(pitches);
-                        container.dataset.rendered = '1';
+                _loadPitchLogData(src)
+                    .then(function(entry) {
+                        _renderPitchLog(container, entry);
                     })
                     .catch(function() {
                         container.innerHTML = '<div class="pitch-log-loading">逐球資料載入失敗</div>';
@@ -1313,6 +1450,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (lbl.dataset.tab === name) lbl.classList.add('tab-label--active');
             else lbl.classList.remove('tab-label--active');
         });
+        document.dispatchEvent(new CustomEvent('player-tab-change', {
+            detail: { tab: name }
+        }));
     }
 
     // Bind click

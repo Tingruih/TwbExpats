@@ -904,7 +904,7 @@ header nav a:hover {
     align-items: center;
     gap: .75rem;
     padding: .9rem 1.4rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: .55rem;
     flex-wrap: wrap;
     background: var(--card-bg);
 }
@@ -1444,6 +1444,7 @@ header nav a:hover {
 /* Gamelog year containers: skip rendering when hidden */
 .gamelog-table-container {
     contain: layout style paint;
+    margin-top: 0;
 }
 
 .pitch-log-cell {
