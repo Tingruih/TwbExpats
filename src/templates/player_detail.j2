@@ -246,7 +246,7 @@
                 <thead>
                     <tr>
                         <th class="col-toggle"></th>
-                        <th>年度</th><th>層級</th><th>球隊</th><th>聯盟</th><th>G</th>
+                        <th>年度</th><th>層級</th><th>球隊</th><th>G</th>
                         {% if is_pitcher %}
                             <th>W</th><th>L</th><th>ERA</th><th>GS</th><th>CG</th><th>SHO</th>
                             <th>SV</th><th>HLD</th><th>IP</th><th>H</th><th>R</th><th>ER</th>
@@ -272,7 +272,6 @@
                         <td><strong>{{ yr }}</strong></td>
                         <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
-                        <td class="td-league">{% if not grp.multi %}{{ grp.rows[0].league_name }}{% else %}—{% endif %}</td>
                         <td>{{ sm.gp|num_dash }}</td>
                         {% if is_pitcher %}
                             <td class="num">{{ sm.wins|num_dash }}</td>
@@ -323,7 +322,6 @@
                         <td></td>
                         <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
                         <td>{{ stat.team_name }}</td>
-                        <td class="td-league">{{ stat.league_name }}</td>
                         <td>{{ stat.gp|num_dash }}</td>
                         {% if is_pitcher %}
                             <td class="num">{{ stat.wins|num_dash }}</td>
@@ -380,14 +378,18 @@
 {# ── TAB 3: GAME LOGS ── #}
 <div class="tab-panel" id="panel-gamelogs">
 
-    {# Year indicator #}
-    <div class="year-selector glass-panel">
-        <span class="year-label">年度：</span>
-        {% for y in available_log_years %}
-            <span class="year-btn gamelog-year-btn {% if loop.first %}year-btn-active{% endif %}" data-year="{{ y }}" style="cursor: pointer;">{{ y }}</span>
-        {% else %}
-            <span class="year-btn year-btn-active">{{ selected_year }}</span>
-        {% endfor %}
+    {# Year + Level filter #}
+    <div class="log-filter-bar">
+        <label class="filter-label" for="gamelog-year-select">年度</label>
+        <select id="gamelog-year-select" class="filter-select">
+            {% for y in available_log_years %}
+            <option value="{{ y }}"{% if loop.first %} selected{% endif %}>{{ y }}</option>
+            {% else %}
+            <option value="{{ selected_year }}" selected>{{ selected_year }}</option>
+            {% endfor %}
+        </select>
+        <label class="filter-label" for="gamelog-level-select">層級</label>
+        <select id="gamelog-level-select" class="filter-select"></select>
     </div>
 
     {% for y in available_log_years %}
@@ -408,7 +410,9 @@
                 </thead>
                 <tbody>
                     {% for log in year_logs %}
-                    <tr {% if log.pitch_data_url %}class="game-row-expandable" onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
+                    <tr class="gamelog-data-row{% if log.pitch_data_url %} game-row-expandable{% endif %}"
+                        data-level="{{ log.sport_level }}"
+                        {% if log.pitch_data_url %}onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
                         <td>
                             {% if log.pitch_data_url %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>{% endif %}
                             {{ log.date }}
@@ -447,7 +451,7 @@
                     </tr>
                     {% if log.pitch_data_url %}
                     {# Pitch log: placeholder row; JSON is fetched on first expand. #}
-                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" style="display:none;">
+                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" data-level="{{ log.sport_level }}" style="display:none;">
                         <td colspan="{% if is_pitcher %}13{% else %}16{% endif %}" class="pitch-log-cell">
                             <div class="pitch-log-scroll" id="pitchlog-content-{{ y }}-{{ loop.index }}"></div>
                         </td>
@@ -817,16 +821,20 @@
         </div>
     </div>
 
-    {# ── PITCH ARSENAL / VS PITCH TYPE ── #}
+    {# Pitch Arsenal / VS PITCH TYPE ── #}
     <div class="data-table-section glass-panel">
         <h3>{% if is_pitcher %}Pitch Arsenal{% else %}vs 球種分析{% endif %}</h3>
 
-        {# Year selector for arsenal/vs tables #}
-        <div class="year-selector" style="margin-bottom:0.75rem;">
-            <span class="year-label">年度：</span>
-            {% for yr in available_statcast_years %}
-                <span class="year-btn arsenal-year-btn {% if loop.first %}year-btn-active{% endif %}" data-year="{{ yr }}" style="cursor: pointer;">{{ yr }}</span>
-            {% endfor %}
+        {# Year + Level filter for arsenal/vs tables #}
+        <div class="log-filter-bar" style="margin-bottom:0.75rem;">
+            <label class="filter-label" for="arsenal-year-select">年度</label>
+            <select id="arsenal-year-select" class="filter-select">
+                {% for yr in available_statcast_years %}
+                <option value="{{ yr }}"{% if loop.first %} selected{% endif %}>{{ yr }}</option>
+                {% endfor %}
+            </select>
+            <label class="filter-label" for="arsenal-level-select">層級</label>
+            <select id="arsenal-level-select" class="filter-select"></select>
         </div>
 
         {% for yr in available_statcast_years %}
@@ -835,22 +843,12 @@
         {% set _has_multiple = _entries|length > 1 %}
         <div class="arsenal-table-container" id="arsenal-{{ yr }}" {% if not loop.first %}style="display: none;"{% endif %}>
 
-            {# Level selector — only shown when year has multiple levels #}
-            {% if _has_multiple %}
-            <div class="level-selector" style="margin-bottom:0.75rem;">
-                <span class="year-label">層級：</span>
-                {% for _e in _entries %}
-                <span class="year-btn arsenal-level-btn {% if loop.first %}year-btn-active{% endif %}"
-                      data-year="{{ yr }}" data-level="{{ _e.sport_level }}"
-                      style="cursor:pointer;">{% if _e.sport_level == "_combined" %}All Levels{% else %}{{ _e.sport_level }}{% endif %}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-
             {% for _e in _entries %}
             {% set sc = _e.sc %}
             {% set _level = _e.sport_level %}
             <div class="arsenal-level-container" id="arsenal-{{ yr }}-{{ _level }}"
+                 data-level="{{ _level }}"
+                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
                  {% if not loop.first %}style="display: none;"{% endif %}>
                 <div class="table-scroll">
                 {% if is_pitcher %}
@@ -1032,22 +1030,70 @@ function toggleYearGroup(tableId, yr) {
 }
 </script>
 
-{# Game log year toggle #}
+{# Game log year + level dropdowns #}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const btns = document.querySelectorAll(".gamelog-year-btn");
-    const tables = document.querySelectorAll(".gamelog-table-container");
-    btns.forEach(btn => {
-        btn.addEventListener("click", function() {
-            btns.forEach(b => b.classList.remove("year-btn-active"));
-            tables.forEach(t => t.style.display = "none");
-            
-            this.classList.add("year-btn-active");
-            const y = this.dataset.year;
-            const tbl = document.getElementById("gamelogs-" + y);
-            if (tbl) tbl.style.display = "block";
+    var yearSel = document.getElementById("gamelog-year-select");
+    var levelSel = document.getElementById("gamelog-level-select");
+
+    function updateLevelOptions() {
+        if (!yearSel || !levelSel) return;
+        var yr = yearSel.value;
+        var tbl = document.getElementById("gamelogs-" + yr);
+        if (!tbl) return;
+        var levels = [];
+        tbl.querySelectorAll("tbody tr.gamelog-data-row").forEach(function(r) {
+            var lv = r.dataset.level;
+            if (lv && levels.indexOf(lv) === -1) levels.push(lv);
         });
-    });
+        levelSel.innerHTML = '';
+        if (levels.length > 1) {
+            var allOpt = document.createElement("option");
+            allOpt.value = "_all";
+            allOpt.textContent = "All Levels";
+            levelSel.appendChild(allOpt);
+        }
+        levels.forEach(function(lv) {
+            var opt = document.createElement("option");
+            opt.value = lv;
+            opt.textContent = lv;
+            levelSel.appendChild(opt);
+        });
+    }
+
+    function filterRows() {
+        if (!yearSel || !levelSel) return;
+        var yr = yearSel.value;
+        var lv = levelSel.value;
+        var tbl = document.getElementById("gamelogs-" + yr);
+        if (!tbl) return;
+        tbl.querySelectorAll("tbody tr.gamelog-data-row").forEach(function(r) {
+            var show = lv === "_all" || lv === "" || r.dataset.level === lv || r.dataset.level === "";
+            r.style.display = show ? "" : "none";
+            var next = r.nextElementSibling;
+            if (next && next.classList.contains("pitch-log-row")) {
+                if (!show) next.style.display = "none";
+            }
+        });
+    }
+
+    function showYear() {
+        if (!yearSel) return;
+        var yr = yearSel.value;
+        document.querySelectorAll(".gamelog-table-container").forEach(function(t) {
+            t.style.display = "none";
+        });
+        var tbl = document.getElementById("gamelogs-" + yr);
+        if (tbl) tbl.style.display = "block";
+        updateLevelOptions();
+        filterRows();
+    }
+
+    if (yearSel) yearSel.addEventListener("change", showYear);
+    if (levelSel) levelSel.addEventListener("change", filterRows);
+
+    // Init
+    if (yearSel) showYear();
 });
 </script>
 
@@ -1131,36 +1177,66 @@ function togglePitchLog(id) {
 }
 </script>
 
-{# Arsenal / vs pitch type year toggle #}
+{# Arsenal / vs pitch type year + level dropdowns #}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    var btns = document.querySelectorAll(".arsenal-year-btn");
-    var tables = document.querySelectorAll(".arsenal-table-container");
-    btns.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-            btns.forEach(function(b) { b.classList.remove("year-btn-active"); });
-            tables.forEach(function(t) { t.style.display = "none"; });
-            this.classList.add("year-btn-active");
-            var y = this.dataset.year;
-            var tbl = document.getElementById("arsenal-" + y);
-            if (tbl) tbl.style.display = "block";
-        });
-    });
+    var yrSel = document.getElementById("arsenal-year-select");
+    var lvSel = document.getElementById("arsenal-level-select");
 
-    var levelBtns = document.querySelectorAll(".arsenal-level-btn");
-    levelBtns.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-            var yr = this.dataset.year;
-            var lvl = this.dataset.level;
-            document.querySelectorAll('.arsenal-level-btn[data-year="' + yr + '"]')
-                .forEach(function(b) { b.classList.remove("year-btn-active"); });
-            document.querySelectorAll('#arsenal-' + yr + ' .arsenal-level-container')
-                .forEach(function(c) { c.style.display = "none"; });
-            this.classList.add("year-btn-active");
-            var container = document.getElementById("arsenal-" + yr + "-" + lvl);
-            if (container) container.style.display = "block";
+    function updateArsenalLevelOptions() {
+        if (!yrSel || !lvSel) return;
+        var yr = yrSel.value;
+        var yearContainer = document.getElementById("arsenal-" + yr);
+        if (!yearContainer) return;
+        var containers = yearContainer.querySelectorAll(".arsenal-level-container");
+        lvSel.innerHTML = "";
+        if (containers.length <= 1) {
+            containers.forEach(function(c) {
+                var opt = document.createElement("option");
+                opt.value = c.dataset.level;
+                opt.textContent = c.dataset.levelLabel;
+                opt.selected = true;
+                lvSel.appendChild(opt);
+            });
+        } else {
+            containers.forEach(function(c, i) {
+                var opt = document.createElement("option");
+                opt.value = c.dataset.level;
+                opt.textContent = c.dataset.levelLabel;
+                if (i === 0) opt.selected = true;
+                lvSel.appendChild(opt);
+            });
+        }
+    }
+
+    function showArsenalLevel() {
+        if (!yrSel || !lvSel) return;
+        var yr = yrSel.value;
+        var lv = lvSel.value;
+        var yearContainer = document.getElementById("arsenal-" + yr);
+        if (!yearContainer) return;
+        yearContainer.querySelectorAll(".arsenal-level-container").forEach(function(c) {
+            c.style.display = c.dataset.level === lv ? "block" : "none";
         });
-    });
+    }
+
+    function showArsenalYear() {
+        if (!yrSel) return;
+        var yr = yrSel.value;
+        document.querySelectorAll(".arsenal-table-container").forEach(function(t) {
+            t.style.display = "none";
+        });
+        var tbl = document.getElementById("arsenal-" + yr);
+        if (tbl) tbl.style.display = "block";
+        updateArsenalLevelOptions();
+        showArsenalLevel();
+    }
+
+    if (yrSel) yrSel.addEventListener("change", showArsenalYear);
+    if (lvSel) lvSel.addEventListener("change", showArsenalLevel);
+
+    // Init
+    if (yrSel) showArsenalYear();
 });
 </script>
 

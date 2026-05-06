@@ -323,12 +323,12 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
 
     if has_pitches_col:
         log_sql = (
-            "SELECT date, game_id, opponent, is_home, stats_json, pitches_json "
+            "SELECT date, game_id, opponent, is_home, stats_json, pitches_json, sport_level "
             "FROM game_logs WHERE player_mlb_id = ? ORDER BY date DESC"
         )
     else:
         log_sql = (
-            "SELECT date, game_id, opponent, is_home, stats_json "
+            "SELECT date, game_id, opponent, is_home, stats_json, sport_level "
             "FROM game_logs WHERE player_mlb_id = ? ORDER BY date DESC"
         )
 
@@ -341,7 +341,12 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         log.opponent = row[2]
         log.is_home = None if row[3] is None else bool(row[3])
         log.stats_json = loads_json_dict(row[4])
-        log.pitches_json = loads_json_list(row[5]) if has_pitches_col else []
+        if has_pitches_col:
+            log.pitches_json = loads_json_list(row[5])
+            log.sport_level = row[6] or ""
+        else:
+            log.pitches_json = []
+            log.sport_level = row[5] or ""
         logs.append(log)
 
     return player, stats, logs
