@@ -823,7 +823,7 @@
 
     {# Pitch Arsenal / VS PITCH TYPE ── #}
     <div class="data-table-section glass-panel">
-        <h3>{% if is_pitcher %}Pitch Arsenal{% else %}vs 球種分析{% endif %}</h3>
+        <h3>{% if is_pitcher %}投球球種分析{% else %}對戰球種分析{% endif %}</h3>
 
         {# Year + Level filter for arsenal/vs tables #}
         <div class="log-filter-bar" style="margin-bottom:0.75rem;">
@@ -835,6 +835,14 @@
             </select>
             <label class="filter-label" for="arsenal-level-select">層級</label>
             <select id="arsenal-level-select" class="filter-select"></select>
+            {% if is_pitcher %}
+            <label class="filter-label" for="arsenal-bat-side-select">對戰打者</label>
+            <select id="arsenal-bat-side-select" class="filter-select">
+                <option value="all" selected>全部</option>
+                <option value="L">左打</option>
+                <option value="R">右打</option>
+            </select>
+            {% endif %}
         </div>
 
         {% for yr in available_statcast_years %}
@@ -850,41 +858,143 @@
                  data-level="{{ _level }}"
                  data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
                  {% if not loop.first %}style="display: none;"{% endif %}>
-                <div class="table-scroll">
                 {% if is_pitcher %}
-                {% set arsenal = sc.pitch_arsenal if sc.pitch_arsenal else [] %}
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>球種</th><th>Pitch%</th><th>Velo</th><th>iVB</th><th>HB</th>
-                            <th>Spin</th><th>Ext</th><th>vRel</th><th>hRel</th>
-                            <th>Zone%</th><th>Chase%</th><th>Whiff%</th><th>Put Away%</th><th>wOBA</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pt in arsenal %}
-                        <tr>
-                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
-                            <td class="num">{{ pt.pct|pct_fmt }}</td>
-                            <td class="num">{{ pt.velo|floatformat(1) }}</td>
-                            <td class="num">{{ pt.ivb|floatformat(1) }}</td>
-                            <td class="num">{{ pt.hb|floatformat(1) }}</td>
-                            <td class="num">{{ pt.spin|num_dash }}</td>
-                            <td class="num">{{ pt.extension|floatformat(2) }}</td>
-                            <td class="num">{{ pt.v_rel|floatformat(2) }}</td>
-                            <td class="num">{{ pt.h_rel|floatformat(2) }}</td>
-                            <td class="num">{{ pt.zone_pct|pct_fmt }}</td>
-                            <td class="num">{{ pt.chase_pct|pct_fmt }}</td>
-                            <td class="num">{{ pt.whiff_pct|pct_fmt }}</td>
-                            <td class="num">{{ pt.put_away_pct|pct_fmt }}</td>
-                            <td class="num">{{ pt.woba|floatformat(3) }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="14" class="td-empty">尚無數據</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% set splits = sc.pitcher_bat_side_splits if sc.pitcher_bat_side_splits else {} %}
+                {% for _side in ["all", "L", "R"] %}
+                {% set split = splits.get(_side) if splits else none %}
+                {% if not split and _side == "all" %}
+                    {% set arsenal = sc.pitch_arsenal if sc.pitch_arsenal else [] %}
+                    {% set outcomes = sc.pitch_outcomes if sc.pitch_outcomes else [] %}
+                    {% set usage = sc.pitch_usage_by_count if sc.pitch_usage_by_count else {} %}
                 {% else %}
+                    {% set arsenal = split.pitch_arsenal if split and split.pitch_arsenal else [] %}
+                    {% set outcomes = split.pitch_outcomes if split and split.pitch_outcomes else [] %}
+                    {% set usage = split.pitch_usage_by_count if split and split.pitch_usage_by_count else {} %}
+                {% endif %}
+                {% set usage_types = usage.pitch_types if usage and usage.pitch_types else [] %}
+                {% set usage_rows = usage.rows if usage and usage.rows else [] %}
+                <div class="arsenal-split-container" data-bat-side="{{ _side }}" {% if not loop.first %}style="display: none;"{% endif %}>
+                    {% if arsenal or outcomes or usage_types %}
+                    <div class="arsenal-table-stack">
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">球種物理數據</h4>
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>球種</th><th>Pitch%</th><th>Velo</th><th>iVB</th><th>HB</th>
+                                            <th>Spin</th><th>Ext.</th><th>vRel</th><th>hRel</th>
+                                            <th>Zone%</th><th>Chase%</th><th>Whiff%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pt in arsenal %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td class="num">{{ pt.pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.velo|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.ivb|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.hb|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.spin|num_dash }}</td>
+                                            <td class="num">{{ pt.extension|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.v_rel|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.h_rel|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.zone_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.chase_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.whiff_pct|pct_fmt }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="12" class="td-empty">無球種資料</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">對戰結果</h4>
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>球種</th><th>Pitches</th><th>Pitch%</th><th>Strike%</th>
+                                            <th>Z-Whiff%</th><th>O-Swing%</th><th>SwStr%</th><th>CSW%</th>
+                                            <th>PutAway%</th><th>AVG</th><th>wOBA</th><th>Barrel%</th><th>HardHit%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pt in outcomes %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td class="num">{{ pt.count|num_dash }}</td>
+                                            <td class="num">{{ pt.pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.strike_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.z_whiff_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.o_swing_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.swstr_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.csw_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.put_away_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.avg|floatformat(3) }}</td>
+                                            <td class="num">{{ pt.woba|floatformat(3) }}</td>
+                                            <td class="num">{{ pt.barrel_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.hard_hit_pct|pct_fmt }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="13" class="td-empty">無球種資料</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">球數情境使用率</h4>
+                            {% if usage_types and usage_rows %}
+                            <div class="table-scroll">
+                                <table class="data-table pitch-usage-table">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2">Pitch</th>
+                                            {% for row in usage_rows %}
+                                            <th>{{ row.label }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        <tr>
+                                            {% for row in usage_rows %}
+                                            <th class="pitch-usage-subhead">{{ row.counts_label }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pitch in usage_types %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pitch.type|lower }}">{{ pitch.name or pitch.type }}</span></td>
+                                            {% for row in usage_rows %}
+                                            {% set pitch_cell = namespace(pct=none) %}
+                                            {% for pt in row.pitch_types %}
+                                            {% if pt.type == pitch.type %}
+                                            {% set pitch_cell.pct = pt.pct %}
+                                            {% endif %}
+                                            {% endfor %}
+                                            <td class="num">{{ pitch_cell.pct|pct_fmt }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="pitch-analysis-empty">無球種資料</div>
+                            {% endif %}
+                        </section>
+                    </div>
+                    {% else %}
+                    <div class="pitch-analysis-empty">無球種資料</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="table-scroll">
                 {% set vs = sc.vs_pitch_types if sc.vs_pitch_types else [] %}
                 <table class="data-table">
                     <thead>
@@ -918,8 +1028,8 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {% endif %}
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
 
@@ -1007,7 +1117,40 @@
         <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
         <canvas id="performanceChart" height="80"></canvas>
     </div>
-    {% else %}
+    {% endif %}
+
+    {% if statcast_available %}
+    <div class="chart-wrap glass-panel pitch-plinko-wrap">
+        <div class="log-filter-bar pitch-plinko-filter-bar">
+            <label class="filter-label" for="plinko-year-select">年度</label>
+            <select id="plinko-year-select" class="filter-select">
+                {% for yr in available_statcast_years %}
+                <option value="{{ yr }}"{% if loop.first %} selected{% endif %}>{{ yr }}</option>
+                {% endfor %}
+            </select>
+            <label class="filter-label" for="plinko-level-select">層級</label>
+            <select id="plinko-level-select" class="filter-select"></select>
+        </div>
+
+        {% for yr in available_statcast_years %}
+        {% set _entries = statcast_by_year[yr] %}
+        <div class="pitch-plinko-year-container" id="plinko-{{ yr }}" {% if not loop.first %}style="display: none;"{% endif %}>
+            {% for _e in _entries %}
+            {% set sc = _e.sc %}
+            {% set _level = _e.sport_level %}
+            {% set _plinko = sc.pitch_plinko if sc and sc.pitch_plinko else {} %}
+            <div class="pitch-plinko-level-container"
+                 data-level="{{ _level }}"
+                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
+                 {% if not loop.first %}style="display: none;"{% endif %}>
+                <script type="application/json" class="pitch-plinko-data">{{ _plinko|tojson_safe }}</script>
+                <div class="pitch-plinko-root"></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif not chart_data %}
     <div class="glass-panel" style="padding:2rem;text-align:center;color:var(--text-2);">
         尚無本賽季數據圖表
     </div>
@@ -1319,6 +1462,7 @@ function togglePitchLog(id) {
 document.addEventListener("DOMContentLoaded", function() {
     var yrSel = document.getElementById("arsenal-year-select");
     var lvSel = document.getElementById("arsenal-level-select");
+    var batSel = document.getElementById("arsenal-bat-side-select");
 
     function updateArsenalLevelOptions() {
         if (!yrSel || !lvSel) return;
@@ -1352,8 +1496,21 @@ document.addEventListener("DOMContentLoaded", function() {
         var lv = lvSel.value;
         var yearContainer = document.getElementById("arsenal-" + yr);
         if (!yearContainer) return;
+        var activeLevel = null;
         yearContainer.querySelectorAll(".arsenal-level-container").forEach(function(c) {
-            c.style.display = c.dataset.level === lv ? "block" : "none";
+            var isActive = c.dataset.level === lv;
+            c.style.display = isActive ? "block" : "none";
+            if (isActive) activeLevel = c;
+        });
+        showArsenalBatSide(activeLevel);
+    }
+
+    function showArsenalBatSide(scope) {
+        if (!batSel) return;
+        var side = batSel.value || "all";
+        var root = scope || document;
+        root.querySelectorAll(".arsenal-split-container").forEach(function(c) {
+            c.style.display = c.dataset.batSide === side ? "block" : "none";
         });
     }
 
@@ -1371,10 +1528,379 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (yrSel) yrSel.addEventListener("change", showArsenalYear);
     if (lvSel) lvSel.addEventListener("change", showArsenalLevel);
+    if (batSel) batSel.addEventListener("change", function() {
+        showArsenalLevel();
+    });
 
     // Init
     if (yrSel) showArsenalYear();
 });
+</script>
+
+{# Pitch Plinko renderer #}
+<script>
+(function() {
+    var NODE_LAYOUT = [
+        { id: "0-0", x: 180, y: 58 },
+        { id: "0-1", x: 105, y: 140 },
+        { id: "1-0", x: 255, y: 140 },
+        { id: "0-2", x: 60, y: 225 },
+        { id: "1-1", x: 180, y: 225 },
+        { id: "2-0", x: 300, y: 225 },
+        { id: "1-2", x: 105, y: 310 },
+        { id: "2-1", x: 255, y: 310 },
+        { id: "3-0", x: 330, y: 310 },
+        { id: "2-2", x: 180, y: 395 },
+        { id: "3-1", x: 300, y: 395 },
+        { id: "3-2", x: 240, y: 480 },
+    ];
+    var EDGE_LAYOUT = [
+        ["0-0", "0-1"], ["0-0", "1-0"],
+        ["0-1", "0-2"], ["0-1", "1-1"],
+        ["1-0", "1-1"], ["1-0", "2-0"],
+        ["0-2", "1-2"],
+        ["1-1", "1-2"], ["1-1", "2-1"],
+        ["2-0", "2-1"], ["2-0", "3-0"],
+        ["1-2", "2-2"],
+        ["2-1", "2-2"], ["2-1", "3-1"],
+        ["3-0", "3-1"],
+        ["2-2", "3-2"], ["3-1", "3-2"],
+    ];
+    var PITCH_COLORS = {
+        FF: "#ff0a78", FA: "#ff0a78",
+        SI: "#94165d",
+        FC: "#c45aa0",
+        ST: "#2fc5a7",
+        SL: "#68d986",
+        CH: "#ff9568",
+        CU: "#3326d6", KC: "#3326d6", CS: "#3326d6",
+        FS: "#ff6b00", FO: "#ff6b00",
+        SV: "#7c3aed",
+        KN: "#a3a3a3",
+        UN: "#9ca3af",
+    };
+    var FALLBACK_COLORS = ["#ff0a78", "#94165d", "#c45aa0", "#2fc5a7", "#ff9568", "#68d986", "#3326d6", "#ff6b00"];
+    var PITCH_NAMES = {
+        FF: "4-SEAM", FA: "4-SEAM",
+        SI: "SINKER",
+        FC: "CUTTER",
+        ST: "SWEEPER",
+        SL: "SLIDER",
+        CH: "CHANGEUP",
+        CU: "CURVEBALL", KC: "CURVEBALL", CS: "CURVEBALL",
+        FS: "SPLITTER", FO: "SPLITTER",
+        SV: "SLURVE",
+        KN: "KNUCKLEBALL",
+        UN: "UNKNOWN",
+    };
+
+    function escapeHtml(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function pct(value, digits) {
+        if (value == null || value === "") return "-";
+        var n = Number(value);
+        return Number.isFinite(n) ? (n * 100).toFixed(digits == null ? 1 : digits) + "%" : "-";
+    }
+
+    function wholePct(value) {
+        var n = Number(value || 0);
+        return Math.round(n * 100) + "%";
+    }
+
+    function pitchName(pt) {
+        var type = pt && pt.type ? String(pt.type).toUpperCase() : "UN";
+        if (PITCH_NAMES[type]) return PITCH_NAMES[type];
+        return String((pt && pt.name) || type).replace(/ Fastball$/i, "").toUpperCase();
+    }
+
+    function pitchColor(type, colorIndex) {
+        var key = String(type || "UN").toUpperCase();
+        return PITCH_COLORS[key] || FALLBACK_COLORS[colorIndex % FALLBACK_COLORS.length];
+    }
+
+    function mapById(items, idField) {
+        var out = Object.create(null);
+        (items || []).forEach(function(item) {
+            out[item[idField]] = item;
+        });
+        return out;
+    }
+
+    function renderLegend(data, colorIndexByType) {
+        return (data.pitch_types || []).map(function(pt) {
+            var type = pt.type || "UN";
+            var color = pitchColor(type, colorIndexByType[type] || 0);
+            return '<div class="pitch-plinko-legend-item">' +
+                '<span class="pitch-plinko-swatch" style="background:' + color + '"></span>' +
+                '<span>' + escapeHtml(pitchName(pt)) + ' (' + escapeHtml(pt.count || 0) + ', ' + pct(pt.pct, 1) + ')</span>' +
+                '</div>';
+        }).join("");
+    }
+
+    function edgeMap(split) {
+        var out = Object.create(null);
+        (split.edges || []).forEach(function(edge) {
+            out[edge.from + ">" + edge.to] = edge;
+        });
+        return out;
+    }
+
+    function sortPitchTypes(pitchTypes) {
+        return (pitchTypes || []).slice().sort(function(a, b) {
+            return Number(b.count || 0) - Number(a.count || 0);
+        });
+    }
+
+    function edgeOutcomeLabel(fromCount, toCount) {
+        var from = String(fromCount || "0-0").split("-").map(Number);
+        var to = String(toCount || "0-0").split("-").map(Number);
+        if (to[1] > from[1]) return "Strike";
+        if (to[0] > from[0]) return "Ball";
+        return "Count Change";
+    }
+
+    function renderEdges(split, nodeLayoutById, maxEdge) {
+        var edges = edgeMap(split);
+        return EDGE_LAYOUT.map(function(edgeDef) {
+            var from = nodeLayoutById[edgeDef[0]];
+            var to = nodeLayoutById[edgeDef[1]];
+            var edge = edges[edgeDef[0] + ">" + edgeDef[1]] || { pitches: 0 };
+            var count = Number(edge.pitches || 0);
+            var width = count ? 1.6 + Math.sqrt(count / maxEdge) * 8.2 : 1.2;
+            var opacity = count ? 0.82 : 0.3;
+            var hitWidth = Math.max(16, width + 12);
+            return '<g class="pitch-plinko-edge-group">' +
+                '<line x1="' + from.x + '" y1="' + from.y + '" x2="' + to.x + '" y2="' + to.y + '" ' +
+                'class="pitch-plinko-edge" stroke-width="' + width.toFixed(2) + '" opacity="' + opacity + '" />' +
+                '<line x1="' + from.x + '" y1="' + from.y + '" x2="' + to.x + '" y2="' + to.y + '" ' +
+                'class="pitch-plinko-edge-hit" stroke-width="' + hitWidth.toFixed(2) + '" data-split-key="' + escapeHtml(split.key || "") + '" ' +
+                'data-from="' + escapeHtml(edgeDef[0]) + '" data-to="' + escapeHtml(edgeDef[1]) + '" />' +
+                '</g>';
+        }).join("");
+    }
+
+    function renderNode(nodeDef, node, colorIndexByType, splitKey) {
+        var count = Number(node.pitches || 0);
+        var fraction = Number(node.pct || 0);
+        var radius = count ? Math.max(15, Math.min(35, 12 + Math.sqrt(fraction) * 46)) : 12;
+        var ringWidth = count ? Math.max(7, Math.min(11, radius * 0.34)) : 2;
+        var circumference = 2 * Math.PI * radius;
+        var offset = 0;
+        var sortedPitchTypes = sortPitchTypes(node.pitch_types || []);
+        var segments = sortedPitchTypes.map(function(pt) {
+            var seg = Math.max(0, Math.min(1, Number(pt.pct || 0)));
+            var dash = seg * circumference;
+            var dashOffset = -offset;
+            offset += dash;
+            return '<circle cx="' + nodeDef.x + '" cy="' + nodeDef.y + '" r="' + radius.toFixed(2) + '" ' +
+                'fill="none" stroke="' + pitchColor(pt.type, colorIndexByType[pt.type] || 0) + '" ' +
+                'stroke-width="' + ringWidth.toFixed(2) + '" stroke-dasharray="' + dash.toFixed(2) + ' ' + (circumference - dash).toFixed(2) + '" ' +
+                'stroke-dashoffset="' + dashOffset.toFixed(2) + '" transform="rotate(-90 ' + nodeDef.x + ' ' + nodeDef.y + ')" />';
+        }).join("");
+        var labelColor = count ? "#ff006f" : "#b8bec7";
+        var nodeClass = count ? "pitch-plinko-node" : "pitch-plinko-node pitch-plinko-node-empty";
+        return '<g class="' + nodeClass + '">' +
+            '<text x="' + nodeDef.x + '" y="' + (nodeDef.y - radius - 10).toFixed(1) + '" class="pitch-plinko-count-label" fill="' + labelColor + '">' + escapeHtml(nodeDef.id) + '</text>' +
+            '<circle cx="' + nodeDef.x + '" cy="' + nodeDef.y + '" r="' + radius.toFixed(2) + '" class="pitch-plinko-ring-bg" stroke-width="' + ringWidth.toFixed(2) + '" />' +
+            segments +
+            '<circle cx="' + nodeDef.x + '" cy="' + nodeDef.y + '" r="' + Math.max(3, radius - ringWidth / 2).toFixed(2) + '" class="pitch-plinko-node-center" />' +
+            (count ? '<text x="' + nodeDef.x + '" y="' + (nodeDef.y + 4) + '" class="pitch-plinko-node-pct">' + wholePct(fraction) + '</text>' : '') +
+            '<circle cx="' + nodeDef.x + '" cy="' + nodeDef.y + '" r="' + (radius + 9).toFixed(2) + '" class="pitch-plinko-node-hit" data-split-key="' + escapeHtml(splitKey) + '" data-count="' + escapeHtml(nodeDef.id) + '" />' +
+            '</g>';
+    }
+
+    function renderSplit(split, colorIndexByType, maxEdge) {
+        var nodes = mapById(split.nodes || [], "count");
+        var nodeLayoutById = mapById(NODE_LAYOUT, "id");
+        var nodeSvg = NODE_LAYOUT.map(function(nodeDef) {
+            return renderNode(nodeDef, nodes[nodeDef.id] || { count: nodeDef.id, pitches: 0, pct: null, pitch_types: [] }, colorIndexByType, split.key || "");
+        }).join("");
+        return '<section class="pitch-plinko-split">' +
+            '<h4>' + escapeHtml(split.label || "") + ' <span>(' + escapeHtml(split.pitches || 0) + ' pitches, ' + pct(split.pct, 1) + ')</span></h4>' +
+            '<svg class="pitch-plinko-svg" viewBox="0 0 360 520" role="img" aria-label="' + escapeHtml(split.label || "Pitch Plinko") + '">' +
+                renderEdges(split, nodeLayoutById, maxEdge) + nodeSvg +
+            '</svg>' +
+            '</section>';
+    }
+
+    function findNode(data, splitKey, count) {
+        var split = (data.splits || []).find(function(item) { return String(item.key || "") === String(splitKey || ""); });
+        if (!split) return null;
+        return (split.nodes || []).find(function(node) { return String(node.count) === String(count); }) || null;
+    }
+
+    function findEdge(data, splitKey, fromCount, toCount) {
+        var split = (data.splits || []).find(function(item) { return String(item.key || "") === String(splitKey || ""); });
+        if (!split) return null;
+        return (split.edges || []).find(function(edge) {
+            return String(edge.from) === String(fromCount) && String(edge.to) === String(toCount);
+        }) || null;
+    }
+
+    function tooltipHtml(node, colorIndexByType) {
+        var rows = sortPitchTypes(node.pitch_types || []).map(function(pt) {
+            return '<div class="pitch-plinko-tooltip-row">' +
+                '<span class="pitch-plinko-tooltip-dot" style="background:' + pitchColor(pt.type, colorIndexByType[pt.type] || 0) + '"></span>' +
+                '<span class="pitch-plinko-tooltip-name">' + escapeHtml(pitchName(pt)) + '</span>' +
+                '<strong>' + escapeHtml(pt.count || 0) + '</strong>' +
+                '<span>' + pct(pt.pct, 1) + '</span>' +
+                '</div>';
+        }).join("");
+        return '<div class="pitch-plinko-tooltip-title"><strong>' + escapeHtml(node.count) + ' Count</strong> <span>' + escapeHtml(node.pitches || 0) + ' pitches</span></div>' + rows;
+    }
+
+    function edgeTooltipHtml(edge) {
+        var outcome = edgeOutcomeLabel(edge.from, edge.to);
+        return '<div class="pitch-plinko-tooltip-title pitch-plinko-tooltip-title--stacked">' +
+            '<strong>' + escapeHtml(edge.from) + ' → ' + escapeHtml(edge.to) + '</strong>' +
+            '<span class="pitch-plinko-tooltip-accent">' + escapeHtml(outcome) + '</span>' +
+            '<span>' + escapeHtml(edge.pitches || 0) + ' pitches</span>' +
+            '</div>';
+    }
+
+    function moveTooltip(root, tooltip, event) {
+        var rect = root.getBoundingClientRect();
+        var left = event.clientX - rect.left + 14;
+        var top = event.clientY - rect.top - tooltip.offsetHeight / 2;
+        left = Math.min(left, root.clientWidth - tooltip.offsetWidth - 8);
+        top = Math.max(8, Math.min(top, root.clientHeight - tooltip.offsetHeight - 8));
+        tooltip.style.left = left + "px";
+        tooltip.style.top = top + "px";
+    }
+
+    function bindTooltips(root, data, colorIndexByType) {
+        var tooltip = root.querySelector(".pitch-plinko-tooltip");
+        if (!tooltip) return;
+        root.querySelectorAll(".pitch-plinko-node-hit").forEach(function(hit) {
+            hit.addEventListener("pointerenter", function(event) {
+                var node = findNode(data, hit.dataset.splitKey, hit.dataset.count);
+                if (!node || !node.pitches) return;
+                tooltip.innerHTML = tooltipHtml(node, colorIndexByType);
+                tooltip.classList.add("pitch-plinko-tooltip--visible");
+                moveTooltip(root, tooltip, event);
+            });
+            hit.addEventListener("pointermove", function(event) {
+                if (tooltip.classList.contains("pitch-plinko-tooltip--visible")) {
+                    moveTooltip(root, tooltip, event);
+                }
+            });
+            hit.addEventListener("pointerleave", function() {
+                tooltip.classList.remove("pitch-plinko-tooltip--visible");
+            });
+        });
+        root.querySelectorAll(".pitch-plinko-edge-hit").forEach(function(hit) {
+            hit.addEventListener("pointerenter", function(event) {
+                var edge = findEdge(data, hit.dataset.splitKey, hit.dataset.from, hit.dataset.to);
+                if (!edge || !edge.pitches) return;
+                tooltip.innerHTML = edgeTooltipHtml(edge);
+                tooltip.classList.add("pitch-plinko-tooltip--visible");
+                moveTooltip(root, tooltip, event);
+            });
+            hit.addEventListener("pointermove", function(event) {
+                if (tooltip.classList.contains("pitch-plinko-tooltip--visible")) {
+                    moveTooltip(root, tooltip, event);
+                }
+            });
+            hit.addEventListener("pointerleave", function() {
+                tooltip.classList.remove("pitch-plinko-tooltip--visible");
+            });
+        });
+    }
+
+    function renderPitchPlinko(root, data) {
+        if (!root) return;
+        if (!data || !data.total_pitches || !Array.isArray(data.splits) || !data.splits.length) {
+            root.innerHTML = '<div class="pitch-plinko-empty">尚無逐球數資料</div>';
+            return;
+        }
+        var colorIndexByType = Object.create(null);
+        (data.pitch_types || []).forEach(function(pt, index) {
+            colorIndexByType[pt.type || "UN"] = index;
+        });
+        var maxEdge = 1;
+        (data.splits || []).forEach(function(split) {
+            (split.edges || []).forEach(function(edge) {
+                maxEdge = Math.max(maxEdge, Number(edge.pitches || 0));
+            });
+        });
+        root.innerHTML = '<div class="pitch-plinko-card">' +
+            '<div class="pitch-plinko-heading"><h3>Pitch Plinko</h3><p>Connection Thickness = Amount of Pitches</p></div>' +
+            '<div class="pitch-plinko-grid">' +
+                (data.splits || []).map(function(split) { return renderSplit(split, colorIndexByType, maxEdge); }).join("") +
+            '</div>' +
+            '<div class="pitch-plinko-legend">' + renderLegend(data, colorIndexByType) + '</div>' +
+            '<div class="pitch-plinko-tooltip"></div>' +
+            '</div>';
+        bindTooltips(root, data, colorIndexByType);
+    }
+
+    function initPitchPlinkoCharts() {
+        document.querySelectorAll(".pitch-plinko-level-container").forEach(function(container) {
+            var script = container.querySelector(".pitch-plinko-data");
+            var root = container.querySelector(".pitch-plinko-root");
+            var data = {};
+            if (script) {
+                try { data = JSON.parse(script.textContent || "{}"); }
+                catch (err) { data = {}; }
+            }
+            renderPitchPlinko(root, data);
+        });
+    }
+
+    function initPitchPlinkoFilters() {
+        var yrSel = document.getElementById("plinko-year-select");
+        var lvSel = document.getElementById("plinko-level-select");
+        if (!yrSel || !lvSel) return;
+
+        function updateLevelOptions() {
+            var yearContainer = document.getElementById("plinko-" + yrSel.value);
+            if (!yearContainer) return;
+            var containers = yearContainer.querySelectorAll(".pitch-plinko-level-container");
+            lvSel.innerHTML = "";
+            containers.forEach(function(c, i) {
+                var opt = document.createElement("option");
+                opt.value = c.dataset.level;
+                opt.textContent = c.dataset.levelLabel;
+                if (i === 0) opt.selected = true;
+                lvSel.appendChild(opt);
+            });
+        }
+
+        function showLevel() {
+            var yearContainer = document.getElementById("plinko-" + yrSel.value);
+            if (!yearContainer) return;
+            yearContainer.querySelectorAll(".pitch-plinko-level-container").forEach(function(c) {
+                c.style.display = c.dataset.level === lvSel.value ? "block" : "none";
+            });
+        }
+
+        function showYear() {
+            document.querySelectorAll(".pitch-plinko-year-container").forEach(function(c) {
+                c.style.display = "none";
+            });
+            var active = document.getElementById("plinko-" + yrSel.value);
+            if (active) active.style.display = "block";
+            updateLevelOptions();
+            showLevel();
+        }
+
+        yrSel.addEventListener("change", showYear);
+        lvSel.addEventListener("change", showLevel);
+        showYear();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initPitchPlinkoCharts();
+        initPitchPlinkoFilters();
+    });
+})();
 </script>
 
 {# Chart.js — CDN only loaded when chart data exists to avoid unused requests #}

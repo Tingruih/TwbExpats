@@ -94,6 +94,81 @@ _NON_PA_EVENTS: frozenset[str] = frozenset({
     "other_advance",
 })
 
+_BAT_SIDE_SPLITS = (
+    ("all", "全部"),
+    ("L", "左打"),
+    ("R", "右打"),
+)
+
+_COUNT_USAGE_BUCKETS = (
+    {
+        "key": "all",
+        "label": "All Counts",
+        "counts_label": "All ball-strike counts",
+        "counts": None,
+    },
+    {
+        "key": "early",
+        "label": "Early Count",
+        "counts_label": "0-0, 0-1, 1-0",
+        "counts": {(0, 0), (0, 1), (1, 0)},
+    },
+    {
+        "key": "pitcher_ahead",
+        "label": "Pitcher Ahead",
+        "counts_label": "0-1, 0-2, 1-2, 2-2",
+        "counts": {(0, 1), (0, 2), (1, 2), (2, 2)},
+    },
+    {
+        "key": "pitcher_behind",
+        "label": "Pitcher Behind",
+        "counts_label": "1-0, 2-0, 3-0, 2-1, 3-1",
+        "counts": {(1, 0), (2, 0), (3, 0), (2, 1), (3, 1)},
+    },
+    {
+        "key": "pre_two_strikes",
+        "label": "Pre Two Strikes",
+        "counts_label": "0-0, 0-1, 1-0, 1-1, 2-1, 3-1",
+        "counts": {(0, 0), (0, 1), (1, 0), (1, 1), (2, 1), (3, 1)},
+    },
+    {
+        "key": "two_strikes",
+        "label": "Two Strikes",
+        "counts_label": "0-2, 1-2, 2-2, 3-2",
+        "counts": {(0, 2), (1, 2), (2, 2), (3, 2)},
+    },
+)
+
+_PLINKO_COUNTS = (
+    (0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0),
+    (1, 2), (2, 1), (3, 0), (2, 2), (3, 1), (3, 2),
+)
+
+_PLINKO_EDGES = (
+    ("0-0", "0-1"), ("0-0", "1-0"),
+    ("0-1", "0-2"), ("0-1", "1-1"),
+    ("1-0", "1-1"), ("1-0", "2-0"),
+    ("0-2", "1-2"),
+    ("1-1", "1-2"), ("1-1", "2-1"),
+    ("2-0", "2-1"), ("2-0", "3-0"),
+    ("1-2", "2-2"),
+    ("2-1", "2-2"), ("2-1", "3-1"),
+    ("3-0", "3-1"),
+    ("2-2", "3-2"), ("3-1", "3-2"),
+)
+
+_BATTER_PLINKO_SPLITS = (
+    ("L", "vs LHP"),
+    ("R", "vs RHP"),
+)
+
+_PITCHER_PLINKO_SPLITS = (
+    ("L", "vs LHB"),
+    ("R", "vs RHB"),
+)
+
+_BATTER_PLINKO_SKIP_TYPES = {"EP", "FA"}
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # EXTRACTION
@@ -149,6 +224,7 @@ def extract_pitch_logs(
         # Track pre-pitch strike count within this PA.
         # First pitch of every PA starts at 0-0.  For subsequent pitches the
         # pre-pitch count equals the previous pitch's post-pitch count.
+        pa_pre_balls = 0
         pa_pre_strikes = 0
 
         for i, ev in enumerate(events):
@@ -164,6 +240,7 @@ def extract_pitch_logs(
             pitch_type_obj = details.get("type") or {}
             is_final = i == last_pitch_idx
 
+            post_balls = count.get("balls", 0)
             post_strikes = count.get("strikes", 0)
 
             out.append({
@@ -198,6 +275,7 @@ def extract_pitch_logs(
                 "hardness": hdata.get("hardness", ""),
                 "balls": count.get("balls"),
                 "strikes": post_strikes,
+                "pre_balls": pa_pre_balls,
                 "pre_strikes": pa_pre_strikes,
                 "outs": count.get("outs"),
                 "batter_id": batter_id,
@@ -211,43 +289,49 @@ def extract_pitch_logs(
 
             # Advance pre-pitch tracker: next pitch's pre-count =
             # this pitch's post-count.
+            pa_pre_balls = post_balls
             pa_pre_strikes = post_strikes
 
     return out
 
 
 def _ensure_pre_strikes(pitches: list[dict]) -> None:
-    """Annotate ``pre_strikes`` on pitches that lack it (backward compat).
+    """Annotate pre-pitch count fields on pitches that lack them.
 
-    Walks the list in order, grouped by ``game_pk``.  Within each game the
+    Walks the list in order, grouped by ``game_pk``. Within each game the
     pitches are assumed to be in chronological PA order (as produced by
-    ``extract_pitch_logs``).  The first pitch of each PA starts at 0 strikes;
-    subsequent pitches inherit the previous pitch's post-pitch strike count.
+    ``extract_pitch_logs``). The first pitch of each PA starts at 0-0;
+    subsequent pitches inherit the previous pitch's post-pitch count.
 
     Always recomputes for pitches missing the field, even when other pitches
     in the same list already have it (handles mixed old/new cached data).
     """
     if not pitches:
         return
-    # Fast path: if ALL pitches already have the field, nothing to do.
-    if all("pre_strikes" in p for p in pitches):
+    # Fast path: if ALL pitches already have the fields, nothing to do.
+    if all("pre_balls" in p and "pre_strikes" in p for p in pitches):
         return
 
+    pre_balls = 0
     pre_strikes = 0
     last_game_pk = None
     for p in pitches:
         gpk = p.get("game_pk")
         if gpk != last_game_pk:
             # New game boundary — reset to start of a fresh PA.
+            pre_balls = 0
             pre_strikes = 0
             last_game_pk = gpk
 
+        p["pre_balls"] = pre_balls
         p["pre_strikes"] = pre_strikes
 
         if p.get("is_pa_final"):
+            pre_balls = 0
             pre_strikes = 0  # next pitch starts a new PA
         else:
-            pre_strikes = p.get("strikes", 0)
+            pre_balls = p.get("balls", 0) or 0
+            pre_strikes = p.get("strikes", 0) or 0
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -329,6 +413,176 @@ def _mean_round(values, digits=1):
     """Mean of non-None values, rounded. Returns None if no valid values."""
     v = _mean(values)
     return round(v, digits) if v is not None else None
+
+
+def _is_unknown_pitch_type(
+    pitch_type: Optional[str], pitch_name: Optional[str] = None
+) -> bool:
+    """Return True when a pitch type is an unknown placeholder."""
+    type_token = str(pitch_type or "").strip().upper()
+    name_token = str(pitch_name or "").strip().upper()
+    return type_token in {"", "UN", "UNKNOWN"} or name_token in {"UN", "UNKNOWN"}
+
+
+def _filter_known_pitch_events(pitches: list[dict]) -> list[dict]:
+    """Drop unknown pitch-type events from pitch-type breakdowns."""
+    return [
+        p for p in pitches
+        if not _is_unknown_pitch_type(p.get("pitch_type"), p.get("pitch_name"))
+    ]
+
+
+def _pre_count_tuple(p: dict) -> Optional[tuple[int, int]]:
+    """Return the pre-pitch (balls, strikes) tuple when available."""
+    try:
+        balls = p.get("pre_balls")
+        strikes = p.get("pre_strikes")
+        if balls is None or strikes is None:
+            return None
+        return int(balls), int(strikes)
+    except (TypeError, ValueError):
+        return None
+
+
+def _post_count_tuple(p: dict) -> Optional[tuple[int, int]]:
+    try:
+        balls = p.get("balls")
+        strikes = p.get("strikes")
+        if balls is None or strikes is None:
+            return None
+        return int(balls), int(strikes)
+    except (TypeError, ValueError):
+        return None
+
+
+def _count_label(count: tuple[int, int]) -> str:
+    return f"{count[0]}-{count[1]}"
+
+
+def _empty_plinko_nodes() -> list[dict]:
+    return [
+        {"count": _count_label(count), "pitches": 0, "pct": None, "pitch_types": []}
+        for count in _PLINKO_COUNTS
+    ]
+
+
+def _empty_plinko_edges() -> list[dict]:
+    return [
+        {"from": from_count, "to": to_count, "pitches": 0}
+        for from_count, to_count in _PLINKO_EDGES
+    ]
+
+
+def _compute_pitch_plinko(
+    pitches: list[dict],
+    *,
+    split_field: str,
+    split_specs: tuple[tuple[str, str], ...],
+    skip_types: Optional[set[str]] = None,
+) -> dict:
+    """Build Pitch Plinko data split by pitcher/batter handedness."""
+    valid_counts = set(_PLINKO_COUNTS)
+    split_keys = {key for key, _ in split_specs}
+
+    candidates = []
+    for p in pitches:
+        if p.get(split_field) not in split_keys:
+            continue
+        ptype = p.get("pitch_type") or "UN"
+        if _is_unknown_pitch_type(ptype, p.get("pitch_name")):
+            continue
+        if skip_types and ptype in skip_types:
+            continue
+        if _pre_count_tuple(p) not in valid_counts:
+            continue
+        candidates.append(p)
+
+    type_names: dict[str, str] = {}
+    total_type_counts: dict[str, int] = {}
+    for p in candidates:
+        ptype = p.get("pitch_type") or "UN"
+        if p.get("pitch_name") and type_names.get(ptype, ptype) == ptype:
+            type_names[ptype] = p.get("pitch_name")
+        else:
+            type_names.setdefault(ptype, ptype)
+        total_type_counts[ptype] = total_type_counts.get(ptype, 0) + 1
+
+    ordered_types = sorted(total_type_counts, key=lambda t: total_type_counts[t], reverse=True)
+    total = len(candidates)
+    pitch_types = [
+        {
+            "type": t,
+            "name": type_names.get(t, t),
+            "count": total_type_counts[t],
+            "pct": _ratio(total_type_counts[t], total, digits=4),
+        }
+        for t in ordered_types
+    ]
+
+    splits = []
+    edge_keys = set(_PLINKO_EDGES)
+    for split_key, split_label in split_specs:
+        split_pitches = [p for p in candidates if p.get(split_field) == split_key]
+        split_total = len(split_pitches)
+        node_data = {
+            _count_label(count): {"pitches": 0, "type_counts": {}}
+            for count in _PLINKO_COUNTS
+        }
+        edge_counts = {edge: 0 for edge in _PLINKO_EDGES}
+
+        for p in split_pitches:
+            pre_count = _pre_count_tuple(p)
+            if pre_count not in valid_counts:
+                continue
+            pre_label = _count_label(pre_count)
+            ptype = p.get("pitch_type") or "UN"
+            bucket = node_data[pre_label]
+            bucket["pitches"] += 1
+            bucket["type_counts"][ptype] = bucket["type_counts"].get(ptype, 0) + 1
+
+            post_count = _post_count_tuple(p)
+            if p.get("is_pa_final") or post_count not in valid_counts:
+                continue
+            edge = (pre_label, _count_label(post_count))
+            if edge in edge_keys:
+                edge_counts[edge] += 1
+
+        nodes = []
+        for count in _PLINKO_COUNTS:
+            label = _count_label(count)
+            bucket = node_data[label]
+            node_total = bucket["pitches"]
+            node_pitch_types = [
+                {
+                    "type": t,
+                    "name": type_names.get(t, t),
+                    "count": bucket["type_counts"].get(t, 0),
+                    "pct": _ratio(bucket["type_counts"].get(t, 0), node_total, digits=4),
+                }
+                for t in ordered_types
+                if bucket["type_counts"].get(t, 0)
+            ]
+            node_pitch_types.sort(key=lambda pt: pt.get("count", 0), reverse=True)
+            nodes.append({
+                "count": label,
+                "pitches": node_total,
+                "pct": _ratio(node_total, split_total, digits=4),
+                "pitch_types": node_pitch_types,
+            })
+
+        splits.append({
+            "key": split_key,
+            "label": split_label,
+            "pitches": split_total,
+            "pct": _ratio(split_total, total, digits=4),
+            "nodes": nodes if split_total else _empty_plinko_nodes(),
+            "edges": [
+                {"from": from_count, "to": to_count, "pitches": edge_counts[(from_count, to_count)]}
+                for from_count, to_count in _PLINKO_EDGES
+            ] if split_total else _empty_plinko_edges(),
+        })
+
+    return {"total_pitches": total, "pitch_types": pitch_types, "splits": splits}
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -443,6 +697,7 @@ def compute_pitcher_statcast(pitches: list[dict], year: Optional[int] = None) ->
     woba_w = get_woba_weights(year)
     agg = _aggregate_pitches(pitches)
     woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
+    bat_side_splits = _compute_pitcher_bat_side_splits(pitches, year=year)
 
     hr = sum(1 for p in agg["pa_final"] if p.get("pa_event") == "home_run")
 
@@ -452,7 +707,15 @@ def compute_pitcher_statcast(pitches: list[dict], year: Optional[int] = None) ->
         "woba_against": _ratio(woba_num, woba_den),
         "hr_fb_pct": _ratio(hr, agg["fb"]),
         "avg_extension": _mean_round([p.get("extension") for p in pitches], 2),
-        "pitch_arsenal": _compute_pitch_arsenal_pitcher(pitches, year=year),
+        "pitch_arsenal": bat_side_splits["all"]["pitch_arsenal"],
+        "pitch_outcomes": bat_side_splits["all"]["pitch_outcomes"],
+        "pitch_usage_by_count": bat_side_splits["all"]["pitch_usage_by_count"],
+        "pitcher_bat_side_splits": bat_side_splits,
+        "pitch_plinko": _compute_pitch_plinko(
+            pitches,
+            split_field="bat_side",
+            split_specs=_PITCHER_PLINKO_SPLITS,
+        ),
     }
     result.update(_discipline_metrics(agg))
     result.update(_batted_ball_metrics(agg))
@@ -461,6 +724,7 @@ def compute_pitcher_statcast(pitches: list[dict], year: Optional[int] = None) ->
 
 def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
     """Per-pitch-type breakdown for a pitcher."""
+    pitches = _filter_known_pitch_events(pitches)
     if not pitches:
         return []
 
@@ -508,6 +772,152 @@ def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = No
         })
     out.sort(key=lambda r: r.get("count", 0), reverse=True)
     return out
+
+
+def _compute_pitch_outcomes_pitcher(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
+    """Per-pitch-type outcome breakdown for a pitcher."""
+    pitches = _filter_known_pitch_events(pitches)
+    if not pitches:
+        return []
+
+    total = len(pitches)
+    woba_w = get_woba_weights(year)
+
+    by_type: dict[str, list[dict]] = {}
+    for p in pitches:
+        t = p.get("pitch_type") or "UN"
+        by_type.setdefault(t, []).append(p)
+
+    out = []
+    for ptype, ps in by_type.items():
+        n = len(ps)
+        agg = _aggregate_pitches(ps)
+        two_strike = [p for p in ps if p.get("pre_strikes") == 2]
+        strikes = sum(1 for p in ps if p.get("is_strike") or p.get("is_in_play"))
+
+        hits = 0
+        ab = 0
+        woba_num = 0.0
+        woba_den = 0
+        for p in agg["pa_final"]:
+            ev = p.get("pa_event", "")
+            if ev in _NON_PA_EVENTS:
+                continue
+            if ev in ("intent_walk", "sac_bunt"):
+                continue
+            woba_den += 1
+            key = WOBA_EVENT_MAP.get(ev)
+            if key:
+                woba_num += woba_w[key]
+            if ev not in ("walk", "hit_by_pitch", "sac_fly", "sac_bunt", "intent_walk"):
+                ab += 1
+                if ev in ("single", "double", "triple", "home_run"):
+                    hits += 1
+
+        two_strike_strikeouts = sum(
+            1 for p in two_strike
+            if p.get("is_pa_final")
+            and p.get("pa_event") in ("strikeout", "strikeout_double_play")
+        )
+        zone_whiffs = sum(1 for p in agg["in_zone"] if _is_whiff(p))
+        name = next((p.get("pitch_name") for p in ps if p.get("pitch_name")), ptype)
+
+        out.append({
+            "type": ptype,
+            "name": name,
+            "count": n,
+            "pct": _ratio(n, total),
+            "strike_pct": _ratio(strikes, n),
+            "z_whiff_pct": _ratio(zone_whiffs, len(agg["in_zone_swings"])),
+            "o_swing_pct": _ratio(len(agg["out_zone_swings"]), len(agg["out_zone"])),
+            "swstr_pct": _ratio(len(agg["whiffs"]), n),
+            "csw_pct": _ratio(len(agg["called"]) + len(agg["whiffs"]), n),
+            "put_away_pct": _ratio(two_strike_strikeouts, len(two_strike)),
+            "two_strike_count": len(two_strike),
+            "avg": _ratio(hits, ab),
+            "woba": _ratio(woba_num, woba_den),
+            "barrel_pct": _ratio(agg["barrels"], len(agg["in_play"])),
+            "hard_hit_pct": _ratio(agg["hard_hits"], len(agg["bbe_ev"])),
+        })
+    out.sort(key=lambda r: r.get("count", 0), reverse=True)
+    return out
+
+
+def _compute_pitch_usage_by_count_pitcher(pitches: list[dict]) -> dict:
+    """Pitch-type usage percentages for common ball-strike count buckets."""
+    pitches = _filter_known_pitch_events(pitches)
+    if not pitches:
+        return {"pitch_types": [], "rows": []}
+
+    type_counts: dict[str, int] = {}
+    type_names: dict[str, str] = {}
+    for p in pitches:
+        ptype = p.get("pitch_type") or "UN"
+        type_counts[ptype] = type_counts.get(ptype, 0) + 1
+        if p.get("pitch_name") and type_names.get(ptype, ptype) == ptype:
+            type_names[ptype] = p.get("pitch_name")
+        else:
+            type_names.setdefault(ptype, ptype)
+
+    ordered_types = sorted(type_counts, key=lambda t: type_counts[t], reverse=True)
+    pitch_types = [
+        {"type": t, "name": type_names.get(t, t), "count": type_counts[t]}
+        for t in ordered_types
+    ]
+
+    rows = []
+    for bucket in _COUNT_USAGE_BUCKETS:
+        count_set = bucket["counts"]
+        if count_set is None:
+            bucket_pitches = pitches
+        else:
+            bucket_pitches = [p for p in pitches if _pre_count_tuple(p) in count_set]
+
+        bucket_total = len(bucket_pitches)
+        bucket_type_counts = {t: 0 for t in ordered_types}
+        for p in bucket_pitches:
+            ptype = p.get("pitch_type") or "UN"
+            if ptype in bucket_type_counts:
+                bucket_type_counts[ptype] += 1
+
+        rows.append({
+            "key": bucket["key"],
+            "label": bucket["label"],
+            "counts_label": bucket["counts_label"],
+            "pitches": bucket_total,
+            "pitch_types": [
+                {
+                    "type": t,
+                    "name": type_names.get(t, t),
+                    "count": bucket_type_counts[t],
+                    "pct": _ratio(bucket_type_counts[t], bucket_total),
+                }
+                for t in ordered_types
+            ],
+        })
+
+    return {"pitch_types": pitch_types, "rows": rows}
+
+
+def _compute_pitcher_bat_side_splits(
+    pitches: list[dict], year: Optional[int] = None
+) -> dict[str, dict]:
+    """Build all/L/R batter-side pitch-type tables for pitchers."""
+    splits: dict[str, dict] = {}
+    for key, label in _BAT_SIDE_SPLITS:
+        if key == "all":
+            split_pitches = pitches
+        else:
+            split_pitches = [p for p in pitches if p.get("bat_side") == key]
+
+        splits[key] = {
+            "key": key,
+            "label": label,
+            "pitch_arsenal": _compute_pitch_arsenal_pitcher(split_pitches, year=year),
+            "pitch_outcomes": _compute_pitch_outcomes_pitcher(split_pitches, year=year),
+            "pitch_usage_by_count": _compute_pitch_usage_by_count_pitcher(split_pitches),
+        }
+    return splits
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -575,6 +985,12 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
         "avg_la": _mean_round(la_values, 1),
         "swsp_pct": _ratio(sweet_spots, len(la_values)),
         "vs_pitch_types": _compute_vs_pitch_types_batter(pitches, year=year),
+        "pitch_plinko": _compute_pitch_plinko(
+            pitches,
+            split_field="pitch_hand",
+            split_specs=_BATTER_PLINKO_SPLITS,
+            skip_types=_BATTER_PLINKO_SKIP_TYPES,
+        ),
     }
     result.update(_discipline_metrics(agg))
     result.update(_batted_ball_metrics(agg))

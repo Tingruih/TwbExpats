@@ -164,7 +164,9 @@ def main():
 
     # build — render HTML from existing database
     sp_build = sub.add_parser(
-        "build", parents=[common], help="Generate static HTML site from existing database"
+        "build",
+        parents=[common],
+        help="Generate static HTML site from existing database",
     )
     sp_build.add_argument("--output", default="dist", help="Output directory")
     sp_build.add_argument("--base-url", default="/", help="Site base URL (e.g. /repo/)")
@@ -172,7 +174,9 @@ def main():
 
     # all — full sync then build
     sp_all = sub.add_parser(
-        "all", parents=[common], help="Full sync then build (first-time / backfill pipeline)"
+        "all",
+        parents=[common],
+        help="Full sync then build (first-time / backfill pipeline)",
     )
     sp_all.add_argument(
         "--roster", default="src/data/roster.json", help="Roster JSON path"

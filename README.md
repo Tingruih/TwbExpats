@@ -89,4 +89,3 @@ python build.py refresh --output dist --base-url /twbexpats/
 # Custom database path or season year
 python build.py refresh --db data/tracker.sqlite3 --year 2025
 ```
-

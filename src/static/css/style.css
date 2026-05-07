@@ -937,6 +937,54 @@ header nav a:hover {
     outline: none;
 }
 
+.arsenal-table-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.arsenal-subsection {
+    min-width: 0;
+}
+
+.arsenal-subtitle {
+    margin: 0 0 0.5rem;
+    color: var(--text-2);
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.pitch-analysis-empty {
+    padding: 1.1rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--text-2);
+    text-align: center;
+}
+
+.pitch-usage-table th:first-child,
+.pitch-usage-table td:first-child {
+    min-width: 10rem;
+    white-space: nowrap;
+}
+
+.pitch-usage-table thead tr:first-child th {
+    white-space: nowrap;
+}
+
+.pitch-usage-table thead tr:nth-child(2) th,
+.pitch-usage-subhead {
+    min-width: 11rem;
+    color: var(--text-2);
+    font-size: 0.76rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.pitch-usage-table td .pitch-tag {
+    font-size: 0.82rem;
+}
+
 /* ── DATA TABLE ── */
 .data-table-section {
     padding: 1.5rem;
@@ -1263,6 +1311,243 @@ header nav a:hover {
     margin-bottom: 1rem;
 }
 
+.pitch-plinko-filter-bar {
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.pitch-plinko-root {
+    position: relative;
+}
+
+.pitch-plinko-card {
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    color: var(--text-2);
+    border-radius: 6px;
+    padding: 0.2rem 0 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.pitch-plinko-heading {
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.pitch-plinko-heading h3 {
+    margin: 0 0 0.3rem;
+    color: var(--text-1);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.pitch-plinko-heading p {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 0.86rem;
+    font-weight: 500;
+}
+
+.pitch-plinko-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.pitch-plinko-split {
+    min-width: 0;
+}
+
+.pitch-plinko-split h4 {
+    margin: 0.65rem 0 0;
+    color: var(--text-1);
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.pitch-plinko-split h4 span {
+    color: var(--text-2);
+    font-weight: 500;
+}
+
+.pitch-plinko-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.pitch-plinko-edge {
+    stroke: rgba(255, 255, 255, 0.28);
+    stroke-linecap: round;
+}
+
+.pitch-plinko-edge-hit {
+    stroke: transparent;
+    fill: none;
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+.pitch-plinko-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.16);
+}
+
+.pitch-plinko-node-center {
+    fill: var(--card-bg);
+}
+
+.pitch-plinko-node-empty .pitch-plinko-ring-bg {
+    stroke: rgba(255, 255, 255, 0.22);
+}
+
+.pitch-plinko-node-pct {
+    fill: var(--text-1);
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.pitch-plinko-count-label {
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.pitch-plinko-node-hit {
+    fill: transparent;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.pitch-plinko-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.7rem 1.18rem;
+    margin-top: 0.35rem;
+    color: var(--text-1);
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.pitch-plinko-legend-item {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.28rem;
+    white-space: nowrap;
+}
+
+.pitch-plinko-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 2px;
+    flex: 0 0 auto;
+}
+
+.pitch-plinko-tooltip {
+    position: absolute;
+    z-index: 6;
+    display: none;
+    min-width: 185px;
+    max-width: min(260px, calc(100% - 1rem));
+    padding: 0.72rem 0.82rem;
+    border-radius: 8px;
+    background: rgba(30, 31, 41, 0.96);
+    color: #ffffff;
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.24);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pitch-plinko-tooltip--visible {
+    display: block;
+}
+
+.pitch-plinko-tooltip-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.88rem;
+    line-height: 1.2;
+}
+
+.pitch-plinko-tooltip-title strong {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.pitch-plinko-tooltip-title span {
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 600;
+}
+
+.pitch-plinko-tooltip-title--stacked {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.pitch-plinko-tooltip-accent {
+    color: #ff0a78 !important;
+    font-size: 1rem;
+    font-weight: 800 !important;
+}
+
+.pitch-plinko-tooltip-row {
+    display: grid;
+    grid-template-columns: 10px minmax(6rem, 1fr) 2rem 3.2rem;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.36rem;
+    font-size: 0.84rem;
+}
+
+.pitch-plinko-tooltip-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.pitch-plinko-tooltip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pitch-plinko-tooltip-row strong,
+.pitch-plinko-tooltip-row span:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.pitch-plinko-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-2);
+    background: var(--card-surface);
+    font-weight: 600;
+}
+
 /* ── NEW JINJA2 CLASSES ── */
 
 /* Smaller stat value (W-L on index card) */
@@ -1335,10 +1620,7 @@ header nav a:hover {
     transform-origin: 30% 50%;
 }
 
-.year-summary-row {
-    /* no transition — reduces style recalc overhead on large tables */
-}
-
+/* no transition — reduces style recalc overhead on large tables */
 .year-summary-row td:first-child {
     padding-left: .4rem;
 }
@@ -1431,11 +1713,42 @@ header nav a:hover {
     .tx-timeline {
         max-height: 280px;
     }
+
+    .pitch-plinko-card {
+        padding: 0.85rem 0.6rem 0.8rem;
+    }
+
+    .pitch-plinko-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .pitch-plinko-legend {
+        justify-content: flex-start;
+        font-size: 0.78rem;
+    }
+
+    .pitch-plinko-tooltip {
+        max-width: calc(100% - 1rem);
+    }
 }
 
 @media (max-width: 520px) {
     .data-table {
         min-width: 760px;
+    }
+
+    .pitch-plinko-wrap {
+        padding: 1rem;
+    }
+
+    .pitch-plinko-heading h3 {
+        font-size: 1rem;
+    }
+
+    .pitch-plinko-heading p,
+    .pitch-plinko-split h4 {
+        font-size: 0.82rem;
     }
 }
 

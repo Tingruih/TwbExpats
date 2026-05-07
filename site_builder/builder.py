@@ -31,6 +31,51 @@ from site_builder.statcast import summarize_pitch_for_display
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+_BAT_SIDE_SPLITS = (
+    ("all", "全部"),
+    ("L", "左打"),
+    ("R", "右打"),
+)
+
+_COUNT_USAGE_BUCKETS = (
+    ("all", "All Counts", "All ball-strike counts"),
+    ("early", "Early Count", "0-0, 0-1, 1-0"),
+    ("pitcher_ahead", "Pitcher Ahead", "0-1, 0-2, 1-2, 2-2"),
+    ("pitcher_behind", "Pitcher Behind", "1-0, 2-0, 3-0, 2-1, 3-1"),
+    ("pre_two_strikes", "Pre Two Strikes", "0-0, 0-1, 1-0, 1-1, 2-1, 3-1"),
+    ("two_strikes", "Two Strikes", "0-2, 1-2, 2-2, 3-2"),
+)
+
+_PLINKO_COUNTS = (
+    "0-0", "0-1", "1-0", "0-2", "1-1", "2-0",
+    "1-2", "2-1", "3-0", "2-2", "3-1", "3-2",
+)
+
+_PLINKO_EDGES = (
+    ("0-0", "0-1"), ("0-0", "1-0"),
+    ("0-1", "0-2"), ("0-1", "1-1"),
+    ("1-0", "1-1"), ("1-0", "2-0"),
+    ("0-2", "1-2"),
+    ("1-1", "1-2"), ("1-1", "2-1"),
+    ("2-0", "2-1"), ("2-0", "3-0"),
+    ("1-2", "2-2"),
+    ("2-1", "2-2"), ("2-1", "3-1"),
+    ("3-0", "3-1"),
+    ("2-2", "3-2"), ("3-1", "3-2"),
+)
+
+
+def _ratio(num: int, den: int) -> float | None:
+    return round(num / den, 4) if den else None
+
+
+def _is_unknown_pitch_type(
+    pitch_type: str | None, pitch_name: str | None = None
+) -> bool:
+    type_token = str(pitch_type or "").strip().upper()
+    name_token = str(pitch_name or "").strip().upper()
+    return type_token in {"", "UN", "UNKNOWN"} or name_token in {"UN", "UNKNOWN"}
+
 
 def _combine_pitch_type_data(
     entries: list[dict],
@@ -59,11 +104,14 @@ def _combine_pitch_type_data(
         items = (e.get("sc") or {}).get(sc_key) or []
         for pt in items:
             t = pt.get("type", "UN")
+            name = pt.get("name", t)
+            if _is_unknown_pitch_type(t, name):
+                continue
             n = pt.get("count", 0)
             total_count += n
             if t not in by_type:
                 by_type[t] = {
-                    "name": pt.get("name", t),
+                    "name": name,
                     "count": 0,
                     "two_strike_count": 0,
                     "wsums": {f: 0.0 for f in rate_fields},
@@ -114,6 +162,19 @@ def _combine_vs_pitch_types(entries: list[dict]) -> list[dict]:
     )
 
 
+def _combine_pitch_outcomes(entries: list[dict]) -> list[dict]:
+    """Combine per-level pitcher pitch_outcomes into a count-weighted list."""
+    return _combine_pitch_type_data(
+        entries,
+        sc_key="pitch_outcomes",
+        rate_fields=[
+            "strike_pct", "z_whiff_pct", "o_swing_pct", "swstr_pct",
+            "csw_pct", "avg", "woba", "barrel_pct", "hard_hit_pct",
+        ],
+        include_pct=True,
+    )
+
+
 def _combine_pitch_arsenal(entries: list[dict]) -> list[dict]:
     """Combine per-level pitch_arsenal into a single count-weighted list."""
     return _combine_pitch_type_data(
@@ -125,6 +186,219 @@ def _combine_pitch_arsenal(entries: list[dict]) -> list[dict]:
         ],
         include_pct=True,
     )
+
+
+def _combine_pitch_usage_by_count(entries: list[dict]) -> dict:
+    """Combine per-level count-bucket pitch usage by summing raw counts."""
+    type_names: dict[str, str] = {}
+    totals_by_type: dict[str, int] = {}
+    bucket_data = {
+        key: {"pitches": 0, "type_counts": {}}
+        for key, _, _ in _COUNT_USAGE_BUCKETS
+    }
+
+    for e in entries:
+        if e.get("sport_level") == "_combined":
+            continue
+        usage = ((e.get("sc") or {}).get("pitch_usage_by_count") or {})
+        for pt in usage.get("pitch_types") or []:
+            ptype = pt.get("type") or "UN"
+            if _is_unknown_pitch_type(ptype, pt.get("name")):
+                continue
+            type_names[ptype] = pt.get("name") or ptype
+            totals_by_type[ptype] = totals_by_type.get(ptype, 0) + (pt.get("count") or 0)
+
+        for row in usage.get("rows") or []:
+            key = row.get("key")
+            if key not in bucket_data:
+                continue
+            bucket = bucket_data[key]
+            bucket["pitches"] += row.get("pitches") or 0
+            for pt in row.get("pitch_types") or []:
+                ptype = pt.get("type") or "UN"
+                if _is_unknown_pitch_type(ptype, pt.get("name")):
+                    continue
+                type_names.setdefault(ptype, pt.get("name") or ptype)
+                bucket["type_counts"][ptype] = (
+                    bucket["type_counts"].get(ptype, 0) + (pt.get("count") or 0)
+                )
+                if row.get("key") == "all" and ptype not in totals_by_type:
+                    totals_by_type[ptype] = totals_by_type.get(ptype, 0) + (pt.get("count") or 0)
+
+    if not totals_by_type:
+        return {"pitch_types": [], "rows": []}
+
+    ordered_types = sorted(totals_by_type, key=lambda t: totals_by_type[t], reverse=True)
+    pitch_types = [
+        {"type": t, "name": type_names.get(t, t), "count": totals_by_type[t]}
+        for t in ordered_types
+    ]
+
+    rows = []
+    for key, label, counts_label in _COUNT_USAGE_BUCKETS:
+        bucket = bucket_data[key]
+        total = bucket["pitches"]
+        rows.append({
+            "key": key,
+            "label": label,
+            "counts_label": counts_label,
+            "pitches": total,
+            "pitch_types": [
+                {
+                    "type": t,
+                    "name": type_names.get(t, t),
+                    "count": bucket["type_counts"].get(t, 0),
+                    "pct": _ratio(bucket["type_counts"].get(t, 0), total),
+                }
+                for t in ordered_types
+            ],
+        })
+
+    return {"pitch_types": pitch_types, "rows": rows}
+
+
+def _combine_pitcher_bat_side_splits(entries: list[dict]) -> dict:
+    """Combine all/L/R batter-side pitch table splits across levels."""
+    splits: dict[str, dict] = {}
+    for key, label in _BAT_SIDE_SPLITS:
+        split_entries = []
+        for e in entries:
+            if e.get("sport_level") == "_combined":
+                continue
+            sc = e.get("sc") or {}
+            split = (sc.get("pitcher_bat_side_splits") or {}).get(key)
+            if split is None and key == "all":
+                split = {
+                    "pitch_arsenal": sc.get("pitch_arsenal") or [],
+                    "pitch_outcomes": sc.get("pitch_outcomes") or [],
+                    "pitch_usage_by_count": sc.get("pitch_usage_by_count") or {},
+                }
+            if split is not None:
+                split_entries.append({
+                    "sport_level": e.get("sport_level"),
+                    "sc": split,
+                })
+
+        splits[key] = {
+            "key": key,
+            "label": label,
+            "pitch_arsenal": _combine_pitch_arsenal(split_entries),
+            "pitch_outcomes": _combine_pitch_outcomes(split_entries),
+            "pitch_usage_by_count": _combine_pitch_usage_by_count(split_entries),
+        }
+    return splits
+
+
+def _combine_pitch_plinko(entries: list[dict]) -> dict:
+    """Combine per-level Pitch Plinko nodes/edges by summing raw counts."""
+    type_names: dict[str, str] = {}
+    totals_by_type: dict[str, int] = {}
+    split_order: list[str] = []
+    split_labels: dict[str, str] = {}
+    split_data: dict[str, dict] = {}
+
+    def _new_split_bucket() -> dict:
+        return {
+            "pitches": 0,
+            "nodes": {
+                count: {"pitches": 0, "type_counts": {}}
+                for count in _PLINKO_COUNTS
+            },
+            "edges": {edge: 0 for edge in _PLINKO_EDGES},
+        }
+
+    for e in entries:
+        if e.get("sport_level") == "_combined":
+            continue
+        plinko = ((e.get("sc") or {}).get("pitch_plinko") or {})
+        if not plinko:
+            continue
+
+        for pt in plinko.get("pitch_types") or []:
+            ptype = pt.get("type") or "UN"
+            type_names[ptype] = pt.get("name") or ptype
+            totals_by_type[ptype] = totals_by_type.get(ptype, 0) + (pt.get("count") or 0)
+
+        for split in plinko.get("splits") or []:
+            split_key = split.get("key") or split.get("label") or "all"
+            if split_key not in split_data:
+                split_data[split_key] = _new_split_bucket()
+                split_order.append(split_key)
+            split_labels.setdefault(split_key, split.get("label") or split_key)
+            bucket = split_data[split_key]
+            bucket["pitches"] += split.get("pitches") or 0
+
+            for node in split.get("nodes") or []:
+                count = node.get("count")
+                if count not in bucket["nodes"]:
+                    continue
+                node_bucket = bucket["nodes"][count]
+                node_bucket["pitches"] += node.get("pitches") or 0
+                for pt in node.get("pitch_types") or []:
+                    ptype = pt.get("type") or "UN"
+                    type_names.setdefault(ptype, pt.get("name") or ptype)
+                    node_bucket["type_counts"][ptype] = (
+                        node_bucket["type_counts"].get(ptype, 0) + (pt.get("count") or 0)
+                    )
+
+            for edge in split.get("edges") or []:
+                edge_key = (edge.get("from"), edge.get("to"))
+                if edge_key in bucket["edges"]:
+                    bucket["edges"][edge_key] += edge.get("pitches") or 0
+
+    if not split_data:
+        return {"total_pitches": 0, "pitch_types": [], "splits": []}
+
+    total = sum(bucket["pitches"] for bucket in split_data.values())
+    ordered_types = sorted(totals_by_type, key=lambda t: totals_by_type[t], reverse=True)
+    pitch_types = [
+        {
+            "type": t,
+            "name": type_names.get(t, t),
+            "count": totals_by_type[t],
+            "pct": _ratio(totals_by_type[t], total),
+        }
+        for t in ordered_types
+    ]
+
+    splits = []
+    for split_key in split_order:
+        bucket = split_data[split_key]
+        split_total = bucket["pitches"]
+        splits.append({
+            "key": split_key,
+            "label": split_labels.get(split_key, split_key),
+            "pitches": split_total,
+            "pct": _ratio(split_total, total),
+            "nodes": [
+                {
+                    "count": count,
+                    "pitches": node_bucket["pitches"],
+                    "pct": _ratio(node_bucket["pitches"], split_total),
+                    "pitch_types": sorted(
+                        [
+                            {
+                                "type": t,
+                                "name": type_names.get(t, t),
+                                "count": node_bucket["type_counts"].get(t, 0),
+                                "pct": _ratio(node_bucket["type_counts"].get(t, 0), node_bucket["pitches"]),
+                            }
+                            for t in ordered_types
+                            if node_bucket["type_counts"].get(t, 0)
+                        ],
+                        key=lambda pt: pt.get("count", 0),
+                        reverse=True,
+                    ),
+                }
+                for count, node_bucket in bucket["nodes"].items()
+            ],
+            "edges": [
+                {"from": from_count, "to": to_count, "pitches": bucket["edges"][(from_count, to_count)]}
+                for from_count, to_count in _PLINKO_EDGES
+            ],
+        })
+
+    return {"total_pitches": total, "pitch_types": pitch_types, "splits": splits}
 
 
 def _combine_statcast_dicts(entries: list[dict]) -> dict:
@@ -199,6 +473,10 @@ def _combine_statcast_dicts(entries: list[dict]) -> dict:
     # pitch_arsenal / vs_pitch_types: combine using count-weighted averages
     combined["pitch_arsenal"] = _combine_pitch_arsenal(entries)
     combined["vs_pitch_types"] = _combine_vs_pitch_types(entries)
+    combined["pitch_outcomes"] = _combine_pitch_outcomes(entries)
+    combined["pitch_usage_by_count"] = _combine_pitch_usage_by_count(entries)
+    combined["pitcher_bat_side_splits"] = _combine_pitcher_bat_side_splits(entries)
+    combined["pitch_plinko"] = _combine_pitch_plinko(entries)
 
     return combined
 
