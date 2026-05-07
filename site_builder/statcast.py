@@ -102,38 +102,32 @@ _BAT_SIDE_SPLITS = (
 
 _COUNT_USAGE_BUCKETS = (
     {
-        "key": "all",
-        "label": "All Counts",
-        "counts_label": "All ball-strike counts",
-        "counts": None,
-    },
-    {
         "key": "early",
-        "label": "Early Count",
+        "label": "前段球數",
         "counts_label": "0-0, 0-1, 1-0",
         "counts": {(0, 0), (0, 1), (1, 0)},
     },
     {
         "key": "pitcher_ahead",
-        "label": "Pitcher Ahead",
+        "label": "球數領先",
         "counts_label": "0-1, 0-2, 1-2, 2-2",
         "counts": {(0, 1), (0, 2), (1, 2), (2, 2)},
     },
     {
         "key": "pitcher_behind",
-        "label": "Pitcher Behind",
+        "label": "球數落後",
         "counts_label": "1-0, 2-0, 3-0, 2-1, 3-1",
         "counts": {(1, 0), (2, 0), (3, 0), (2, 1), (3, 1)},
     },
     {
         "key": "pre_two_strikes",
-        "label": "Pre Two Strikes",
+        "label": "兩好球前",
         "counts_label": "0-0, 0-1, 1-0, 1-1, 2-1, 3-1",
         "counts": {(0, 0), (0, 1), (1, 0), (1, 1), (2, 1), (3, 1)},
     },
     {
         "key": "two_strikes",
-        "label": "Two Strikes",
+        "label": "兩好球後",
         "counts_label": "0-2, 1-2, 2-2, 3-2",
         "counts": {(0, 2), (1, 2), (2, 2), (3, 2)},
     },
@@ -502,7 +496,7 @@ def _compute_pitch_plinko(
     for p in candidates:
         ptype = p.get("pitch_type") or "UN"
         if p.get("pitch_name") and type_names.get(ptype, ptype) == ptype:
-            type_names[ptype] = p.get("pitch_name")
+            type_names[ptype] = p.get("pitch_name") or ptype
         else:
             type_names.setdefault(ptype, ptype)
         total_type_counts[ptype] = total_type_counts.get(ptype, 0) + 1
@@ -855,7 +849,7 @@ def _compute_pitch_usage_by_count_pitcher(pitches: list[dict]) -> dict:
         ptype = p.get("pitch_type") or "UN"
         type_counts[ptype] = type_counts.get(ptype, 0) + 1
         if p.get("pitch_name") and type_names.get(ptype, ptype) == ptype:
-            type_names[ptype] = p.get("pitch_name")
+            type_names[ptype] = p.get("pitch_name") or ptype
         else:
             type_names.setdefault(ptype, ptype)
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Twbexpats{% endblock %}</title>
+    <title>{% block title %}TwbExpats{% endblock %}</title>
     <meta name="description" content="一個追蹤台灣旅美棒球員的數據網站，提供即時比賽成績與所有進階數據。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,9 +16,9 @@
     <div class="container">
         <header class="glass-panel">
             <a href="{{ base_url }}index.html" class="brand-logo">
-                <img class="brand-icon" src="{{ static_url('logo.svg') }}" alt="Twbexpats logo">
+                <img class="brand-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats logo">
                 <div class="brand-copy">
-                    <h1 class="brand-text">Twbexpats</h1>
+                    <h1 class="brand-text">TwbExpats</h1>
                 </div>
             </a>
             <div class="header-time-badge">
@@ -31,6 +31,42 @@
         </main>
     </div>
     {% block extra_scripts %}{% endblock %}
+
+<script>
+(function () {
+    function rowsFor(table) {
+        var rows = [];
+        Array.prototype.forEach.call(table.tBodies, function (tbody) {
+            Array.prototype.forEach.call(tbody.rows, function (row) {
+                if (row.cells.length) rows.push(row);
+            });
+        });
+        return rows;
+    }
+
+    function markNumericHeaders(table) {
+        if (!table.tHead || !table.tHead.rows.length) return;
+
+        var headerRow = table.tHead.rows[table.tHead.rows.length - 1];
+        var bodyRows = rowsFor(table);
+        Array.prototype.forEach.call(headerRow.cells, function (header, index) {
+            var match = bodyRows.find(function (row) {
+                return row.cells.length > index && row.cells[index].colSpan === 1;
+            });
+            header.classList.toggle("num", !!match && match.cells[index].classList.contains("num"));
+        });
+    }
+
+    window.alignNumericTableColumns = function (root) {
+        var scope = root || document;
+        scope.querySelectorAll(".data-table, .pitch-log-table").forEach(markNumericHeaders);
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        window.alignNumericTableColumns(document);
+    });
+}());
+</script>
 
 {# Shared image fallback handler — tries CDN URL first, then shows initials #}
 <script>

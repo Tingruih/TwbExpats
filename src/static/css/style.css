@@ -962,27 +962,40 @@ header nav a:hover {
     text-align: center;
 }
 
-.pitch-usage-table th:first-child,
-.pitch-usage-table td:first-child {
-    min-width: 10rem;
+.data-table.pitch-usage-table th:first-child,
+.data-table.pitch-usage-table td:first-child {
+    min-width: 0;
+    width: 1%;
     white-space: nowrap;
+    text-align: left;
 }
 
-.pitch-usage-table thead tr:first-child th {
-    white-space: nowrap;
+.data-table.pitch-usage-table {
+    width: 100%;
+    min-width: 860px;
 }
 
-.pitch-usage-table thead tr:nth-child(2) th,
+.data-table.pitch-usage-table th,
+.data-table.pitch-usage-table td,
+.data-table.pitch-usage-table th.num,
+.data-table.pitch-usage-table td.num {
+    text-align: center;
+}
+
+.pitch-usage-table thead tr:first-child th:not(:first-child) {
+    white-space: nowrap;
+    color: var(--text-1);
+}
+
 .pitch-usage-subhead {
-    min-width: 11rem;
+    display: block;
+    min-width: 0;
+    white-space: nowrap;
+    text-align: center;
     color: var(--text-2);
-    font-size: 0.76rem;
+    font-size: 0.67rem;
     font-weight: 500;
-    line-height: 1.35;
-}
-
-.pitch-usage-table td .pitch-tag {
-    font-size: 0.82rem;
+    line-height: 1.25;
 }
 
 /* ── DATA TABLE ── */
@@ -1055,6 +1068,7 @@ header nav a:hover {
     color: var(--text-1);
 }
 
+.data-table th.num,
 .data-table td.num {
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -1385,8 +1399,9 @@ header nav a:hover {
 }
 
 .pitch-plinko-edge {
-    stroke: rgba(255, 255, 255, 0.28);
+    stroke: rgba(255, 255, 255, 0.34);
     stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
 }
 
 .pitch-plinko-edge-hit {
@@ -1394,6 +1409,7 @@ header nav a:hover {
     fill: none;
     pointer-events: stroke;
     cursor: pointer;
+    vector-effect: non-scaling-stroke;
 }
 
 .pitch-plinko-ring-bg {
@@ -1412,10 +1428,12 @@ header nav a:hover {
 .pitch-plinko-node-pct {
     fill: var(--text-1);
     text-anchor: middle;
-    dominant-baseline: middle;
+    dominant-baseline: central;
+    alignment-baseline: central;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .pitch-plinko-count-label {
@@ -1507,6 +1525,10 @@ header nav a:hover {
     color: #ff0a78 !important;
     font-size: 1rem;
     font-weight: 800 !important;
+}
+
+.pitch-plinko-tooltip-accent--ball {
+    color: #4fd18b !important;
 }
 
 .pitch-plinko-tooltip-row {
@@ -1814,6 +1836,7 @@ header nav a:hover {
 .pitch-log-table td {
     padding: 0.25rem 0.5rem;
     white-space: nowrap;
+    text-align: left;
     border-bottom: 1px solid var(--border);
 }
 
@@ -1826,6 +1849,12 @@ header nav a:hover {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+}
+
+.pitch-log-table th.num,
+.pitch-log-table td.num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 .pitch-log-table tbody tr:hover {

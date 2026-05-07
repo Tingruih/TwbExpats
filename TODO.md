@@ -128,3 +128,109 @@
 - [ ] **`statcast.py:62`** — `FIP_CONSTANTS` 只有 2024 年資料，歷史年份靜默使用錯誤常數
   - 2022–2023 年球員資料會靜默使用 2024 年常數
   - 修正：在 `compute_fip` 的 fallback 路徑加入 `logger.warning()`，提示使用非對應年份的常數
+
+
+
+我現在要你優化vs球種分析 把層級改為下拉式選單 預設為all levels 接著增加對戰的左右手數據差別 如果是投手的話就是左打右打 打者變是左投雨右投 預設為 All 
+
+
+計算$[T]_\beta$時，為何可以透過標準矩陣 $A$ 去做 $B^{-1}AB$ 的組合運算
+
+9個人分
+
+
+
+
+
+已擷取 3 個資源
+
+
+
+已擷取 https://tjstats.ca/glossary/
+
+以下是完整整理：
+
+---
+
+## 一、Park Factors 表（每支球隊，每年）
+
+表格共 9 欄：
+
+| 欄位 | 說明 |
+|------|------|
+| Team | 球隊名 |
+| League | 所屬聯盟 |
+| Home G | 主場場次 |
+| Road G | 客場場次 |
+| `pf_raw_1y` | 今年原始 Park Factor |
+| `pf_raw_3y` | 3 年原始均值 |
+| `pf_wgt_3y` | 3 年加權（近年 3:2:1 权重） |
+| `pf_reg_3y` | 3 年加權後往 1.00 回歸 50% |
+| **`pf_reg_wgt_3y`** | **最終使用值**，用於 wOBA+ 和 TJBat+ |
+
+---
+
+## 二、League Constants 表（每個聯盟，每年）
+
+每筆按 **level + 聯盟** 分開（例如 AAA 拆成 International League / Pacific Coast League）：
+
+| 欄位 | 2026 MLB AL 值 | 2026 MLB NL 值 | 說明 |
+|------|--------------|--------------|------|
+| PA | 8,089 | 7,804 | 樣本打席數 |
+| `lg_wOBA` | 0.313 | 0.309 | 聯盟平均 wOBA |
+| `lg_OBP` | 0.324 | 0.318 | 聯盟平均 OBP |
+| `lg_R/PA` | 0.118 | 0.118 | 每打席得分率 |
+| `woba_scale` | **1.240**（固定） | **1.240**（固定） | wOBA → 得分的換算係數 |
+
+---
+
+## 三、TJStats 固定 wOBA 線性權重（全層級、全年通用）
+
+| 事件 | 權重 |
+|------|------|
+| BB（四壞） | 0.689 |
+| HBP（觸身） | 0.720 |
+| 1B（一壘安） | 0.881 |
+| 2B | 1.254 |
+| 3B | 1.589 |
+| HR | 2.048 |
+| IBB, 犧牲觸擊, Out | 0（不計） |
+
+> ⚠️ **與我們現有代碼的差異**：目前 statcast.py 使用的是 FanGraphs **每年不同**的權重（`_W` dict），TJStats 用的是**全年份固定**權重。兩者計算出的 wOBA 會有微小差異。
+
+---
+
+## 四、可計算的數據
+
+### wOBA+（球場與聯盟中性的打擊率）
+
+$$\text{wOBA+} = 100 \times \frac{\text{wOBA} / \text{PF}}{\text{lg\_wOBA}}$$
+
+- 需要：球員 wOBA、球隊 `pf_reg_wgt_3y`、所在聯盟 `lg_wOBA`
+- 100 = 聯盟平均，120 = 比平均好 20%
+
+---
+
+### TJBat+（等同 wRC+，全調整後得分貢獻）
+
+$$\text{PF}_m = 1 + (\text{PF} - 1) \times 0.5$$
+
+$$\text{wRC/PA} = \frac{\text{wOBA} - \text{lg\_wOBA}}{\text{woba\_scale}} + \text{lg\_R/PA}$$
+
+$$\text{TJBat+} = 100 \times \frac{\text{wRC/PA} \div \text{PF}_m}{\text{lg\_R/PA}}$$
+
+- 需要：wOBA、PF、`lg_wOBA`、`lg_R/PA`、`woba_scale`（固定 1.24）
+- 比 wOBA+ 更精確，因為還原到「得分」尺度（非線性放大效果）
+
+---
+
+## 五、對現有代碼的影響
+
+| 現有代碼 | 需要補充的資料 |
+|---------|-------------|
+| statcast.py 計算 wOBA，但用 FanGraphs 年份權重 | 若要與 TJStats 對齊，需改為固定權重 |
+| `FIP_CONSTANTS` 只有 level，無 park factor | Park Factor 需加入 `(team, year)` 的對應表 |
+| `LEAGUE_RA9` 用 level 分 | TJStats 更細：同 level 不同聯盟值不同（PCL vs IL 差距很大） |
+| statcast.py 無 wOBA+ / TJBat+ | 需引入 park factors + league constants 才能算 |
+
+實作時，最直接的方式是：把 TJStats 這張表存成 tjstats_league_constants.csv（你的 repo 已有這個檔案！）以及新增一個 `data/tjstats_park_factors.csv`，然後在 statcast.py 或 helpers.py 讀入做 lookup。
