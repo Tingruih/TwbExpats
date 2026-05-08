@@ -1321,13 +1321,213 @@ header nav a:hover {
 }
 
 .chart-wrap h3 {
-    font-size: 1rem;
+    font-size: 1.05rem;
     margin-bottom: 1rem;
 }
 
 .pitch-plinko-filter-bar {
     padding: 0;
     margin-bottom: 1rem;
+}
+
+.pitch-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.35rem;
+    align-items: start;
+    margin: 0 0 1.45rem;
+}
+
+.pitch-chart-section,
+.pitch-usage-hand-root,
+.pitch-movement-root {
+    min-width: 0;
+}
+
+.pitch-movement-root {
+    position: relative;
+}
+
+.pitch-chart-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.pitch-chart-svg text {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0;
+}
+
+.pitch-chart-title {
+    fill: var(--text-1);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-anchor: middle;
+}
+
+.pitch-chart-gridline {
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1.2;
+}
+
+.pitch-chart-zero-line {
+    stroke: rgba(255, 255, 255, 0.42);
+    stroke-width: 2.1;
+}
+
+.pitch-chart-zero-line--horizontal {
+    stroke: rgba(255, 255, 255, 0.18);
+    stroke-dasharray: 10 9;
+}
+
+.pitch-chart-tick-label,
+.pitch-chart-y-tick-label {
+    fill: var(--text-2);
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-variant-numeric: tabular-nums;
+}
+
+.pitch-chart-y-tick-label {
+    text-anchor: end;
+}
+
+.pitch-chart-row-label {
+    fill: var(--text-1);
+    font-size: 16px;
+    font-weight: 700;
+    text-anchor: end;
+    dominant-baseline: middle;
+}
+
+.pitch-chart-axis-label,
+.pitch-chart-hand-label {
+    fill: var(--text-1);
+    font-size: 16px;
+    font-weight: 800;
+    text-anchor: middle;
+}
+
+.pitch-chart-hand-label {
+    fill: var(--text-2);
+    font-style: italic;
+}
+
+.pitch-usage-bar {
+    rx: 0;
+    shape-rendering: crispEdges;
+}
+
+.pitch-usage-value-label {
+    fill: var(--text-1);
+    font-size: 16px;
+    font-weight: 800;
+    dominant-baseline: middle;
+    font-variant-numeric: tabular-nums;
+}
+
+.pitch-usage-value-label--left {
+    text-anchor: end;
+}
+
+.pitch-movement-point {
+    stroke: rgba(255, 255, 255, 0.34);
+    stroke-width: 1.35;
+    cursor: pointer;
+    transition: r .12s ease, opacity .12s ease;
+    opacity: 0.82;
+}
+
+.pitch-movement-point:hover {
+    r: 6.2;
+    opacity: 1;
+}
+
+.pitch-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.72rem 1.2rem;
+    margin-top: 0.1rem;
+    color: var(--text-1);
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.pitch-chart-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.36rem;
+    white-space: nowrap;
+}
+
+.pitch-chart-legend-item i {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.pitch-chart-tooltip {
+    position: absolute;
+    z-index: 7;
+    display: none;
+    min-width: 150px;
+    max-width: min(230px, calc(100% - 1rem));
+    padding: 0.68rem 0.78rem;
+    border-radius: 8px;
+    background: rgba(30, 31, 41, 0.96);
+    color: #fff;
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.24);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pitch-chart-tooltip--visible {
+    display: block;
+}
+
+.pitch-chart-tooltip-title {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 0.48rem;
+}
+
+.pitch-chart-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 1.35rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.84rem;
+    font-weight: 650;
+}
+
+.pitch-chart-tooltip-row strong {
+    color: #fff;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.pitch-chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-2);
+    background: var(--card-surface);
+    font-weight: 600;
 }
 
 .pitch-plinko-root {
@@ -1350,6 +1550,19 @@ header nav a:hover {
 }
 
 .pitch-plinko-heading h3 {
+    margin: 0 0 0.3rem;
+    color: var(--text-1);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.pitch-chart-heading {
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.pitch-chart-heading h3 {
     margin: 0 0 0.3rem;
     color: var(--text-1);
     font-size: 1.05rem;
@@ -1745,12 +1958,18 @@ header nav a:hover {
         gap: 0.75rem;
     }
 
+    .pitch-chart-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
     .pitch-plinko-legend {
         justify-content: flex-start;
         font-size: 0.78rem;
     }
 
-    .pitch-plinko-tooltip {
+    .pitch-plinko-tooltip,
+    .pitch-chart-tooltip {
         max-width: calc(100% - 1rem);
     }
 }
@@ -1764,13 +1983,28 @@ header nav a:hover {
         padding: 1rem;
     }
 
-    .pitch-plinko-heading h3 {
+    .chart-wrap h3,
+    .pitch-plinko-heading h3,
+    .pitch-chart-heading h3 {
+        font-size: 1rem;
+    }
+
+    .pitch-chart-title {
         font-size: 1rem;
     }
 
     .pitch-plinko-heading p,
     .pitch-plinko-split h4 {
         font-size: 0.82rem;
+    }
+
+    .pitch-chart-grid {
+        gap: 0.85rem;
+    }
+
+    .pitch-chart-legend {
+        justify-content: flex-start;
+        font-size: 0.78rem;
     }
 }
 

@@ -27,7 +27,10 @@ from site_builder.helpers import (
     safe_float,
 )
 from site_builder.jinja_env import create_jinja_env
-from site_builder.statcast import summarize_pitch_for_display
+from site_builder.statcast import (
+    compute_pitch_movement_chart,
+    summarize_pitch_for_display,
+)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -401,6 +404,67 @@ def _combine_pitch_plinko(entries: list[dict]) -> dict:
     return {"total_pitches": total, "pitch_types": pitch_types, "splits": splits}
 
 
+def _combine_pitch_movement(entries: list[dict]) -> dict:
+    """Combine per-level pitch movement chart payloads."""
+    type_names: dict[str, str] = {}
+    totals_by_type: dict[str, int] = {}
+    points: list[dict] = []
+    total = 0
+
+    for e in entries:
+        if e.get("sport_level") == "_combined":
+            continue
+        movement = ((e.get("sc") or {}).get("pitch_movement") or {})
+        total += movement.get("total_pitches") or 0
+
+        for pt in movement.get("pitch_types") or []:
+            ptype = pt.get("type") or "UN"
+            if _is_unknown_pitch_type(ptype, pt.get("name")):
+                continue
+            type_names[ptype] = pt.get("name") or ptype
+            totals_by_type[ptype] = totals_by_type.get(ptype, 0) + (pt.get("count") or 0)
+
+        for point in movement.get("points") or []:
+            ptype = point.get("type") or "UN"
+            if _is_unknown_pitch_type(ptype, point.get("name")):
+                continue
+            points.append(dict(point))
+
+    if not points:
+        return {"total_pitches": 0, "shown_pitches": 0, "pitch_types": [], "points": []}
+
+    if not total:
+        total = len(points)
+    if not totals_by_type:
+        for point in points:
+            ptype = point.get("type") or "UN"
+            type_names.setdefault(ptype, point.get("name") or ptype)
+            totals_by_type[ptype] = totals_by_type.get(ptype, 0) + 1
+
+    max_points = 900
+    if len(points) > max_points:
+        step = len(points) / max_points
+        points = [points[min(len(points) - 1, int(i * step))] for i in range(max_points)]
+
+    ordered_types = sorted(totals_by_type, key=lambda t: totals_by_type[t], reverse=True)
+    pitch_types = [
+        {
+            "type": t,
+            "name": type_names.get(t, t),
+            "count": totals_by_type[t],
+            "pct": _ratio(totals_by_type[t], total),
+        }
+        for t in ordered_types
+    ]
+
+    return {
+        "total_pitches": total,
+        "shown_pitches": len(points),
+        "pitch_types": pitch_types,
+        "points": points,
+    }
+
+
 def _combine_statcast_dicts(entries: list[dict]) -> dict:
     """Compute a weighted-average combined statcast dict from multiple level entries.
 
@@ -477,6 +541,7 @@ def _combine_statcast_dicts(entries: list[dict]) -> dict:
     combined["pitch_usage_by_count"] = _combine_pitch_usage_by_count(entries)
     combined["pitcher_bat_side_splits"] = _combine_pitcher_bat_side_splits(entries)
     combined["pitch_plinko"] = _combine_pitch_plinko(entries)
+    combined["pitch_movement"] = _combine_pitch_movement(entries)
 
     return combined
 
@@ -806,11 +871,41 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
                     log.pitch_data_url = ""
                     log.pitch_count = 0
 
+        movement_pitches_by_year_level: dict[tuple[int, str], list[dict]] = {}
+        if player.is_pitcher:
+            levels_by_year: dict[int, set[str]] = {}
+            for s in all_stats:
+                if s.sport_level:
+                    levels_by_year.setdefault(s.year, set()).add(s.sport_level)
+
+            for y_key, year_logs in logs_by_year.items():
+                for log in year_logs:
+                    if not log.pitches_json:
+                        continue
+                    level = log.sport_level or ""
+                    if not level:
+                        known_levels = levels_by_year.get(y_key, set())
+                        if len(known_levels) == 1:
+                            level = next(iter(known_levels))
+                    movement_pitches_by_year_level.setdefault((y_key, level), []).extend(log.pitches_json)
+
+        movement_by_year_level = {
+            key: compute_pitch_movement_chart(pitches)
+            for key, pitches in movement_pitches_by_year_level.items()
+        }
+
         # Season-level Statcast data keyed by year → list of {sport_level, team_name, sc}
         statcast_by_year: dict[int, list] = {}
         for s in all_stats:
-            sc = s.get("statcast")
-            if sc:
+            raw_sc = s.get("statcast")
+            if raw_sc:
+                sc = dict(raw_sc)
+                if player.is_pitcher:
+                    movement = movement_by_year_level.get((s.year, s.sport_level))
+                    if movement and movement.get("total_pitches"):
+                        sc["pitch_movement"] = movement
+                    else:
+                        sc.setdefault("pitch_movement", raw_sc.get("pitch_movement") or {})
                 statcast_by_year.setdefault(s.year, []).append({
                     "sport_level": s.sport_level,
                     "team_name": s.team_name,

@@ -63,8 +63,7 @@ jobs:
             -d grant_type=refresh_token)"
           ACCESS_TOKEN="$(echo "$TOKEN_JSON" | jq -r '.access_token')"
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "Failed to get access token"
-            echo "$TOKEN_JSON"
+            echo "Failed to get access token; HTTP error in token exchange"
             exit 1
           fi
 
@@ -88,8 +87,7 @@ jobs:
             -d grant_type=refresh_token)"
           ACCESS_TOKEN="$(echo "$TOKEN_JSON" | jq -r '.access_token')"
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "Failed to get access token"
-            echo "$TOKEN_JSON"
+            echo "Failed to get access token; HTTP error in token exchange"
             exit 1
           fi
 
