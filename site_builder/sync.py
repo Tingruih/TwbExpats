@@ -767,6 +767,16 @@ def _fetch_and_extract_game(
     return out, sport_level
 
 
+def _pitches_need_hit_coord_backfill(pitches: list[dict]) -> bool:
+    in_play = [p for p in pitches if p.get("is_in_play")]
+    if not in_play:
+        return False
+    return all(
+        p.get("hit_coord_x") is None or p.get("hit_coord_y") is None
+        for p in in_play
+    )
+
+
 def _load_all_pitches_for_player(cur, mlb_id: int) -> dict[tuple, list[dict]]:
     """Return {(year, sport_level): [pitch_dict, ...]} merged across all cached games.
 
@@ -1029,18 +1039,24 @@ def sync_statcast(
 
     for mlb_id in roster_map:
         cur.execute(
-            "SELECT game_id FROM game_logs "
-            "WHERE player_mlb_id = ? AND (pitches_json = '[]' OR pitches_json IS NULL)",
+            "SELECT game_id, pitches_json FROM game_logs WHERE player_mlb_id = ?",
             (mlb_id,),
         )
-        for (gpk,) in cur.fetchall():
+        for gpk, pitches_json in cur.fetchall():
             if gpk is None:
+                continue
+            needs_fetch = pitches_json in (None, "[]")
+            if not needs_fetch:
+                needs_fetch = _pitches_need_hit_coord_backfill(
+                    loads_json_list(pitches_json)
+                )
+            if not needs_fetch:
                 continue
             target_count += 1
             if gpk in processed:
                 # game was fetched before but this player row was never updated
-                # (e.g. added to roster later) — we'll still need to re-extract
-                # for this player, so keep it in the fetch list.
+                # (e.g. added to roster later) or its cached pitch dicts predate
+                # hit-coordinate storage; re-extract this player from the feed.
                 pass
             game_to_players.setdefault(gpk, []).append((mlb_id, positions.get(mlb_id, "")))
 
@@ -1196,9 +1212,13 @@ def sync_statcast(
 
         for (yr, lvl), pitches in pitches_by_year_level.items():
             if is_pitcher:
-                statcast_data = compute_pitcher_statcast(pitches, year=yr)
+                statcast_data = compute_pitcher_statcast(
+                    pitches, year=yr, sport_level=lvl
+                )
             else:
-                statcast_data = compute_batter_statcast(pitches, year=yr)
+                statcast_data = compute_batter_statcast(
+                    pitches, year=yr, sport_level=lvl
+                )
 
             _merge_statcast_into_season(
                 cur,

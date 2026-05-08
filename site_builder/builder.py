@@ -448,8 +448,8 @@ def _combine_statcast_dicts(entries: list[dict]) -> dict:
     # BBE-based fields — weight by bbe
     bbe_fields = [
         "barrel_pct", "hard_hit_pct", "avg_ev", "avg_la", "swsp_pct",
-        "gb_pct", "ld_pct", "fb_pct", "pu_pct", "pull_pct",
-        "straight_pct", "oppo_pct", "hr_fb_pct", "ev90",
+        "gb_pct", "ld_pct", "fb_pct", "pu_pct", "air_pct", "pull_pct",
+        "straight_pct", "oppo_pct", "pull_air_pct", "hr_fb_pct", "ev90",
     ]
     # PA-based fields — weight by pa_count
     pa_fields = ["woba", "woba_against"]

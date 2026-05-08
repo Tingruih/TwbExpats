@@ -7,6 +7,7 @@ For GitHub Pages sub-path deployment, pass base_url="/repo/".
 
 import json
 import os
+from decimal import Decimal, ROUND_HALF_UP
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
@@ -61,7 +62,11 @@ def pct_fmt(value, digits=1):
     if value is None:
         return "-"
     try:
-        return f"{float(value) * 100:.{int(digits)}f}%"
+        places = Decimal("1").scaleb(-int(digits))
+        pct = (Decimal(str(value)) * Decimal("100")).quantize(
+            places, rounding=ROUND_HALF_UP
+        )
+        return f"{pct:.{int(digits)}f}%"
     except Exception:
         return "-"
 

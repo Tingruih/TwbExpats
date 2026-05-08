@@ -9,6 +9,7 @@ Everything here operates on either:
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 # ── Pitch result-code classifications ──────────────────────────────────────
@@ -163,6 +164,43 @@ _PITCHER_PLINKO_SPLITS = (
 
 _BATTER_PLINKO_SKIP_TYPES = {"EP", "FA"}
 
+_GB_TRAJECTORIES = {"ground_ball", "bunt_grounder"}
+_LD_TRAJECTORIES = {"line_drive", "bunt_line_drive"}
+_FB_TRAJECTORIES = {"fly_ball"}
+_PU_TRAJECTORIES = {"popup", "bunt_popup"}
+_AIR_TRAJECTORIES = _LD_TRAJECTORIES | _FB_TRAJECTORIES
+_PULL_AIR_TRAJECTORIES = _AIR_TRAJECTORIES
+
+_BATTED_BALL_RATE_DIGITS = 6
+# MLB Gameday hit coordinate origin and spray-angle formula.
+# Source: Jeff & Darrell Zimmerman / Bill Petti, The Hardball Times (2017)
+# https://tht.fangraphs.com/research-notebook-new-format-for-statcast-data-export-at-baseball-savant/
+# Formula: atan((hc_x - 125.42) / (198.27 - hc_y)) * 180/pi * 0.75
+# The 0.75 factor corrects for the perspective distortion of the Gameday spray chart image.
+_GAMEDAY_HOME_X = 125.42
+_GAMEDAY_HOME_Y = 198.27
+_GAMEDAY_SPRAY_CORRECTION = 0.75
+_GAMEDAY_LEFT_FIELD_THRESHOLD_DEG = 15.0
+_GAMEDAY_RIGHT_FIELD_THRESHOLD_DEG = 15.0
+
+# MLB Stats API hitData.location → broad field zone (LF / CF / RF).
+# Used as fallback when hit coordinates are unavailable.
+# '1'=Pitcher, '2'=Catcher, '3'=1B, '4'=2B, '5'=3B, '6'=SS,
+# '7'=LF, '78'=LC, '8'=CF, '89'=RC, '9'=RF
+_HIT_LOCATION_ZONE: dict[str, str] = {
+    "1":  "CF",  # pitcher (e.g. comebacker)
+    "2":  "CF",  # catcher (bunt)
+    "3":  "RF",  # first baseman
+    "4":  "CF",  # second baseman (up the middle)
+    "5":  "LF",  # third baseman
+    "6":  "LF",  # shortstop
+    "7":  "LF",  # left fielder
+    "78": "LF",  # left-center
+    "8":  "CF",  # center fielder
+    "89": "RF",  # right-center
+    "9":  "RF",  # right fielder
+}
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # EXTRACTION
@@ -228,6 +266,7 @@ def extract_pitch_logs(
             pdata = ev.get("pitchData", {}) or {}
             hdata = ev.get("hitData", {}) or {}
             coords = pdata.get("coordinates", {}) or {}
+            hit_coords = hdata.get("coordinates", {}) or {}
             breaks = pdata.get("breaks", {}) or {}
             count = ev.get("count", {}) or {}
 
@@ -266,6 +305,8 @@ def extract_pitch_logs(
                 "hit_distance": hdata.get("totalDistance"),
                 "trajectory": hdata.get("trajectory", ""),
                 "hit_location": hdata.get("location"),
+                "hit_coord_x": hit_coords.get("coordX"),
+                "hit_coord_y": hit_coords.get("coordY"),
                 "hardness": hdata.get("hardness", ""),
                 "balls": count.get("balls"),
                 "strikes": post_strikes,
@@ -584,6 +625,121 @@ def _compute_pitch_plinko(
 # ══════════════════════════════════════════════════════════════════════════
 
 
+def _spray_direction_from_location(p: dict) -> Optional[str]:
+    """Fallback: classify spray direction using hitData.location fielder code.
+
+    Used when hit coordinates are unavailable.  The location code is mapped
+    to a broad field zone (LF / CF / RF) via ``_HIT_LOCATION_ZONE``, then
+    combined with the batter's handedness to produce pull / straight / oppo.
+    """
+    zone = _HIT_LOCATION_ZONE.get(str(p.get("hit_location", "") or ""))
+    if zone is None:
+        return None
+    if zone == "CF":
+        return "straight"
+    bat = p.get("bat_side", "R")
+    if bat == "L":
+        return "pull" if zone == "RF" else "oppo"
+    return "pull" if zone == "LF" else "oppo"
+
+
+def _spray_direction_from_coordinates(p: dict) -> Optional[str]:
+    """Classify batted-ball direction from MLB Gameday hit coordinates.
+
+    座標系統說明（MLB Gameday 250×250 像素噴射圖）：
+      - 原點 (0, 0) 在圖片左上角
+      - X 軸向右遞增（從打者視角：朝右外野方向）
+      - Y 軸向下遞增（朝本壘板 / 捕手方向）
+      - 本壘板位於圖片下方中央 (HOME_X ≈ 125, HOME_Y ≈ 198)
+
+    角度計算公式：
+      angle = atan2(hc_x − HOME_X,  HOME_Y − hc_y) × 0.75
+
+      atan2 的兩個引數（dx, dy）：
+        dx = hc_x − HOME_X  正值 → 球落在本壘板右側（RF 方向）
+                             負值 → 球落在本壘板左側（LF 方向）
+        dy = HOME_Y − hc_y  正值 → 球落在本壘板前方（往外野方向，正常擊球）
+                             負值 → 球落在本壘板後方（捕手後方的高飛球）
+
+      atan2(dx, dy) 而非 atan2(dy, dx)：
+        標準 atan2(y, x) 以「正 X 軸」為 0°。這裡將引數對調，
+        改以「正 dy 軸（直線方向 / CF）」為 0°，左負右正，
+        使得 0° = 中外野正中, +45° ≈ 一壘線, −45° ≈ 三壘線。
+
+      × 0.75 修正係數：
+        Gameday 噴射圖是從斜上方的俯瞰視角，圖像在橫向（左右）比
+        縱深（本壘→外野）更「壓縮」，導致同樣真實角度在圖上橫向偏移
+        看起來比實際大。乘以 0.75 補正此透視變形，修正後的角度尺度中
+        −45° = 三壘界外線, +45° = 一壘界外線。
+
+    閾值說明：
+      修正後 ±15° 作為 Pull / Straight / Oppo 的分界，
+      對應修正前原始角度的約 ±20°（±15° / 0.75 = ±20°）。
+
+    參考來源：
+      Jeff & Darrell Zimmerman / Bill Petti, The Hardball Times (2017)
+      https://tht.fangraphs.com/research-notebook-new-format-for-statcast-data-export-at-baseball-savant/
+    """
+    x = p.get("hit_coord_x")
+    y = p.get("hit_coord_y")
+    if x is None or y is None:
+        return None
+    try:
+        # dx > 0 → RF 側；dy > 0 → 外野方向（正常擊球）
+        # atan2(dx, dy) 使 0° 指向 CF，正角往 RF，負角往 LF
+        # × 0.75 補正噴射圖的透視壓縮變形
+        angle = math.degrees(
+            math.atan2(float(x) - _GAMEDAY_HOME_X, _GAMEDAY_HOME_Y - float(y))
+        ) * _GAMEDAY_SPRAY_CORRECTION
+    except (TypeError, ValueError):
+        return None
+
+    if angle < -_GAMEDAY_LEFT_FIELD_THRESHOLD_DEG:
+        field = "LF"
+    elif angle > _GAMEDAY_RIGHT_FIELD_THRESHOLD_DEG:
+        field = "RF"
+    else:
+        field = "CF"
+
+    if field == "CF":
+        return "straight"
+    bat = p.get("bat_side", "R")
+    if bat == "L":
+        return "pull" if field == "RF" else "oppo"
+    return "pull" if field == "LF" else "oppo"
+
+
+def _compute_spray(in_play: list[dict]) -> dict:
+    """Return batted-ball direction counts from in-play pitch dicts.
+
+    For each batted ball, tries coordinate-based classification first;
+    falls back to hitData.location + bat_side when coordinates are absent.
+    """
+    pull = straight = oppo = pull_air = spray_total = 0
+    for p in in_play:
+        direction = _spray_direction_from_coordinates(p)
+        if direction is None:
+            direction = _spray_direction_from_location(p)
+        if direction is None:
+            continue
+        spray_total += 1
+        if direction == "straight":
+            straight += 1
+        elif direction == "pull":
+            pull += 1
+            if p.get("trajectory", "") in _PULL_AIR_TRAJECTORIES:
+                pull_air += 1
+        elif direction == "oppo":
+            oppo += 1
+    return {
+        "pull": pull,
+        "straight": straight,
+        "oppo": oppo,
+        "pull_air": pull_air,
+        "spray_total": spray_total,
+    }
+
+
 def _aggregate_pitches(pitches: list[dict]) -> dict:
     """Classify a list of pitches into common categories.
 
@@ -603,6 +759,7 @@ def _aggregate_pitches(pitches: list[dict]) -> dict:
     pa_final = [p for p in pitches if p.get("is_pa_final")]
 
     trajectories = [p.get("trajectory", "") for p in in_play]
+    spray = _compute_spray(in_play)
 
     return {
         "total": len(pitches),
@@ -617,10 +774,15 @@ def _aggregate_pitches(pitches: list[dict]) -> dict:
         "in_play": in_play,
         "bbe_ev": bbe_ev,
         "pa_final": pa_final,
-        "gb": sum(1 for t in trajectories if t == "ground_ball"),
-        "fb": sum(1 for t in trajectories if t == "fly_ball"),
-        "ld": sum(1 for t in trajectories if t == "line_drive"),
-        "pu": sum(1 for t in trajectories if t == "popup"),
+        "gb": sum(1 for t in trajectories if t in _GB_TRAJECTORIES),
+        "fb": sum(1 for t in trajectories if t in _FB_TRAJECTORIES),
+        "ld": sum(1 for t in trajectories if t in _LD_TRAJECTORIES),
+        "pu": sum(1 for t in trajectories if t in _PU_TRAJECTORIES),
+        "pull": spray["pull"],
+        "straight": spray["straight"],
+        "oppo": spray["oppo"],
+        "pull_air": spray["pull_air"],
+        "spray_total": spray["spray_total"],
         "barrels": sum(1 for p in in_play if _is_barrel(p.get("ev"), p.get("la"))),
         "hard_hits": sum(1 for p in bbe_ev if p["ev"] >= 95),
     }
@@ -660,20 +822,36 @@ def _discipline_metrics(agg: dict) -> dict:
     }
 
 
-def _batted_ball_metrics(agg: dict) -> dict:
+def _batted_ball_metrics(agg: dict, sport_level: str = "") -> dict:
     """Build batted-ball metrics dict from _aggregate_pitches output."""
     n_ip = len(agg["in_play"])
     n_ev = len(agg["bbe_ev"])
-    return {
+    spray_available = (agg.get("spray_total") or 0) > 0
+    metrics = {
         "bbe": n_ip,
-        "gb_pct": _ratio(agg["gb"], n_ip),
-        "ld_pct": _ratio(agg["ld"], n_ip),
-        "fb_pct": _ratio(agg["fb"], n_ip),
-        "pu_pct": _ratio(agg["pu"], n_ip),
+        "gb_pct": _ratio(agg["gb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        "ld_pct": _ratio(agg["ld"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        "fb_pct": _ratio(agg["fb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        "pu_pct": _ratio(agg["pu"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        "air_pct": _ratio(
+            agg["ld"] + agg["fb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS
+        ),
+        "pull_pct": None,
+        "straight_pct": None,
+        "oppo_pct": None,
+        "pull_air_pct": None,
         "barrel_pct": _ratio(agg["barrels"], n_ip),
         "hard_hit_pct": _ratio(agg["hard_hits"], n_ev),
         "avg_ev": _mean_round([p["ev"] for p in agg["bbe_ev"]], 1),
     }
+    if spray_available:
+        metrics.update({
+            "pull_pct": _ratio(agg["pull"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+            "straight_pct": _ratio(agg["straight"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+            "oppo_pct": _ratio(agg["oppo"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+            "pull_air_pct": _ratio(agg["pull_air"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        })
+    return metrics
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -681,7 +859,9 @@ def _batted_ball_metrics(agg: dict) -> dict:
 # ══════════════════════════════════════════════════════════════════════════
 
 
-def compute_pitcher_statcast(pitches: list[dict], year: Optional[int] = None) -> dict:
+def compute_pitcher_statcast(
+    pitches: list[dict], year: Optional[int] = None, sport_level: str = ""
+) -> dict:
     """Season-level pitcher aggregates from pitch list."""
     if not pitches:
         return {}
@@ -712,7 +892,7 @@ def compute_pitcher_statcast(pitches: list[dict], year: Optional[int] = None) ->
         ),
     }
     result.update(_discipline_metrics(agg))
-    result.update(_batted_ball_metrics(agg))
+    result.update(_batted_ball_metrics(agg, sport_level=sport_level))
     return result
 
 
@@ -919,7 +1099,9 @@ def _compute_pitcher_bat_side_splits(
 # ══════════════════════════════════════════════════════════════════════════
 
 
-def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> dict:
+def compute_batter_statcast(
+    pitches: list[dict], year: Optional[int] = None, sport_level: str = ""
+) -> dict:
     """Season-level batter aggregates from pitch list."""
     if not pitches:
         return {}
@@ -931,27 +1113,6 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
     woba_w = get_woba_weights(year)
     agg = _aggregate_pitches(pitches)
     woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
-
-    # Spray (location depends on bat side)
-    pull = straight = oppo = 0
-    for p in agg["in_play"]:
-        loc = p.get("hit_location")
-        bat = p.get("bat_side", "R")
-        if loc is None:
-            continue
-        try:
-            loc = int(loc)
-        except (ValueError, TypeError):
-            continue
-        # location: 1=P, 2=C, 3=1B, 4=2B, 5=3B, 6=SS, 7=LF, 8=CF, 9=RF
-        if loc in (1, 2, 4, 8):
-            straight += 1
-        elif loc in (5, 6, 7):
-            pull += 1 if bat == "R" else 0
-            oppo += 1 if bat != "R" else 0
-        elif loc in (3, 9):
-            oppo += 1 if bat == "R" else 0
-            pull += 1 if bat != "R" else 0
 
     # 此部分若ev_values數據量小於10 則算出數據與tjstats不符
     ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])  # ascending for percentile
@@ -971,9 +1132,6 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
         "pa_count": woba_den,
         "strike_pct": _ratio(strikes, agg["total"]),
         "woba": _ratio(woba_num, woba_den),
-        "pull_pct": _ratio(pull, n_ip),
-        "straight_pct": _ratio(straight, n_ip),
-        "oppo_pct": _ratio(oppo, n_ip),
         "max_ev": round(max(p["ev"] for p in agg["bbe_ev"]), 1) if agg["bbe_ev"] else None,
         "ev90": ev90,
         "avg_la": _mean_round(la_values, 1),
@@ -987,7 +1145,7 @@ def compute_batter_statcast(pitches: list[dict], year: Optional[int] = None) -> 
         ),
     }
     result.update(_discipline_metrics(agg))
-    result.update(_batted_ball_metrics(agg))
+    result.update(_batted_ball_metrics(agg, sport_level=sport_level))
     return result
 
 

@@ -821,6 +821,49 @@
         </div>
     </div>
 
+    {# ── BATTED BALL PROFILE ── #}
+    <div class="data-table-section glass-panel">
+        <h3>擊球型態</h3>
+        <div class="table-scroll">
+            <table class="data-table year-group-table" id="stats-table-bb">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th>
+                        <th>BBE</th>
+                        <th>GB%</th><th>LD%</th><th>FB%</th><th>PU%</th><th>Air%</th>
+                        <th>Pull%</th><th>Straight%</th><th>Oppo%</th>
+                        {% if not is_pitcher %}<th>PullAir%</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for yr in available_statcast_years %}
+                    {% set entries = statcast_by_year[yr] %}
+                    {% set level_entries = entries if entries|length == 1 else entries[1:] %}
+                    {% for entry in level_entries %}
+                    {% set sc = entry.sc %}
+                    {% if sc.bbe is not none %}
+                    <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
+                        <td><strong>{{ yr }}</strong></td>
+                        <td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
+                        <td class="num">{{ sc.bbe|num_dash }}</td>
+                        <td class="num">{{ sc.gb_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.ld_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.fb_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.pu_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.air_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.pull_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.straight_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.oppo_pct|pct_fmt }}</td>
+                        {% if not is_pitcher %}<td class="num">{{ sc.pull_air_pct|pct_fmt }}</td>{% endif %}
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {# Pitch Arsenal / VS PITCH TYPE ── #}
     <div class="data-table-section glass-panel">
         <h3>{% if is_pitcher %}投球球種分析{% else %}對戰球種分析{% endif %}</h3>
