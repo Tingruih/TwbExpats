@@ -1,0 +1,84 @@
+/* ═══════════════════════════════════════════════════════════
+   Tab 切換按鈕與面板樣式
+   球員詳細頁的六個功能分頁（個人資料/賽季/逐場/進階/守備/圖表）。
+   - .tab-nav           ：按鈕列整體容器（深色漸層背景）
+   - .tab-label         ：每個分頁按鈕的預設樣式
+   - .tab-label--active ：▶ 點選後反白的 Tab 按鈕（顏色/漸層在此調整）
+   - .tab-panel         ：分頁內容面板（未選中時 display:none）
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【球員詳細頁 / Tab 按鈕列整體容器】
+   位於 Hero 橫幅正下方，包住六個分頁按鈕的深色橫條 */
+.tab-nav {
+    display: grid;                          /* 用 Grid 排列六個按鈕 */
+    grid-template-columns: repeat(6, minmax(0, 1fr)); /* 六欄等寬，最小可縮到 0 */
+    gap: .55rem;                            /* 按鈕之間的間距 */
+    margin-bottom: 1.5rem;                  /* 與下方 Tab 內容的距離 */
+    border-radius: 0 0 var(--radius) var(--radius); /* 只有下方兩個角有圓角 */
+    overflow: hidden;                       /* 防止子元素超出圓角 */
+    padding: .75rem;                        /* 按鈕列的內邊距 */
+    border-top: none;                       /* 上方與 Hero 接合，不需邊框 */
+    background: linear-gradient(180deg,     /* 從上到下的深色漸層背景 */
+        rgba(24, 24, 27, 0.92) 0%,         /*   頂部：稍淺的深灰 */
+        rgba(9, 9, 11, 0.98) 100%);        /*   底部：更深接近黑色 */
+}
+
+/* 控制【球員詳細頁 / 每個分頁按鈕（未選中狀態）】
+   顯示「個人資料」「賽季」「逐場紀錄」等六個按鈕的預設外觀 */
+.tab-label {
+    display: flex;                          /* Flex 讓文字垂直水平置中 */
+    align-items: center;                    /* 垂直置中 */
+    justify-content: center;               /* 水平置中 */
+    min-height: 42px;                       /* 按鈕最小高度，確保點擊區域夠大 */
+    text-align: center;                     /* 文字置中對齊 */
+    padding: .72rem .9rem;                  /* 按鈕的上下/左右內邊距 */
+    font-size: .84rem;                      /* 按鈕文字大小 */
+    font-weight: 600;                       /* 按鈕文字粗細（半粗體） */
+    letter-spacing: 0.2px;                  /* 微調字間距，讓文字更清晰 */
+    color: var(--text-2);                   /* 未選中時文字顏色（中灰） */
+    cursor: pointer;                        /* 滑鼠移入顯示手型游標 */
+    transition: color 0.15s ease-in-out,   /* hover 時文字顏色平滑過渡 */
+                background 0.15s ease-in-out,    /* hover 時背景平滑過渡 */
+                border-color 0.15s ease-in-out,  /* hover 時邊框顏色平滑過渡 */
+                box-shadow 0.15s ease-in-out;    /* hover 時陰影平滑過渡 */
+    border: 1px solid var(--border);        /* 細邊框（深灰色） */
+    border-radius: 7px;                     /* 按鈕圓角半徑 */
+    background: var(--card-surface);        /* 未選中時背景色（比頁面背景略淺的深灰） */
+    touch-action: manipulation;             /* 行動裝置：停用雙擊縮放，讓點擊更即時 */
+    -webkit-tap-highlight-color: transparent; /* iOS：移除點擊時的藍色閃爍 */
+    user-select: none;                      /* 防止使用者不小心選取按鈕文字 */
+}
+
+/* 控制【球員詳細頁 / 分頁按鈕 hover 狀態】
+   滑鼠移入時的回饋效果 */
+.tab-label:hover {
+    color: var(--text-1);                   /* hover 時文字變白色（更顯眼） */
+    border-color: #3f3f46;                  /* hover 時邊框變稍亮 */
+    background: #202024;                    /* hover 時背景略微提亮 */
+}
+
+/* 控制【球員詳細頁 / 目前選中的分頁按鈕（反白狀態）】
+   ★ 想改按鈕選中外觀就改這裡 ★ */
+.tab-label.tab-label--active {
+    color: #d9fffa;                         /* ★ 文字顏色（目前：淡青綠色）→ 改這裡換文字色 */
+    background: linear-gradient(180deg,     /* ★ 漸層背景 → 改這裡換底色/漸層 */
+        rgba(20, 184, 166, 0.28) 0%,       /*   頂部不透明度 0.28（較深）→ 調大數字更明顯 */
+        rgba(20, 184, 166, 0.12) 100%);    /*   底部不透明度 0.12（較淺）→ 調大數字更明顯 */
+    border-color: rgba(20, 184, 166, 0.45); /* ★ 邊框顏色（目前：半透明 teal）→ 改這裡換邊框色 */
+    box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.2) inset; /* ★ 內陰影（讓邊框看起來更立體）→ 改這裡 */
+}
+
+/* 控制【球員詳細頁 / 分頁內容面板（未選中時）】
+   所有分頁內容預設隱藏，只有選中的那個才顯示 */
+.tab-panel {
+    display: none;                          /* 預設隱藏 */
+    contain: layout style paint;            /* 效能優化：告訴瀏覽器此區域獨立渲染，減少重繪 */
+    content-visibility: hidden;             /* 效能優化：隱藏時完全跳過渲染，節省 CPU/GPU */
+}
+
+/* 控制【球員詳細頁 / 目前選中的分頁內容面板】
+   tabs.js 切換 Tab 時會加上此 class 讓對應面板顯示 */
+.tab-panel.tab-panel--active {
+    display: block;                         /* 選中時顯示 */
+    content-visibility: visible;            /* 選中時恢復正常渲染 */
+}

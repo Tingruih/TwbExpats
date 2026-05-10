@@ -1,0 +1,216 @@
+/* ═══════════════════════════════════════════════════════════
+   「賽季數據」Tab 樣式（tab_stats.j2）
+   包含：
+   - .year-selector         ：年份切換按鈕列
+   - .data-table / .table-scroll ：帶橫向捲動的統計數據表格
+   - .year-group collapsible ：可展開/收合的年份組行（箭頭按鈕控制）
+   - .highlight-row         ：單列高亮（用於強調特定統計）
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【賽季數據 Tab / 年份切換按鈕列】
+   顯示在表格最上方，包含各年份按鈕（如 2025、2024、2023）*/
+.year-selector {
+    display: flex;          /* Flex 讓標籤和按鈕橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: .5rem;             /* 按鈕之間的間距 */
+    padding: .9rem 1.4rem;  /* 選擇列內邊距 */
+    margin-bottom: 1.25rem; /* 與下方表格的距離 */
+    flex-wrap: wrap;        /* 年份很多時允許換行 */
+    background: var(--card-bg); /* 背景色 */
+}
+
+/* 控制【賽季數據 Tab / 年份選擇列左側的「年份：」標籤文字】 */
+.year-label {
+    font-weight: 500;       /* 中粗體 */
+    color: var(--text-2);   /* 灰色 */
+    font-size: .85rem;      /* 文字大小 */
+}
+
+/* 控制【賽季數據 Tab / 年份按鈕（未選中狀態）】 */
+.year-btn {
+    padding: .35rem .9rem;           /* 按鈕內邊距 */
+    border-radius: var(--radius);    /* 圓角 */
+    font-size: .85rem;               /* 文字大小 */
+    font-weight: 500;                /* 中粗體 */
+    color: var(--text-2);            /* 灰色文字（未選中） */
+    background: transparent;         /* 透明背景（未選中） */
+    border: 1px solid var(--border); /* 細邊框 */
+    transition: var(--ease);         /* hover 動畫 */
+}
+
+/* 控制【賽季數據 Tab / 年份按鈕 hover 狀態】 */
+.year-btn:hover {
+    color: var(--text-1);           /* hover 時文字變白 */
+    background: var(--secondary);   /* hover 時出現深灰背景 */
+}
+
+/* 控制【賽季數據 Tab / 年份按鈕（已選中狀態）】 */
+.year-btn-active {
+    color: var(--primary-fg);       /* 黑色文字（白底） */
+    background: var(--primary);     /* 白色背景 */
+    border-color: var(--primary);   /* 白色邊框 */
+}
+
+/* 控制【賽季數據 Tab / 每個統計分類的容器區塊（如「打擊」「投球」「守備」）】 */
+.data-table-section {
+    padding: 1.5rem;            /* 區塊內邊距 */
+    margin-bottom: 1.5rem;      /* 各區塊之間的間距 */
+    contain: layout style;      /* 效能優化：限制重排範圍 */
+}
+
+/* 控制【賽季數據 Tab / 各分類的小標題（如「打擊成績」）】 */
+.data-table-section h3 {
+    font-size: 1rem;        /* 標題文字大小 */
+    margin-bottom: 1rem;    /* 與下方表格的距離 */
+}
+
+/* 控制【賽季數據 Tab / 可橫向捲動的表格容器】
+   當表格欄位太多超出螢幕寬度時，出現橫向捲軸 */
+.table-scroll {
+    overflow-x: auto;           /* 橫向超出時出現捲軸 */
+    overflow-y: clip;           /* 縱向裁切（clip 不會壓制子捲軸容器，比 hidden 更安全） */
+    border: 1px solid var(--border);                    /* 外框邊線 */
+    border-radius: calc(var(--radius) - 1px);           /* 圓角（比外層小 1px，避免雙重圓角） */
+    background: var(--card-surface);                    /* 表格底色 */
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track); /* 捲軸顏色（Firefox） */
+}
+
+/* 控制【賽季數據 Tab / 表格捲軸高度（Chrome/Safari）】 */
+.table-scroll::-webkit-scrollbar {
+    height: 6px; /* 橫向捲軸的高度（較細）*/
+}
+
+/* 控制【賽季數據 Tab / 表格捲軸軌道】 */
+.table-scroll::-webkit-scrollbar-track {
+    background: var(--scroll-track);    /* 軌道背景色 */
+    border-radius: 999px;               /* 圓弧兩端 */
+}
+
+/* 控制【賽季數據 Tab / 表格捲軸滑塊】 */
+.table-scroll::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);    /* 滑塊顏色 */
+    border-radius: 999px;               /* 圓弧兩端 */
+}
+
+/* 控制【賽季數據 Tab / 表格捲軸滑塊 hover 狀態】 */
+.table-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover); /* hover 時稍亮 */
+}
+
+/* 控制【賽季數據 Tab / 數據表格本體 <table>】 */
+.data-table {
+    width: 100%;        /* 填滿容器 */
+    min-width: 860px;   /* 最小寬度（確保欄位不被擠壓，需要就顯示橫向捲軸） */
+    border-collapse: collapse; /* 合併邊框（避免雙重邊框） */
+    margin-top: 0;      /* 移除頂部 margin */
+}
+
+/* 控制【賽季數據 Tab / 表格所有儲存格（th 和 td）的通用邊距】 */
+.data-table th,
+.data-table td {
+    padding: .6rem .8rem;                   /* 儲存格內邊距 */
+    text-align: left;                       /* 文字靠左對齊 */
+    border-bottom: 1px solid var(--border); /* 列底部分隔線 */
+}
+
+/* 控制【賽季數據 Tab / 表頭儲存格 <th>（欄位名稱列）】 */
+.data-table th {
+    font-weight: 500;           /* 中粗體 */
+    color: var(--text-2);       /* 灰色（表頭為次要資訊） */
+    font-size: .75rem;          /* 較小文字 */
+}
+
+/* 控制【賽季數據 Tab / 表格資料列 hover 效果】 */
+.data-table tbody tr:hover {
+    background: var(--secondary); /* hover 時出現深灰背景 */
+}
+
+/* 控制【賽季數據 Tab / 表格資料儲存格 <td>】 */
+.data-table td {
+    font-size: .85rem;      /* 資料文字大小 */
+    color: var(--text-1);   /* 白色文字 */
+}
+
+/* 控制【賽季數據 Tab / 數字欄位（靠右對齊 + 等寬數字）】
+   帶有 .num class 的欄位（如 AVG、HR 等數字欄） */
+.data-table th.num,
+.data-table td.num {
+    font-variant-numeric: tabular-nums; /* 等寬數字（讓小數點對齊） */
+    text-align: right;                  /* 數字靠右對齊 */
+}
+
+/* 控制【賽季數據 Tab / 高亮列（用於強調特定年份或總計行）】 */
+.highlight-row {
+    background: var(--secondary) !important;    /* 深灰背景（強制覆蓋 hover 狀態） */
+    border-left: 2px solid var(--text-1);       /* 左側白色粗邊框（像書籤標記） */
+}
+
+/* 控制【賽季數據 Tab / 可展開年份組列的第一欄（箭頭按鈕所在欄）】 */
+.col-toggle {
+    width: 28px;            /* 固定寬度（只容納一個箭頭） */
+    min-width: 28px;        /* 最小寬度（防止被壓縮） */
+    padding-left: .4rem !important;  /* 強制指定左邊距 */
+    padding-right: 0 !important;     /* 強制移除右邊距 */
+}
+
+/* 控制【賽季數據 Tab / 展開/收合箭頭圖示】
+   用 CSS border trick 製造三角形箭頭 */
+.toggle-arrow {
+    display: inline-block;                          /* 讓 width/height 生效 */
+    width: 0;                                       /* 三角形技巧：寬度為 0 */
+    height: 0;                                      /* 三角形技巧：高度為 0 */
+    border-style: solid;                            /* 邊框實線 */
+    border-width: 5px 0 5px 7px;                   /* 上/右/下/左 邊框寬度（製造右指三角形） */
+    border-color: transparent transparent transparent var(--text-3); /* 只有左邊框有顏色 */
+    transition: transform 0.15s ease, border-color 0.15s ease; /* 旋轉動畫（展開時箭頭轉向下） */
+    user-select: none;                              /* 防止點擊時選取到箭頭 */
+    vertical-align: middle;                         /* 垂直置中對齊文字 */
+    transform-origin: 30% 50%;                      /* 旋轉中心點偏左（視覺上旋轉更自然） */
+}
+
+/* 控制【賽季數據 Tab / 年份彙總列（可點擊展開的那一行）】 */
+.year-summary-row td:first-child {
+    padding-left: .4rem; /* 第一格左邊距（與箭頭欄對齊） */
+}
+
+/* 控制【賽季數據 Tab / 年份彙總列 hover 效果】 */
+.year-summary-row:hover {
+    background: rgba(255, 255, 255, 0.02); /* 極淡的白色背景（微微提示可點擊） */
+}
+
+/* 控制【賽季數據 Tab / 年份彙總列 hover 時箭頭顏色】 */
+.year-summary-row:hover .toggle-arrow {
+    border-color: transparent transparent transparent var(--text-1); /* hover 時箭頭變白 */
+}
+
+/* 控制【賽季數據 Tab / 多球隊年份的「合計」標籤（如「2 Teams」）】 */
+.multi-tag {
+    display: inline-block;              /* 依內容收縮寬度 */
+    padding: .1rem .4rem;               /* 內邊距 */
+    border-radius: 4px;                 /* 輕微圓角 */
+    font-size: .68rem;                  /* 很小文字 */
+    font-weight: 500;                   /* 中粗體 */
+    border: 1px solid var(--border);    /* 細邊框 */
+    background: transparent;            /* 透明背景 */
+    color: var(--text-2);               /* 灰色文字 */
+}
+
+/* 控制【賽季數據 Tab / 展開後的年份明細列（各球隊分開的資料行）】 */
+.year-detail-row td {
+    background: rgba(0, 0, 0, 0.2) !important; /* 略深的背景（視覺上縮排層級感） */
+    color: var(--text-2);                       /* 灰色文字（次要層級） */
+    font-size: .82rem;                          /* 比彙總行更小的文字 */
+    border-bottom-color: rgba(255, 255, 255, 0.02); /* 極淡的分隔線 */
+}
+
+/* 控制【賽季數據 Tab / 年份明細列 hover 效果】 */
+.year-detail-row:hover td {
+    background: var(--secondary) !important;    /* hover 時變回標準深灰 */
+    color: var(--text-1);                       /* hover 時文字變白 */
+}
+
+/* 控制【賽季數據 Tab / 明細列第三欄的縮排（球隊名稱欄）】 */
+.year-detail-row td:nth-child(3) {
+    padding-left: 1.5rem; /* 左側縮排，視覺上表示「屬於上層年份的子項目」 */
+}
+

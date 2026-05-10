@@ -1,0 +1,65 @@
+{# ── TAB 5: FIELDING STATS ── #}
+<div class="tab-panel" id="panel-fielding">
+
+    <div class="adv-definitions glass-panel">
+        <h3>守備數據說明</h3>
+        <div class="def-grid">
+            <div class="def-item"><span class="def-abbr">POS</span><span class="def-text">Position — 守備位置</span></div>
+            <div class="def-item"><span class="def-abbr">INN</span><span class="def-text">Innings — 守備局數</span></div>
+            <div class="def-item"><span class="def-abbr">TC</span><span class="def-text">Total Chances — 守備機會 = PO + A + E</span></div>
+            <div class="def-item"><span class="def-abbr">PO</span><span class="def-text">Putouts — 刺殺</span></div>
+            <div class="def-item"><span class="def-abbr">A</span><span class="def-text">Assists — 助殺</span></div>
+            <div class="def-item"><span class="def-abbr">E</span><span class="def-text">Errors — 失誤</span></div>
+            <div class="def-item"><span class="def-abbr">FLD%</span><span class="def-text">Fielding Percentage — 守備率</span></div>
+            <div class="def-item"><span class="def-abbr">DP</span><span class="def-text">Double Plays — 雙殺</span></div>
+            <div class="def-item"><span class="def-abbr">RF/G</span><span class="def-text">Range Factor per Game — 每場守備範圍因子</span></div>
+            <div class="def-item"><span class="def-abbr">RF/9</span><span class="def-text">Range Factor per 9 Inn — 每9局守備範圍因子</span></div>
+        </div>
+    </div>
+
+    {% if all_fielding %}
+    <div class="data-table-section glass-panel">
+        <h3>歷年守備數據</h3>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>球隊</th><th>POS</th>
+                        <th>GP</th><th>GS</th><th>INN</th>
+                        <th>TC</th><th>PO</th><th>A</th><th>E</th>
+                        <th>FLD%</th><th>DP</th><th>TP</th>
+                        <th>RF/G</th><th>RF/9</th><th>TE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in all_fielding %}
+                    <tr class="{% if f.year == selected_year %}highlight-row{% endif %}">
+                        <td>{{ f.year }}</td>
+                        <td><span class="level-tag level-{{ f.sport_level|lower }}">{{ f.sport_level }}</span></td>
+                        <td>{{ f.team_name }}</td>
+                        <td><span class="pos-tag">{{ f.position }}</span></td>
+                        <td class="num">{{ f.gp|num_dash }}</td>
+                        <td class="num">{{ f.gs|num_dash }}</td>
+                        <td class="num">{{ f.innings|num_dash }}</td>
+                        <td class="num">{{ f.chances|num_dash }}</td>
+                        <td class="num">{{ f.putouts|num_dash }}</td>
+                        <td class="num">{{ f.assists|num_dash }}</td>
+                        <td class="num">{{ f.errors|num_dash }}</td>
+                        <td class="num">{{ f.fielding_pct|num_dash }}</td>
+                        <td class="num">{{ f.dp|num_dash }}</td>
+                        <td class="num">{{ f.tp|num_dash }}</td>
+                        <td class="num">{{ f.range_factor_game|num_dash }}</td>
+                        <td class="num">{{ f.range_factor_9|num_dash }}</td>
+                        <td class="num">{{ f.throwing_errors|num_dash }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass-panel empty-season-msg">
+        尚無守備數據
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,302 @@
+/* ═══════════════════════════════════════════════════════════
+   「個人資料」Tab 樣式（tab_bio.j2）
+   包含：
+   - .bio-grid / .bio-card  ：四欄式個人基本資料卡片
+   - .bio-dl                ：資料列表（出生地/身高/體重等 dt/dd 樣式）
+   - .next-game-card        ：「下一場比賽」資訊卡
+   - .tx-timeline           ：異動紀錄垂直時間軸（帶 teal 點與卡片）
+   - .mini-stats-grid       ：生涯累計數據小方塊
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【個人資料 Tab / 四欄資料卡片的外層 Grid】
+   顯示出生地、身高體重、投打側、生涯簡介等四個卡片 */
+.bio-grid {
+    display: grid;                              /* 使用 Grid 排列四張卡片 */
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 四欄等寬，最小可縮到 0 */
+    gap: 1.25rem;                               /* 卡片之間的間距 */
+    margin-bottom: 1.5rem;                      /* 與下方內容的距離 */
+}
+
+/* 控制【個人資料 Tab / 每張資料卡片】 */
+.bio-card {
+    padding: 1.5rem; /* 卡片內部四邊留白 */
+}
+
+/* 控制【個人資料 Tab / 每張資料卡片的標題（如「基本資料」）】 */
+.bio-card-title {
+    font-size: .85rem;          /* 卡片標題文字大小 */
+    font-weight: 600;           /* 半粗體 */
+    letter-spacing: 0.5px;      /* 微調字間距 */
+    color: var(--text-1);       /* 白色文字 */
+    margin-bottom: 1rem;        /* 與下方資料列的距離 */
+}
+
+/* 控制【個人資料 Tab / 資料定義列表 <dl> 外層】 */
+.bio-dl {
+    margin: 0; /* 移除 dl 預設的 margin */
+}
+
+/* 控制【個人資料 Tab / 資料列表的標題項 <dt>（如「出生地」「身高」）】 */
+.bio-dl dt {
+    font-size: .75rem;          /* 較小文字（標籤為次要資訊） */
+    color: var(--text-2);       /* 灰色 */
+    margin-top: .75rem;         /* 每個標籤上方的間距 */
+}
+
+/* 控制【個人資料 Tab / 資料列表的內容項 <dd>（如「台灣」「183 cm」）】 */
+.bio-dl dd {
+    margin: .15rem 0 0 0;   /* 只保留頂部微小間距，移除瀏覽器預設的左側縮排 */
+    font-size: .9rem;        /* 數值文字大小 */
+    font-weight: 500;        /* 中粗體 */
+}
+
+/* 控制【個人資料 Tab / 異動紀錄卡片的描述文字】 */
+.tx-desc {
+    color: var(--text-2);   /* 灰色文字（次要資訊） */
+    font-size: .82rem;      /* 較小文字 */
+    line-height: 1.5;       /* 行高（讓多行文字可讀性更好） */
+    margin: 0;              /* 移除預設 margin */
+}
+
+/* 控制【個人資料 Tab / 生涯合計卡片在 Grid 中的位置】 */
+.career-combined-card {
+    grid-column: auto; /* 自動排列（不跨欄） */
+}
+
+/* 控制【個人資料 Tab / 生涯數據區塊內的水平分隔線】 */
+.career-divider {
+    height: 1px;                    /* 分隔線高度（只有 1px）*/
+    background: var(--border);      /* 深灰色線 */
+    margin: 1.2rem 0;               /* 分隔線上下的間距 */
+}
+
+/* 控制【個人資料 Tab / 生涯數據小方塊群組容器】
+   顯示生涯累計打擊率、ERA 等數字 */
+.mini-stats-grid {
+    display: flex;      /* Flex 橫向排列數據方塊 */
+    flex-wrap: wrap;    /* 數據太多時允許換行 */
+    gap: 1rem;          /* 各方塊之間的間距 */
+}
+
+/* 控制【個人資料 Tab / 只顯示亮點數據的精簡版（間距更寬）】 */
+.mini-stats-grid.highlight-only {
+    gap: 1.5rem; /* 比一般版間距更寬 */
+}
+
+/* 控制【個人資料 Tab / 每個生涯數據方塊（標籤+數值）】 */
+.ms-item {
+    display: flex;          /* Flex 直向排列 */
+    flex-direction: column; /* 數值在上、標籤在下 */
+}
+
+/* 控制【個人資料 Tab / 生涯數據方塊的數值】 */
+.ms-v {
+    font-size: 1.15rem;                     /* 數值較大 */
+    font-weight: 600;                       /* 半粗體 */
+    font-variant-numeric: tabular-nums;     /* 等寬數字 */
+}
+
+/* 控制【個人資料 Tab / 生涯數據方塊的欄位標籤】 */
+.ms-l {
+    font-size: .65rem;          /* 很小的標籤文字 */
+    color: var(--text-2);       /* 灰色 */
+    text-transform: uppercase;  /* 全大寫 */
+    margin-top: .1rem;          /* 與上方數值的間距 */
+}
+
+/* 控制【個人資料 Tab / 「下一場比賽」卡片的資訊容器】
+   顯示對手、比賽時間、場地 */
+.next-game-info {
+    display: flex;          /* Flex 直向堆疊 */
+    flex-direction: column; /* 對手→時間→場地 由上到下 */
+    gap: .5rem;             /* 各行之間的間距 */
+}
+
+/* 控制【個人資料 Tab / 「下一場比賽」主客場與對手的橫排區塊】 */
+.ng-matchup {
+    display: flex;          /* Flex 讓 H/A 標籤與對手名稱橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: .6rem;             /* 標籤與對手名稱的間距 */
+}
+
+/* 控制【個人資料 Tab / 主客場標籤（H=主場 / A=客場）】 */
+.ng-ha {
+    font-weight: 600;           /* 粗體 */
+    color: var(--text-2);       /* 灰色 */
+    font-size: .9rem;           /* 文字大小 */
+}
+
+/* 控制【個人資料 Tab / 對手球隊名稱】 */
+.ng-opponent {
+    font-size: 1rem;    /* 對手名稱稍大（主要資訊） */
+    font-weight: 500;   /* 中粗體 */
+}
+
+/* 控制【個人資料 Tab / 比賽時間】 */
+.ng-time {
+    color: var(--text-1);   /* 白色（重要資訊） */
+    font-weight: 500;       /* 中粗體 */
+    font-size: .85rem;      /* 文字大小 */
+}
+
+/* 控制【個人資料 Tab / 比賽場地/球場名稱】 */
+.ng-venue {
+    color: var(--text-2);   /* 灰色（次要資訊） */
+    font-size: .8rem;       /* 較小文字 */
+}
+
+/* 控制【個人資料 Tab / 「下一場比賽」空白狀態（無預定比賽）訊息】 */
+.next-game-empty {
+    margin: 0;                  /* 移除預設 margin */
+    color: var(--text-2);       /* 灰色 */
+    font-size: .88rem;          /* 文字大小 */
+    line-height: 1.5;           /* 行高 */
+}
+
+/* 控制【個人資料 Tab / 異動紀錄卡片外框】
+   整個異動歷史的卡片容器（flex column 讓時間軸可填滿剩餘高度） */
+.tx-card {
+    display: flex;          /* Flex column，讓標題 + 時間軸垂直排列 */
+    flex-direction: column; /* 由上到下（標題在上，時間軸往下撐滿）*/
+    background: linear-gradient(180deg,         /* 深色漸層背景 */
+        rgba(24, 24, 27, 0.88) 0%,             /*   頂部 */
+        rgba(9, 9, 11, 0.96) 100%);             /*   底部 */
+}
+
+/* 控制【個人資料 Tab / 異動紀錄右上角的總筆數徽章】 */
+.tx-count {
+    font-size: .72rem;                          /* 小文字 */
+    color: var(--text-2);                       /* 灰色 */
+    font-weight: 500;                           /* 中粗體 */
+    padding: .12rem .42rem;                     /* 內邊距 */
+    border-radius: 999px;                       /* 膠囊形狀 */
+    border: 1px solid var(--border);            /* 細邊框 */
+    background: rgba(39, 39, 42, 0.5);          /* 半透明深灰背景 */
+}
+
+/* 控制【個人資料 Tab / 異動紀錄時間軸的可捲動容器】
+   左側有一條垂直灰線，每筆異動掛在線上的圓點旁 */
+.tx-timeline {
+    display: flex;                                      /* Flex 直向排列各筆異動 */
+    flex-direction: column;                             /* 由上到下 */
+    gap: 0;                                             /* 各筆間距由 .tx-item padding 控制 */
+    flex: 1 1 0;                                        /* flex-basis:0 讓 Grid 算列高時不計入 timeline 內容高度，避免撐高頁面 */
+    min-height: 0;                                      /* Flex 子項目需要此值才能正確縮小並觸發捲軸 */
+    overflow-y: auto;                                   /* 內容超過分配高度時出現捲軸（保留滑桿）*/
+    position: relative;                                 /* 讓子元素可絕對定位 */
+    padding: 0.2rem .35rem 0.35rem 1.15rem;             /* 左側留空間給圓點和連接線 */
+    border-left: 2px solid rgba(113, 113, 122, 0.35);   /* 左側垂直連接線 */
+    margin: 0.6rem 0 0 0.35rem;                         /* 時間軸整體的外邊距 */
+}
+
+/* 控制【個人資料 Tab / 每一筆異動紀錄列】 */
+.tx-item {
+    display: flex;          /* Flex 讓圓點和卡片橫排 */
+    align-items: flex-start; /* 頂部對齊 */
+    padding: 0 0 0.85rem;   /* 下方間距（各筆之間的空白） */
+    position: relative;     /* 讓圓點可絕對定位 */
+}
+
+/* 控制【個人資料 Tab / 最後一筆異動不需要底部間距】 */
+.tx-item:last-child {
+    padding-bottom: 0.1rem; /* 最後一筆底部間距壓縮 */
+}
+
+/* 控制【個人資料 Tab / 異動紀錄的時間軸圓點（灰色）】 */
+.tx-dot {
+    width: 11px;                /* 圓點寬度 */
+    height: 11px;               /* 圓點高度 */
+    background: #65656f;        /* 灰色圓點 */
+    border-radius: 50%;         /* 圓形 */
+    flex-shrink: 0;             /* 防止圓點被壓縮 */
+    margin-top: 0.8rem;         /* 讓圓點與卡片文字頂部對齊 */
+    position: absolute;         /* 絕對定位，掛在時間軸線上 */
+    left: -1.43rem;             /* 向左移到時間軸線上 */
+    border: 2px solid #111114;  /* 深色邊框製造懸浮感 */
+}
+
+/* 控制【個人資料 Tab / 最新一筆異動的圓點（teal 高亮）】 */
+.tx-item:first-child .tx-dot {
+    background: var(--teal);                        /* teal 青綠色（最新） */
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15); /* 外發光（讓最新一筆更顯眼） */
+}
+
+/* 控制【個人資料 Tab / 每筆異動的內容卡片】 */
+.tx-content {
+    flex: 1;                    /* 佔滿圓點右側的空間 */
+    min-width: 0;               /* 防止文字過長時撐破容器 */
+    margin-left: 0.6rem;        /* 與圓點的間距 */
+    padding: 0.68rem 0.78rem;   /* 卡片內邊距 */
+    border-radius: 10px;        /* 圓角 */
+    border: 1px solid var(--border); /* 細邊框 */
+    background: #141419;        /* 卡片背景色 */
+}
+
+/* 控制【個人資料 Tab / 異動卡片 hover 效果】 */
+.tx-item:hover .tx-content {
+    border-color: #3f3f46;  /* hover 時邊框變亮 */
+    background: #191920;    /* hover 時背景略微提亮 */
+}
+
+/* 控制【個人資料 Tab / 最新一筆異動卡片（teal 邊框高亮）】 */
+.tx-item:first-child .tx-content {
+    border-color: rgba(20, 184, 166, 0.45);             /* teal 邊框 */
+    box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.15) inset; /* 內陰影（加強高亮感） */
+}
+
+/* 控制【個人資料 Tab / 每筆異動卡片的標題列（日期 + 異動類型）】 */
+.tx-header {
+    display: flex;                  /* Flex 讓日期和類型標籤橫排 */
+    align-items: center;            /* 垂直置中 */
+    justify-content: space-between; /* 日期靠左、類型靠右 */
+    gap: .45rem;                    /* 間距 */
+    margin-bottom: .35rem;          /* 與下方描述文字的距離 */
+    flex-wrap: wrap;                /* 太長時允許換行 */
+}
+
+/* 控制【個人資料 Tab / 異動日期標籤】 */
+.tx-date {
+    font-size: .7rem;                               /* 小文字 */
+    color: #c4c4cd;                                 /* 淺灰文字 */
+    font-weight: 600;                               /* 半粗體 */
+    font-variant-numeric: tabular-nums;             /* 等寬數字（讓日期對齊） */
+    background: rgba(39, 39, 42, 0.7);              /* 半透明深灰背景 */
+    border: 1px solid rgba(63, 63, 70, 0.85);       /* 半透明邊框 */
+    padding: .16rem .45rem;                         /* 內邊距 */
+    border-radius: 999px;                           /* 膠囊形 */
+}
+
+/* 控制【個人資料 Tab / 異動類型標籤（如「升一軍」「轉讓」）】 */
+.tx-type-badge {
+    font-size: .62rem;                              /* 很小文字 */
+    padding: .13rem .45rem;                         /* 內邊距 */
+    border-radius: 999px;                           /* 膠囊形 */
+    background: rgba(20, 184, 166, 0.14);           /* 半透明 teal 背景 */
+    border: 1px solid rgba(20, 184, 166, 0.3);      /* 半透明 teal 邊框 */
+    color: #7ff2e6;                                 /* 淡青綠文字 */
+    font-weight: 600;                               /* 半粗體 */
+    text-transform: none;                           /* 不強制大小寫（保留原始文字） */
+    letter-spacing: 0.2px;                          /* 微調字間距 */
+}
+
+/* 控制【個人資料 Tab / 異動描述文字（卡片主體內容）】 */
+.tx-content .tx-desc {
+    color: #e5e7eb;     /* 近白色文字（比一般 text-2 更亮，因卡片背景更暗） */
+    font-size: .81rem;  /* 文字大小 */
+    line-height: 1.5;   /* 行高 */
+    margin: 0;          /* 移除 margin */
+    opacity: 0.9;       /* 略微降低不透明度，讓對比不那麼刺眼 */
+}
+
+/* 控制【個人資料 Tab / 無本季數據時的空白佔位訊息】 */
+.empty-season-msg {
+    min-height: 160px;          /* 最小高度，讓訊息不會顯得太矮 */
+    display: flex;              /* Flex 讓訊息置中 */
+    align-items: center;        /* 垂直置中 */
+    justify-content: center;    /* 水平置中 */
+    text-align: center;         /* 文字置中 */
+    padding: 2rem;              /* 內邊距 */
+    color: var(--text-2);       /* 灰色文字 */
+    font-size: .96rem;          /* 文字大小 */
+    font-weight: 500;           /* 中粗體 */
+}

@@ -1,0 +1,135 @@
+/* ═══════════════════════════════════════════════════════════
+   「進階數據」Tab 樣式（tab_advanced.j2）
+   包含：
+   - .adv-definitions / .def-grid ：頁面頂部的統計指標說明格 (wOBA / xBA 等)
+   - .pos-tag                     ：守備位置小標籤
+   - .arsenal-table-stack         ：球種使用率表格區（依年份/聯盟/左右打分組）
+   - .pitch-usage-table           ：球種用球數/比例表（表頭跨欄設計）
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【進階數據 Tab / 統計指標說明區塊（頁面頂部）】
+   列出 wOBA、xBA、EV 等縮寫指標的說明 */
+.adv-definitions {
+    padding: 1.5rem;        /* 區塊內邊距 */
+    margin-bottom: 1.5rem;  /* 與下方表格區的距離 */
+}
+
+/* 控制【進階數據 Tab / 指標說明區塊的標題（如「數據指標說明」）】 */
+.adv-definitions h3 {
+    font-size: 1rem;        /* 標題文字大小 */
+    margin-bottom: 1rem;    /* 與下方 Grid 的距離 */
+}
+
+/* 控制【進階數據 Tab / 指標說明 Grid（自動多欄排列）】 */
+.def-grid {
+    display: grid;                                          /* Grid 排版 */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* 每欄最小 280px，自動換行 */
+    gap: .8rem;                                             /* 各格之間的間距 */
+}
+
+/* 控制【進階數據 Tab / 每個指標說明項目（縮寫 + 說明文字）】 */
+.def-item {
+    display: flex;          /* Flex 讓縮寫和說明文字橫排 */
+    align-items: baseline;  /* 基線對齊（字型大小不同時文字底部對齊） */
+    gap: .5rem;             /* 縮寫和說明之間的間距 */
+}
+
+/* 控制【進階數據 Tab / 指標縮寫（如「wOBA」「xBA」）】 */
+.def-abbr {
+    font-weight: 600;       /* 半粗體（縮寫要突出） */
+    font-size: .8rem;       /* 文字大小 */
+    color: var(--text-1);   /* 白色（比說明文字更顯眼） */
+    min-width: 3.5rem;      /* 最小寬度，讓說明文字對齊 */
+    flex-shrink: 0;         /* 防止縮寫被壓縮 */
+}
+
+/* 控制【進階數據 Tab / 指標說明文字】 */
+.def-text {
+    font-size: .8rem;       /* 較小文字 */
+    color: var(--text-2);   /* 灰色（次要資訊） */
+    line-height: 1.4;       /* 行高（多行說明時可讀性更好） */
+}
+
+/* 控制【進階數據 Tab / 守備位置小標籤（如 SP、RP、DH）】 */
+.pos-tag {
+    display: inline-block;              /* 依內容收縮寬度 */
+    padding: .1rem .4rem;               /* 內邊距 */
+    border-radius: 4px;                 /* 圓角 */
+    font-size: .7rem;                   /* 小文字 */
+    font-weight: 500;                   /* 中粗體 */
+    border: 1px solid var(--border);    /* 細邊框 */
+    background: var(--secondary);       /* 深灰背景 */
+    color: var(--text-1);               /* 白色文字 */
+}
+
+/* 控制【進階數據 Tab / 球種使用率表格堆疊容器】
+   依年份/聯盟/對左打/對右打分組的多個表格區塊 */
+.arsenal-table-stack {
+    display: grid;  /* Grid 排版（各子區塊垂直堆疊） */
+    gap: 1rem;      /* 各子區塊之間的間距 */
+}
+
+/* 控制【進階數據 Tab / 球種使用率的每個子分組容器（如「對左打者」）】 */
+.arsenal-subsection {
+    min-width: 0; /* 防止 Grid 子項目因內容過寬而撐破容器 */
+}
+
+/* 控制【進階數據 Tab / 每個分組的副標題（如「vs. LHB 2025」）】 */
+.arsenal-subtitle {
+    margin: 0 0 0.5rem;             /* 只保留底部間距 */
+    color: var(--text-2);           /* 灰色文字 */
+    font-size: 0.86rem;             /* 文字大小 */
+    font-weight: 600;               /* 半粗體 */
+    letter-spacing: 0;              /* 不調整字間距 */
+}
+
+/* 控制【進階數據 Tab / 無球種資料時的空白提示區塊】 */
+.pitch-analysis-empty {
+    padding: 1.1rem 1rem;                           /* 內邊距 */
+    border: 1px dashed var(--border);               /* 虛線邊框（提示這是空位）*/
+    border-radius: calc(var(--radius) - 2px);       /* 圓角（略小於外層）*/
+    color: var(--text-2);                           /* 灰色文字 */
+    text-align: center;                             /* 文字置中 */
+}
+
+/* 控制【進階數據 Tab / 球種用球表第一欄（球種名稱欄）的寬度】
+   強制最小寬度，讓球種名稱縮寫不被壓縮 */
+.data-table.pitch-usage-table th:first-child,
+.data-table.pitch-usage-table td:first-child {
+    min-width: 0;       /* 允許縮到最小 */
+    width: 1%;          /* 讓此欄盡量窄（由 min-width 和 white-space 控制） */
+    white-space: nowrap; /* 球種縮寫不換行 */
+    text-align: left;   /* 球種縮寫靠左對齊 */
+}
+
+/* 控制【進階數據 Tab / 球種用球表整體寬度】 */
+.data-table.pitch-usage-table {
+    width: 100%;        /* 填滿容器 */
+    min-width: 860px;   /* 最小寬度（確保欄位不被擠壓） */
+}
+
+/* 控制【進階數據 Tab / 球種用球表所有儲存格（置中對齊）】 */
+.data-table.pitch-usage-table th,
+.data-table.pitch-usage-table td,
+.data-table.pitch-usage-table th.num,
+.data-table.pitch-usage-table td.num {
+    text-align: center; /* 球種表格所有欄位置中（包含數字欄，覆蓋 stats.css 的右對齊） */
+}
+
+/* 控制【進階數據 Tab / 球種表格第一列表頭的分組標題（跨欄標題）】 */
+.pitch-usage-table thead tr:first-child th:not(:first-child) {
+    white-space: nowrap;        /* 分組標題不換行 */
+    color: var(--text-1);       /* 白色文字（分組標題比子表頭更重要） */
+}
+
+/* 控制【進階數據 Tab / 球種表格第二列表頭的小標籤（欄位子標題）】 */
+.pitch-usage-subhead {
+    display: block;             /* 換行顯示，讓子標題在第二行 */
+    min-width: 0;               /* 防止撐破 */
+    white-space: nowrap;        /* 不換行 */
+    text-align: center;         /* 置中 */
+    color: var(--text-2);       /* 灰色（比第一列標題淡） */
+    font-size: 0.67rem;         /* 更小文字 */
+    font-weight: 500;           /* 中粗體 */
+    line-height: 1.25;          /* 行高 */
+}

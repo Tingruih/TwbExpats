@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════
+   球員詳細頁 Hero 區塊樣式
+   頁面最頂部的大型資訊橫幅，包含：
+   - 大頭照圓圈 (.hero-avatar)
+   - 姓名 / 中文名 / 英文名 / 職位 / 球隊 (.hero-info)
+   - 本季關鍵數據橫列 (.hero-stats-strip)
+   僅在球員詳細頁 (player_detail.j2) 使用。
+═══════════════════════════════════════ */
+
+/* 控制【球員詳細頁 / Hero 橫幅最外層容器】
+   整個 Hero 區塊（大頭照 + 姓名資訊 + 數據列）的外框，與下方 Tab 按鈕列接合 */
+.profile-hero {
+    display: flex;                              /* Flex 讓頭像、姓名、數據列橫排 */
+    align-items: center;                        /* 垂直置中 */
+    gap: 2rem;                                  /* 頭像、姓名、數據列之間的間距 */
+    padding: 1.8rem 2rem;                       /* Hero 橫幅的內邊距 */
+    margin-bottom: 0;                           /* 與下方 Tab 列緊貼（Tab 列有 border-top:none） */
+    border-radius: var(--radius) var(--radius) 0 0; /* 只有上方兩角有圓角（下方與 Tab 列接合） */
+    border-bottom: 1px solid var(--border);     /* 底部分隔線（區分 Hero 與 Tab 按鈕） */
+    flex-wrap: wrap;                            /* 螢幕較窄時允許換行 */
+    background: var(--card-bg);                 /* Hero 背景色（深黑） */
+}
+
+/* 控制【球員詳細頁 / 大頭照的外層定位包裹元素】
+   用於將未來可能的徽章或疊加元素絕對定位在頭像上 */
+.hero-photo-wrap {
+    position: relative; /* 讓子元素可以用 position:absolute 定位在頭像上 */
+    flex-shrink: 0;     /* 防止頭像在 flex 容器中被壓縮 */
+}
+
+/* 控制【球員詳細頁 / Hero 大頭照圓框】
+   比首頁更大的球員頭像圓形容器 */
+.hero-avatar {
+    width: 100px;                       /* 頭像寬度 → 改這裡調整 Hero 頭像大小 */
+    height: 100px;                      /* 頭像高度 */
+    border-radius: 50%;                 /* 圓形裁切 */
+    border: 1px solid var(--border);    /* 細邊框 */
+    overflow: hidden;                   /* 裁掉超出圓形的圖片 */
+    background: var(--secondary);       /* 圖片載入中的背景色 */
+    display: flex;                      /* Flex 讓備用文字置中 */
+    align-items: center;                /* 垂直置中 */
+    justify-content: center;            /* 水平置中 */
+}
+
+/* 控制【球員詳細頁 / Hero 大頭照圖片本身】 */
+.hero-avatar img {
+    width: 100%;            /* 填滿容器 */
+    height: 100%;
+    object-fit: cover;      /* 等比例縮放裁切（不留白） */
+}
+
+/* 控制【球員詳細頁 / Hero 大頭照文字備用縮寫字體大小】 */
+.hero-avatar .avatar-initials {
+    font-size: 2rem; /* 比首頁的縮寫文字更大 */
+}
+
+/* 控制【球員詳細頁 / Hero 姓名/職位/狀態資訊區塊】
+   包含中文姓名、英文姓名、球隊、職位、狀態膠囊 */
+.hero-info {
+    flex: 1;            /* 佔滿頭像和數據列之間的剩餘空間 */
+    min-width: 200px;   /* 最小寬度，防止螢幕太窄時擠壓 */
+}
+
+/* 控制【球員詳細頁 / Hero 中文姓名大標題】 */
+.hero-info h1 {
+    font-size: 1.8rem;      /* Hero 主標題（球員姓名）大小 → 改這裡調整姓名大小 */
+    margin-bottom: .4rem;   /* 與下方元資訊的距離 */
+}
+
+/* 控制【球員詳細頁 / Hero 英文姓名（顯示在中文姓名後面）】 */
+.hero-name-en {
+    font-size: 1rem;            /* 英文姓名字體大小（比中文小） */
+    font-weight: 400;           /* 正常粗細（比中文姓名細） */
+    color: var(--text-2);       /* 灰色（次要資訊） */
+    margin-left: .5rem;         /* 與左側中文姓名的間距 */
+}
+
+/* 控制【球員詳細頁 / Hero 元資訊橫排（球隊、守備位置、狀態膠囊）】 */
+.hero-meta {
+    display: flex;          /* Flex 讓球隊、位置、狀態膠囊橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: .6rem;             /* 各元素之間的間距 */
+    flex-wrap: wrap;        /* 太多資訊時允許換行 */
+}
+
+/* 控制【球員詳細頁 / Hero 所屬球隊名稱文字】 */
+.hero-team {
+    color: var(--text-2);   /* 灰色（次要資訊） */
+    font-size: .85rem;      /* 較小文字 */
+}
+
+/* 控制【球員詳細頁 / Hero 守備位置文字（如 SP、OF）】 */
+.hero-pos {
+    color: var(--text-1);   /* 白色（稍微重要，用白色突顯） */
+    font-size: .85rem;      /* 較小文字 */
+    font-weight: 500;       /* 中粗體 */
+}
+
+/* 控制【球員詳細頁 / Hero 本季關鍵數據橫列】
+   顯示在 Hero 右側的幾個主要數據（打擊率、ERA 等） */
+.hero-stats-strip {
+    display: flex;                      /* Flex 讓各數據項目橫排 */
+    align-items: center;                /* 垂直置中 */
+    gap: 1.5rem;                        /* 各數據項目之間的間距 */
+    background: var(--card-surface);    /* 深灰底色（比 Hero 背景略淺，凸顯區域） */
+    border-radius: var(--radius);       /* 圓角 */
+    padding: .8rem 1.2rem;              /* 內邊距 */
+    flex-wrap: wrap;                    /* 太多數據時允許換行 */
+    border: 1px solid var(--border);    /* 細邊框 */
+}
+
+/* 控制【球員詳細頁 / Hero 數據列中每個單項數據的容器】
+   標籤在上、數值在下的直向小方塊 */
+.hs-item {
+    display: flex;          /* Flex 直向排列 */
+    flex-direction: column; /* 標籤在上、數值在下 */
+    align-items: center;    /* 水平置中 */
+}
+
+/* 控制【球員詳細頁 / Hero 數據列的數值（如 .315、3.12）】 */
+.hs-val {
+    font-size: 1.25rem;                     /* 數值字體較大（突顯重要資訊） */
+    font-weight: 600;                       /* 半粗體 */
+    line-height: 1;                         /* 行高壓縮，讓標籤和數值緊湊 */
+    font-variant-numeric: tabular-nums;     /* 等寬數字，讓小數點對齊 */
+}
+
+/* 控制【球員詳細頁 / Hero 數據列的欄位標籤（如 AVG、ERA）】 */
+.hs-lbl {
+    font-size: .65rem;          /* 很小的文字 */
+    color: var(--text-2);       /* 灰色（標籤為次要資訊） */
+    text-transform: uppercase;  /* 全大寫 */
+    letter-spacing: 0.5px;      /* 字間距 */
+    margin-top: .2rem;          /* 與上方數值的間距 */
+}
+
+/* 控制【球員詳細頁 / Hero 數據列右側的年份標籤（如 "2025"）】 */
+.hs-year-badge {
+    font-size: .72rem;                  /* 小字 */
+    color: var(--text-2);               /* 灰色 */
+    font-weight: 500;                   /* 中粗體 */
+    background: var(--card-bg);         /* 與頁面背景同色（視覺上像浮在數據列上） */
+    border: 1px solid var(--border);    /* 細邊框 */
+    padding: .2rem .6rem;               /* 內邊距 */
+    border-radius: 4px;                 /* 輕微圓角 */
+    margin-left: auto;                  /* 推到最右端 */
+    align-self: center;                 /* 垂直置中對齊 */
+    white-space: nowrap;                /* 防止年份文字換行 */
+}

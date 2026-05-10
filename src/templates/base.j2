@@ -33,59 +33,10 @@
     </div>
     {% block extra_scripts %}{% endblock %}
 
-<script>
-(function () {
-    function rowsFor(table) {
-        var rows = [];
-        Array.prototype.forEach.call(table.tBodies, function (tbody) {
-            Array.prototype.forEach.call(tbody.rows, function (row) {
-                if (row.cells.length) rows.push(row);
-            });
-        });
-        return rows;
-    }
-
-    function markNumericHeaders(table) {
-        if (!table.tHead || !table.tHead.rows.length) return;
-
-        var headerRow = table.tHead.rows[table.tHead.rows.length - 1];
-        var bodyRows = rowsFor(table);
-        Array.prototype.forEach.call(headerRow.cells, function (header, index) {
-            var match = bodyRows.find(function (row) {
-                return row.cells.length > index && row.cells[index].colSpan === 1;
-            });
-            header.classList.toggle("num", !!match && match.cells[index].classList.contains("num"));
-        });
-    }
-
-    window.alignNumericTableColumns = function (root) {
-        var scope = root || document;
-        scope.querySelectorAll(".data-table, .pitch-log-table").forEach(markNumericHeaders);
-    };
-
-    document.addEventListener("DOMContentLoaded", function () {
-        window.alignNumericTableColumns(document);
-    });
-}());
-</script>
+<script src="{{ static_url('js/table-align.js') }}"></script>
 
 {# Shared image fallback handler — tries CDN URL first, then shows initials #}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".avatar-img").forEach(function(img) {
-        img.addEventListener("error", function() {
-            if (!this.dataset.cdnTried) {
-                this.dataset.cdnTried = "1";
-                var cdn = this.dataset.cdnSrc;
-                if (cdn) { this.src = cdn; return; }
-            }
-            this.style.display = "none";
-            var fallback = this.parentElement.querySelector(".avatar-fallback");
-            if (fallback) fallback.style.display = "flex";
-        });
-    });
-});
-</script>
+<script src="{{ static_url('js/avatar-fallback.js') }}"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "82c9ad15d468431086cbda577cc808a0"}'></script>
 </body>
 </html> 

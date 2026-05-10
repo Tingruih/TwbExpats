@@ -1,0 +1,155 @@
+/* ═══════════════════════════════════════════════════════════
+   Taiwan MLB Tracker — 全站基礎樣式
+   包含 CSS 設計令牌（顏色、圓角、動畫速度等全域變數）、
+   box-sizing reset、body 基本排版、捲軸美化、
+   range input（滑桿）、標題與超連結的全站預設樣式。
+   所有頁面都會載入此檔。
+═══════════════════════════════════════════════════════════ */
+/* Google Fonts loaded via <link> in base.j2 for non-blocking render */
+
+/* 控制【全站 / CSS 設計令牌】
+   所有顏色、間距等變數集中在此，改這裡可一次影響全站外觀 */
+:root {
+    --bg: #09090b;              /* 頁面最底層背景色（最深的黑）→ 改這裡換整個頁面底色 */
+    --card-bg: #09090b;         /* 卡片背景色（與頁面底色相同，形成無邊框感） */
+    --card-surface: #18181b;    /* 卡片內部次層底色（比 card-bg 略淺，用於 stats-row 等） */
+    --text-1: #fafafa;          /* 主要文字顏色（近白色）→ 改這裡換所有主文字色 */
+    --text-2: #a1a1aa;          /* 次要文字顏色（中灰）→ 用於說明文字、標籤等 */
+    --text-3: #71717a;          /* 輔助文字顏色（深灰）→ 用於最不重要的提示文字 */
+    --border: #27272a;          /* 全站邊框顏色 → 改這裡換所有卡片/表格邊框色 */
+    --primary: #fafafa;         /* 主要按鈕背景色（白色） */
+    --primary-fg: #09090b;      /* 主要按鈕文字色（黑色，配合白色背景） */
+    --secondary: #27272a;       /* 次要背景色（深灰，用於 hover 狀態等） */
+    --secondary-fg: #fafafa;    /* 次要背景上的文字色 */
+    --muted: #27272a;           /* 靜默背景色（與 secondary 相同） */
+    --muted-fg: #a1a1aa;        /* 靜默背景上的文字色 */
+    --blue: #3b82f6;            /* 藍色（用於某些 badge 狀態） */
+    --green: #10b981;           /* 綠色（用於「上場中」狀態膠囊） */
+    --red: #ef4444;             /* 紅色（用於「限制名單」等狀態） */
+    --teal: #14b8a6;            /* 主題色青綠色 → 改這裡換 Tab 選中色、滑桿等強調色 */
+    --text-secondary: var(--text-2); /* text-2 的別名，保留相容性 */
+    --scroll-track: #131318;    /* 捲軸軌道背景色 */
+    --scroll-thumb: #2f3640;    /* 捲軸滑塊顏色 */
+    --scroll-thumb-hover: #424c58; /* 捲軸滑塊 hover 時的顏色 */
+    --radius: 8px;              /* 全站統一圓角半徑 → 改這裡讓所有卡片/按鈕變更圓或更方 */
+    --ease: all 0.15s ease-in-out; /* 全站預設動畫速度 → 改這裡讓所有 hover 變快或變慢 */
+}
+
+/* 控制【全站 / 盒模型 Reset】
+   讓所有元素的寬高計算包含 padding 和 border，防止撐破版面 */
+*,
+*::before,
+*::after {
+    box-sizing: border-box; /* border-box：寬高包含 padding+border（預設 content-box 不包含） */
+}
+
+/* 控制【全站 / 頁面主體 <body>】
+   設定整個頁面的背景、字型、文字顏色等最基礎的外觀 */
+body {
+    margin: 0;                              /* 移除瀏覽器預設的 body 邊距 */
+    font-family: 'Inter', sans-serif;       /* 全站字型（Inter 由 Google Fonts 載入） */
+    background: var(--bg);                  /* 頁面背景色（最深的黑） */
+    color: var(--text-1);                   /* 預設文字顏色（近白色） */
+    min-height: 100vh;                      /* 確保背景至少撐滿整個螢幕高度 */
+    -webkit-font-smoothing: antialiased;    /* macOS/iOS：讓字型邊緣更平滑（去除鋸齒） */
+    font-size: 14px;                        /* 全站基準字型大小 → 改這裡影響所有 rem 換算 */
+}
+
+/* 控制【全站 / 捲軸外觀（Firefox）】
+   所有可捲動區域的捲軸統一使用深色細窄樣式 */
+* {
+    scrollbar-width: thin;                  /* 捲軸細窄模式（Firefox） */
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track); /* 滑塊色 軌道色（Firefox） */
+}
+
+/* 控制【全站 / 捲軸寬度（Chrome/Safari）】 */
+*::-webkit-scrollbar {
+    width: 10px;    /* 縱向捲軸寬度 */
+    height: 10px;   /* 橫向捲軸高度 */
+}
+
+/* 控制【全站 / 捲軸軌道（背景槽）】 */
+*::-webkit-scrollbar-track {
+    background: var(--scroll-track);    /* 軌道背景色（最深灰） */
+    border-radius: 999px;               /* 讓軌道兩端圓弧 */
+}
+
+/* 控制【全站 / 捲軸滑塊】 */
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--scroll-thumb) 0%, #252c35 100%); /* 上淺下深的漸層 */
+    border: 2px solid var(--scroll-track); /* 與軌道同色的邊框，製造懸浮感 */
+    border-radius: 999px;                  /* 讓滑塊兩端圓弧 */
+}
+
+/* 控制【全站 / 捲軸滑塊 hover 狀態】 */
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--scroll-thumb-hover) 0%, #2d3641 100%); /* 滑鼠移入時變亮 */
+}
+
+/* 控制【全站 / Range 滑桿本體】
+   用於 Pitch Plinko 等互動篩選元素 */
+input[type="range"] {
+    -webkit-appearance: none;   /* 移除瀏覽器預設外觀（必填，才能自訂樣式） */
+    appearance: none;           /* 標準版（同上） */
+    width: 100%;                /* 寬度填滿父容器 */
+    height: 6px;                /* 滑軌高度 */
+    border-radius: 999px;       /* 滑軌兩端圓弧 */
+    background: var(--scroll-track); /* 滑軌背景色 */
+    outline: none;              /* 移除 focus 時的藍色外框 */
+}
+
+/* 控制【全站 / Range 滑桿軌道（Chrome/Safari）】 */
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;                                            /* 軌道高度 */
+    border-radius: 999px;                                   /* 兩端圓弧 */
+    background: linear-gradient(90deg, #1f2630 0%, #2c3541 100%); /* 左深右淺的橫向漸層 */
+}
+
+/* 控制【全站 / Range 滑桿圓形滑塊（Chrome/Safari）】 */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;                       /* 移除預設外觀 */
+    width: 14px;                                    /* 滑塊寬度 */
+    height: 14px;                                   /* 滑塊高度 */
+    border-radius: 50%;                             /* 圓形滑塊 */
+    border: 2px solid #101015;                      /* 深色邊框，製造立體感 */
+    background: var(--teal);                        /* 滑塊顏色（teal 青綠色） → 改 --teal 變色 */
+    margin-top: -4px;                               /* 垂直置中對齊軌道 */
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2); /* 外發光效果（半透明 teal 圈） */
+}
+
+/* 控制【全站 / Range 滑桿軌道（Firefox）】 */
+input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #1f2630 0%, #2c3541 100%);
+}
+
+/* 控制【全站 / Range 滑桿圓形滑塊（Firefox）】 */
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #101015;
+    background: var(--teal);
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+}
+
+/* 控制【全站 / 標題 h1~h4】
+   統一字型、移除頂部空白、字距微調，讓各頁面標題排版一致 */
+h1,
+h2,
+h3,
+h4 {
+    font-family: 'Inter', sans-serif;   /* 確保標題也用 Inter（即使繼承也顯式寫出） */
+    margin-top: 0;                      /* 移除瀏覽器預設的標題頂部 margin */
+    font-weight: 600;                   /* 半粗體 */
+    letter-spacing: -0.025em;          /* 微縮字間距，讓大標題看起來更緊湊俐落 */
+}
+
+/* 控制【全站 / 所有超連結 <a>】
+   預設無底線、白色文字，各元件可覆寫 */
+a {
+    color: var(--text-1);           /* 預設連結顏色（白色） */
+    text-decoration: none;          /* 移除底線 */
+    transition: var(--ease);        /* 讓 hover 時顏色變化有平滑過渡 */
+}

@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════════════════════════
+   版面結構樣式
+   包含頁面最大寬度容器 (.container)、卡片外框 (.glass-panel)、
+   頂部導覽列 (header)，以及左上角品牌 Logo 文字排版。
+   任何頁面的 header / 品牌名稱外觀，在此調整。
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【全站 / 頁面最外層寬度容器】
+   所有頁面內容的外框，限制最大寬度並讓內容水平置中 */
+.container {
+    max-width: 1240px;  /* 內容最大寬度，超過此寬度後不再撐寬 */
+    margin: 0 auto;     /* 左右 auto 讓容器在頁面中水平置中 */
+    padding: 2rem;      /* 容器四邊內距（避免內容貼到螢幕邊緣） */
+}
+
+/* 控制【全站 / 卡片外框 .glass-panel】
+   所有卡片（首頁球員卡、球員詳細頁整體框等）的底層樣式 */
+.glass-panel {
+    background: var(--card-bg);                     /* 卡片背景色（深黑色） */
+    border: 1px solid var(--border);                /* 卡片細邊框（深灰色） */
+    border-radius: var(--radius);                   /* 卡片圓角（全站統一 8px） */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);   /* 輕微陰影，讓卡片稍微浮起 */
+}
+
+/* 控制【全站 / 頁面頂部導覽列 <header>】
+   畫面最上方橫條，左側品牌 Logo、右側導覽連結，下方有分隔線 */
+header {
+    display: flex;                          /* Flex 讓左右元件排成一排 */
+    justify-content: space-between;         /* 左右元件推到最兩端 */
+    align-items: center;                    /* 垂直置中 */
+    padding: 1.2rem 2rem;                   /* 上下/左右內邊距 */
+    margin-bottom: 2.5rem;                  /* 與下方頁面內容的距離 */
+    border-bottom: 1px solid var(--border); /* 底部分隔線 */
+}
+
+/* 控制【全站 / Header 內的 h1 標題】
+   影響 header 區域內的標題文字大小 */
+header h1 {
+    font-size: 1.4rem;  /* header 標題文字大小 */
+    margin: 0;          /* 移除 h1 預設的上下 margin */
+}
+
+/* 控制【全站 / 左上角品牌 Logo 連結區塊】
+   包含棒球圖標 + "TWBEXPATS" 文字的可點擊區域 */
+.brand-logo {
+    display: flex;          /* Flex 讓圖標和文字橫排 */
+    align-items: center;    /* 垂直置中對齊圖標和文字 */
+    gap: 0.75rem;           /* 圖標與文字之間的間距 */
+    text-decoration: none;  /* 移除連結底線 */
+    transition: var(--ease); /* hover 時透明度變化的過渡動畫 */
+}
+
+/* 控制【全站 / 品牌 Logo hover 狀態】 */
+.brand-logo:hover {
+    opacity: 0.9; /* 滑鼠移入時略微淡出，提供視覺回饋 */
+}
+
+/* 控制【全站 / 品牌 Logo 圖標（棒球圖示）】 */
+.brand-icon {
+    height: 32px;   /* 圖標高度 → 改這裡調整 Logo 圖示大小 */
+    width: auto;    /* 寬度自動依圖片比例縮放 */
+    opacity: 0.95;  /* 略微降低不透明度，避免過於刺眼 */
+}
+
+/* 控制【全站 / 品牌文字群組（包住 TWBEXPATS + 副標題）】 */
+.brand-copy {
+    display: flex;          /* Flex 讓主標題和副標題直向堆疊 */
+    flex-direction: column; /* 垂直方向排列 */
+    justify-content: center; /* 垂直置中 */
+    gap: 0.1rem;            /* 主標題與副標題之間的間距 */
+}
+
+/* 控制【全站 / 品牌主標題文字 "TWBEXPATS"】 */
+.brand-text {
+    font-size: 1.05rem;         /* 主標題字型大小 */
+    font-weight: 700;           /* 粗體 */
+    letter-spacing: 0.12em;     /* 字間距加大（大寫字母拉開字距更好看） */
+    text-transform: uppercase;  /* 強制全大寫（確保視覺一致） */
+    color: var(--text-1);       /* 白色文字 */
+    margin: 0;                  /* 移除 p 標籤預設 margin */
+}
+
+/* 控制【全站 / 品牌副標題 "TAIWAN MLB TRACKER"】 */
+.brand-subtitle {
+    margin: 0;                  /* 移除預設 margin */
+    font-size: 0.62rem;         /* 較小的文字（副標題比主標題小） */
+    color: var(--text-3);       /* 較暗的灰色（次要資訊） */
+    letter-spacing: 0.14em;     /* 字間距加大 */
+    text-transform: uppercase;  /* 全大寫 */
+    font-weight: 500;           /* 中等粗細 */
+}
+
+/* 控制【全站 / Header 內導覽連結（<nav> 裡的 <a>）】
+   目前 header 右側可能放有頁面連結 */
+header nav a {
+    font-weight: 500;       /* 中粗體 */
+    font-size: 0.9rem;      /* 導覽連結文字大小 */
+    padding: 0.5rem 1rem;   /* 連結可點擊範圍的內邊距 */
+    color: var(--text-2);   /* 預設灰色文字 */
+    border-radius: 6px;     /* 圓角，hover 時背景看起來有圓角按鈕感 */
+}
+
+/* 控制【全站 / Header 導覽連結 hover 狀態】 */
+header nav a:hover {
+    color: var(--text-1);           /* hover 時文字變白色 */
+    background: var(--secondary);  /* hover 時出現深灰色背景 */
+}

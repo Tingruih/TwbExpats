@@ -1,0 +1,220 @@
+/* ═══════════════════════════════════════════════════════════
+   「逐場紀錄」Tab 樣式（tab_gamelogs.j2）
+   包含：
+   - .log-filter-bar / .filter-select ：年份/聯盟篩選下拉
+   - .gamelog-table-container          ：每年逐場紀錄表格容器
+   - .pitch-log-row / .pitch-log-scroll：可展開的逐球 Pitch Log 區域
+   - .pitch-log-table                  ：Pitch Log 細節表格（帶固定表頭）
+   - .pitch-tag .pitch-ff 等           ：球種代碼顏色標籤（紅/橙/藍等）
+   - .pitch-pa-final                   ：打席結束那一球的分隔底線
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【逐場紀錄 Tab / 篩選列（年份 + 聯盟下拉選單）】
+   顯示在表格最上方，讓使用者篩選要看的年份和聯盟 */
+.log-filter-bar {
+    display: flex;          /* Flex 讓標籤和下拉選單橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: .75rem;            /* 元素之間的間距 */
+    padding: .9rem 1.4rem;  /* 篩選列內邊距 */
+    margin-bottom: .55rem;  /* 與下方表格的距離 */
+    flex-wrap: wrap;        /* 螢幕窄時允許換行 */
+    background: var(--card-bg); /* 背景色 */
+}
+
+/* 控制【逐場紀錄 Tab / 篩選列的文字標籤（如「年份：」「聯盟：」）】 */
+.filter-label {
+    font-weight: 500;           /* 中粗體 */
+    color: var(--text-2);       /* 灰色文字 */
+    font-size: .85rem;          /* 文字大小 */
+    white-space: nowrap;        /* 防止標籤文字換行 */
+}
+
+/* 控制【逐場紀錄 Tab / 下拉選單 <select>】
+   自訂外觀，移除瀏覽器預設樣式，加入自訂箭頭圖示 */
+.filter-select {
+    appearance: none;           /* 移除瀏覽器預設外觀（標準） */
+    -webkit-appearance: none;   /* 移除 Safari 預設外觀 */
+    padding: .35rem 2rem .35rem .75rem; /* 上/右/下/左（右邊留空給箭頭圖示） */
+    border-radius: var(--radius);       /* 圓角 */
+    font-family: inherit;               /* 繼承全站字型 */
+    font-size: .85rem;                  /* 文字大小 */
+    font-weight: 500;                   /* 中粗體 */
+    color: var(--text-1);               /* 白色文字 */
+    background: var(--card-bg)          /* 深色背景 */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")
+        no-repeat right .6rem center;   /* 右側嵌入灰色下拉箭頭 SVG */
+    border: 1px solid var(--border);    /* 細邊框 */
+    cursor: pointer;                    /* 手型游標 */
+    transition: var(--ease);            /* hover 動畫 */
+}
+
+/* 控制【逐場紀錄 Tab / 下拉選單 hover/focus 狀態】 */
+.filter-select:hover,
+.filter-select:focus {
+    border-color: var(--primary);   /* hover/focus 時邊框變白色 */
+    outline: none;                  /* 移除 focus 預設藍色外框 */
+}
+
+/* 控制【逐場紀錄 Tab / 每年度逐場表格的外層容器】
+   效能優化：未顯示的年度跳過渲染 */
+.gamelog-table-container {
+    contain: layout style paint;    /* 隔離渲染，減少重排影響範圍 */
+    margin-top: 0;                  /* 移除頂部 margin */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 儲存格（可展開的格子）】
+   該格子是逐球記錄的容器，無內邊距（子元素自己處理邊距） */
+.pitch-log-cell {
+    padding: 0 !important;          /* 強制移除 td 預設 padding */
+    background: var(--card-bg);     /* 背景色 */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 展開列（整行）】
+   效能優化：收合時跳過渲染 */
+.pitch-log-row {
+    contain: layout style paint; /* 隔離渲染 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球紀錄可捲動區域】
+   最多顯示 360px 高度，超過就出現縱向捲軸；也可橫向捲動 */
+.pitch-log-scroll {
+    overflow-x: auto;                           /* 橫向超出時出現捲軸 */
+    overflow-y: auto;                           /* 縱向超出時出現捲軸 */
+    height: auto;                               /* 高度由內容決定 */
+    max-height: 360px;                          /* 最大高度限制 */
+    border-top: 1px solid var(--border);        /* 頂部分隔線 */
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track); /* 捲軸顏色（Firefox） */
+    scrollbar-width: thin;                      /* 細捲軸（Firefox） */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 捲軸寬度（Chrome/Safari）】 */
+.pitch-log-scroll::-webkit-scrollbar {
+    width: 6px;     /* 縱向捲軸寬度 */
+    height: 6px;    /* 橫向捲軸高度 */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 捲軸軌道】 */
+.pitch-log-scroll::-webkit-scrollbar-track {
+    background: var(--scroll-track); /* 軌道背景色 */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 捲軸滑塊】 */
+.pitch-log-scroll::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb); /* 滑塊顏色 */
+    border-radius: 999px;            /* 圓弧 */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 捲軸滑塊 hover 狀態】 */
+.pitch-log-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover); /* hover 時稍亮 */
+}
+
+/* 控制【逐場紀錄 Tab / Pitch Log 捲軸角落（橫縱捲軸交叉點）】 */
+.pitch-log-scroll::-webkit-scrollbar-corner {
+    background: var(--scroll-track); /* 與軌道同色 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球紀錄表格本體】
+   字體更小，表頭固定不捲動 */
+.pitch-log-table {
+    width: 100%;                /* 填滿容器 */
+    min-width: 760px;           /* 最小寬度（超出時出現橫向捲軸） */
+    border-collapse: collapse;  /* 合併邊框 */
+    font-size: 0.75rem;         /* 較小文字（要塞入更多欄位） */
+    color: var(--text-1);       /* 白色文字 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球表格的所有儲存格通用邊距】 */
+.pitch-log-table th,
+.pitch-log-table td {
+    padding: 0.25rem 0.5rem;                    /* 較小的內邊距（表格需塞入更多資料） */
+    white-space: nowrap;                        /* 防止文字換行（保持表格整齊） */
+    text-align: left;                           /* 文字靠左 */
+    border-bottom: 1px solid var(--border);     /* 列底部分隔線 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球表格固定表頭 <th>】
+   捲動時表頭固定不移動 */
+.pitch-log-table th {
+    position: sticky;               /* 固定表頭 */
+    top: 0;                         /* 固定在捲動容器頂部 */
+    background: var(--card-surface); /* 表頭背景（需不透明，防止資料透過表頭顯現） */
+    color: var(--text-2);           /* 灰色文字 */
+    font-weight: 500;               /* 中粗體 */
+    font-size: 0.7rem;              /* 比資料行更小的文字 */
+    text-transform: uppercase;      /* 全大寫 */
+    letter-spacing: 0.02em;         /* 微調字間距 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球表格數字欄（靠右對齊）】 */
+.pitch-log-table th.num,
+.pitch-log-table td.num {
+    font-variant-numeric: tabular-nums; /* 等寬數字 */
+    text-align: right;                  /* 數字靠右 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐球表格資料列 hover 效果】 */
+.pitch-log-table tbody tr:hover {
+    background: var(--secondary); /* hover 時深灰背景 */
+}
+
+/* 控制【逐場紀錄 Tab / 每個打席最後一球的分隔底線（teal 色）】
+   視覺上區隔不同打席 */
+.pitch-pa-final {
+    border-bottom: 2px solid rgba(20, 184, 166, 0.25) !important; /* teal 半透明粗線 */
+}
+
+/* 控制【逐場紀錄 Tab / 打席結果標籤（如「三振」「安打」）】 */
+.pa-event-tag {
+    display: inline-block;                      /* 依內容收縮寬度 */
+    padding: 0.1rem 0.4rem;                     /* 內邊距 */
+    border-radius: 4px;                         /* 圓角 */
+    background: rgba(20, 184, 166, 0.15);       /* 半透明 teal 背景 */
+    color: #14b8a6;                             /* teal 文字 */
+    font-size: 0.7rem;                          /* 小文字 */
+    font-weight: 600;                           /* 半粗體 */
+}
+
+/* 控制【逐場紀錄 Tab / 逐場紀錄列展開箭頭】 */
+.pitch-arrow {
+    display: inline-block;                          /* 讓 transition 生效 */
+    transition: transform 0.15s, border-color 0.15s; /* 展開時旋轉動畫 */
+    margin-right: 0.3rem;                           /* 與旁邊文字的間距 */
+    border-color: transparent transparent transparent #64748b; /* 灰色三角形箭頭 */
+}
+
+/* 控制【逐場紀錄 Tab / 球種代碼標籤（共用底層樣式）】
+   顯示投球種類縮寫（如 FF、SL、CH）的彩色小標籤 */
+.pitch-tag {
+    display: inline-block;              /* 依內容收縮寬度 */
+    padding: 0.1rem 0.35rem;            /* 內邊距 */
+    border-radius: 3px;                 /* 輕微圓角 */
+    font-size: 0.7rem;                  /* 小文字 */
+    font-weight: 600;                   /* 半粗體 */
+    background: rgba(100,116,139,0.2);  /* 預設灰色背景（無對應球種時） */
+    color: #e2e8f0;                     /* 預設淡白文字 */
+}
+
+/* 控制【逐場紀錄 Tab / 各球種顏色標籤】
+   每種球種有自己的背景色和文字色，快速識別球種類型
+   FF/FA=四縫速球（紅） | SI=伸卡球（橙） | FC=切球（黃）
+   SL=滑球（藍） | ST=掃球（靛） | CU/CS/KC=曲球（紫）
+   CH/FS=變速（綠） | KN=蝴蝶球（粉紅） */
+.pitch-ff, .pitch-fa { background: rgba(239,68,68,0.2);   color: #fca5a5; } /* 紅色：四縫速球 */
+.pitch-si            { background: rgba(249,115,22,0.2);  color: #fdba74; } /* 橙色：伸卡球 */
+.pitch-fc            { background: rgba(234,179,8,0.2);   color: #fde047; } /* 黃色：切球 */
+.pitch-sl            { background: rgba(59,130,246,0.2);  color: #93c5fd; } /* 藍色：滑球 */
+.pitch-st            { background: rgba(99,102,241,0.2);  color: #a5b4fc; } /* 靛藍：掃球 */
+.pitch-cu, .pitch-cs, .pitch-kc { background: rgba(139,92,246,0.2); color: #c4b5fd; } /* 紫色：曲球 */
+.pitch-ch, .pitch-fs { background: rgba(34,197,94,0.2);   color: #86efac; } /* 綠色：變速 */
+.pitch-kn            { background: rgba(236,72,153,0.2);  color: #f9a8d4; } /* 粉紅：蝴蝶球 */
+
+/* 控制【逐場紀錄 Tab / 可展開逐球資料的逐場列（hover 效果）】 */
+.game-row-expandable:hover {
+    background: rgba(20, 184, 166, 0.04); /* 極淡的 teal 背景（提示可點擊） */
+}
+
+/* 控制【逐場紀錄 Tab / 可展開逐場列 hover 時箭頭顏色】 */
+.game-row-expandable:hover .toggle-arrow {
+    border-color: transparent transparent transparent var(--text-1); /* hover 時箭頭變白 */
+}

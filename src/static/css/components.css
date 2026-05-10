@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════
+   共用 UI 元件樣式
+   包含：球員頭像圓圈 (.avatar)、文字頭像備用顯示、
+   聯盟/層級標籤 (.badge)、球員狀態膠囊 (.status-pill)。
+   首頁球員卡片與球員詳細頁 hero 區塊均使用這些元件。
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【首頁球員卡 + 球員詳細頁 Hero / 球員頭像圓框】
+   圓形的頭像容器，圖片載入失敗時改顯示文字縮寫 */
+.avatar {
+    width: 64px;                        /* 頭像寬度 → 改這裡換頭像大小 */
+    height: 64px;                       /* 頭像高度 */
+    border-radius: 50%;                 /* 圓形裁切 */
+    border: 1px solid var(--border);    /* 細邊框（深灰色） */
+    overflow: hidden;                   /* 裁掉超出圓形範圍的圖片 */
+    display: flex;                      /* Flex 讓備用文字置中 */
+    align-items: center;                /* 垂直置中 */
+    justify-content: center;            /* 水平置中 */
+    background: var(--secondary);       /* 圖片載入中時的背景色（深灰） */
+    flex-shrink: 0;                     /* 防止在 flex 容器中被壓縮變形 */
+}
+
+/* 控制【首頁球員卡 + 球員詳細頁 Hero / 頭像圖片本身】 */
+.avatar img {
+    width: 100%;            /* 填滿容器寬度 */
+    height: 100%;           /* 填滿容器高度 */
+    object-fit: cover;      /* 裁切方式：等比例縮放並裁切超出部分（不留白） */
+}
+
+/* 控制【首頁球員卡 + 球員詳細頁 Hero / 頭像文字縮寫（圖片載入失敗時）】
+   當球員沒有大頭照時，改顯示姓名縮寫（由 avatar-fallback.js 控制） */
+.avatar-initials {
+    width: 100%;                    /* 填滿容器 */
+    height: 100%;
+    display: flex;
+    align-items: center;            /* 文字垂直置中 */
+    justify-content: center;        /* 文字水平置中 */
+    font-size: 1.25rem;             /* 縮寫文字大小 */
+    font-weight: 600;               /* 半粗體 */
+    background: var(--secondary);   /* 深灰背景 */
+    color: var(--text-1);           /* 白色文字 */
+    border-radius: 50%;             /* 圓形 */
+}
+
+/* 控制【首頁球員卡 + 球員詳細頁 Hero / 聯盟/層級標籤（如 MLB、AAA）】
+   顯示在球員姓名旁邊的小標籤 */
+.badge {
+    display: inline-block;      /* 讓標籤寬度依內容收縮（不佔整行） */
+    padding: .15rem .52rem;     /* 上下/左右內邊距（讓標籤有空間感） */
+    border-radius: 4px;         /* 輕微圓角 */
+    font-size: .7rem;           /* 較小的文字 */
+    font-weight: 600;           /* 半粗體 */
+    letter-spacing: .5px;       /* 字間距稍微拉開（全大寫時效果更好） */
+    text-transform: uppercase;  /* 強制全大寫（如 "mlb" → "MLB"） */
+}
+
+/* 控制【球員詳細頁 Hero / MLB 聯盟標籤（白色文字）】 */
+.badge-mlb {
+    background: var(--secondary);           /* 深灰背景 */
+    color: var(--text-1);                   /* 白色文字（表示最高層級） */
+    border: 1px solid var(--border);        /* 細邊框 */
+}
+
+/* 控制【球員詳細頁 Hero / 小聯盟層級標籤（灰色文字）】 */
+.badge-level {
+    background: var(--secondary);           /* 深灰背景 */
+    color: var(--text-2);                   /* 中灰文字（表示低於 MLB 層級） */
+    border: 1px solid var(--border);        /* 細邊框 */
+}
+
+/* 控制【球員詳細頁 Hero / 球員目前狀態膠囊的共用底層樣式】
+   用於顯示「上場中」「傷病名單」「限制名單」等狀態 */
+.status-pill {
+    display: inline-flex;           /* inline-flex 讓膠囊依內容寬度收縮 */
+    align-items: center;            /* 文字垂直置中 */
+    padding: .15rem .6rem;          /* 上下/左右內邊距 */
+    border-radius: 9999px;          /* 完全圓角，製造「膠囊」外型 */
+    font-size: .75rem;              /* 較小的文字 */
+    font-weight: 500;               /* 中粗體 */
+    border: 1px solid var(--border); /* 預設邊框（各狀態會覆寫顏色） */
+}
+
+/* 控制【球員詳細頁 Hero / 狀態膠囊：「上場中」（綠色）】 */
+.status-pill.active {
+    background: rgba(16, 185, 129, .1);     /* 半透明綠色背景 */
+    color: var(--green);                    /* 綠色文字 */
+    border-color: rgba(16, 185, 129, .2);   /* 半透明綠色邊框 */
+}
+
+/* 控制【球員詳細頁 Hero / 狀態膠囊：「未上場」（灰色）】 */
+.status-pill.inactive {
+    background: var(--secondary);   /* 深灰背景 */
+    color: var(--text-2);           /* 灰色文字 */
+}
+
+/* 控制【球員詳細頁 Hero / 狀態膠囊：「傷病名單」（橙色）】 */
+.status-pill.injured {
+    background: rgba(245, 158, 11, .1);     /* 半透明橙色背景 */
+    color: #f59e0b;                         /* 橙色文字 */
+    border-color: rgba(245, 158, 11, .2);   /* 半透明橙色邊框 */
+}
+
+/* 控制【球員詳細頁 Hero / 狀態膠囊：「限制名單」（紅色）】 */
+.status-pill.restricted {
+    background: rgba(239, 68, 68, .1);      /* 半透明紅色背景 */
+    color: var(--red);                      /* 紅色文字 */
+    border-color: rgba(239, 68, 68, .2);    /* 半透明紅色邊框 */
+}
+
+/* 控制【球員詳細頁 Hero / 狀態膠囊：其他狀態（藍色）】 */
+.status-pill.other {
+    background: rgba(59, 130, 246, .1);     /* 半透明藍色背景 */
+    color: var(--blue);                     /* 藍色文字 */
+    border-color: rgba(59, 130, 246, .2);   /* 半透明藍色邊框 */
+}
+
+/* 控制【首頁球員卡 / 狀態小圓點（狀態指示燈）】
+   顯示在卡片角落的小圓點，顏色對應球員狀態 */
+.status-dot {
+    font-size: .65rem;      /* 小圓點文字大小（用 emoji 或符號當圓點） */
+    margin-left: .3rem;     /* 與前面文字的間距 */
+}
+
+.status-dot.active     { color: var(--green); }    /* 上場中 → 綠色 */
+.status-dot.inactive   { color: var(--text-3); }   /* 未上場 → 深灰 */
+.status-dot.injured    { color: #f59e0b; }          /* 傷病 → 橙色 */
+.status-dot.restricted { color: var(--red); }      /* 限制 → 紅色 */
+.status-dot.other      { color: var(--blue); }     /* 其他 → 藍色 */
+
+/* 控制【逐場紀錄 Tab / 主客場標籤（H/A tag）】
+   顯示在 gamelog 表格中，標示該場比賽為主場或客場 */
+.ha-tag {
+    display: inline-block;          /* 讓標籤寬度依內容收縮 */
+    padding: .1rem .4rem;           /* 內邊距 */
+    border: 1px solid var(--border); /* 細邊框 */
+    border-radius: 4px;             /* 輕微圓角 */
+    font-size: .72rem;              /* 小文字 */
+    font-weight: 600;               /* 半粗體 */
+}
+
+/* 控制【逐場紀錄 / 主場標籤（H）外觀】 */
+.ha-home {
+    background: var(--secondary);   /* 深灰背景（主場有底色） */
+    color: var(--text-1);           /* 白色文字 */
+}
+
+/* 控制【逐場紀錄 / 客場標籤（A）外觀】 */
+.ha-away {
+    background: transparent;    /* 透明背景（客場無底色） */
+    color: var(--text-2);       /* 灰色文字 */
+}
+
+/* 控制【全站 / 聯盟層級標籤（如 TWN、NPB）】
+   出現在 gamelog 表格的聯盟欄位 */
+.level-tag {
+    display: inline-block;              /* 依內容寬度收縮 */
+    padding: .1rem .4rem;               /* 內邊距 */
+    border-radius: 4px;                 /* 輕微圓角 */
+    font-size: .7rem;                   /* 小文字 */
+    font-weight: 500;                   /* 中粗體 */
+    border: 1px solid var(--border);    /* 細邊框 */
+    background: var(--secondary);       /* 深灰背景 */
+    color: var(--text-1);               /* 白色文字 */
+}
+
+/* 控制【全站 / 資料為空時的提示訊息】
+   當 Grid 容器內沒有資料時顯示，橫跨所有欄 */
+.empty-msg {
+    color: var(--text-2);   /* 灰色文字（次要資訊） */
+    grid-column: 1/-1;      /* 橫跨 Grid 所有欄 */
+}
+
+/* 控制【首頁球員卡 / 較小字體的數據值（如 W-L 勝敗場）】 */
+.stat-value-sm {
+    font-size: .9rem; /* 比一般 stat 數值略小 */
+}
+
+/* 控制【首頁球員卡 / 尚無數據時的空白 stats 列】
+   球員沒有當年數據時，顯示置中的提示訊息 */
+.stats-row-empty {
+    grid-template-columns: 1fr;     /* 單欄，讓訊息橫跨整行 */
+    text-align: center;             /* 文字置中 */
+    color: var(--text-2);           /* 灰色文字 */
+    min-height: 56px;               /* 最小高度，避免列太矮 */
+    align-items: center;            /* 垂直置中 */
+}
+
+/* 控制【首頁球員卡 / 全欄位數據方塊】
+   讓某個 stat 方塊橫跨整個 Grid */
+.stat-box-full {
+    grid-column: 1 / -1; /* 橫跨 Grid 所有欄 */
+}
+
+/* 控制【賽季數據 Tab / 表格中的聯盟欄位】 */
+.td-league {
+    color: var(--text-2);   /* 灰色（聯盟名稱為次要資訊） */
+    font-size: .8rem;       /* 較小字體 */
+}
+
+/* 控制【賽季數據 Tab / 表格中無數據的空白格】 */
+.td-empty {
+    color: var(--text-2);   /* 灰色（空值用灰色表示） */
+    text-align: center;     /* 置中對齊 */
+}
+
+/* 控制【全站 / 頭像備用元素（預設隱藏）】
+   圖片載入失敗時由 avatar-fallback.js 動態改為 display:flex 顯示 */
+.avatar-fallback {
+    display: none; /* 預設隱藏（JS 在圖片 error 時切換為顯示） */
+}
+
+/* 控制【個人資料 Tab / 「Next Game」卡片的更新時間說明】 */
+.ng-update-info {
+    font-size: .72rem;      /* 小字 */
+    color: var(--text-3);   /* 最淡的灰色（輔助資訊） */
+    margin-top: .25rem;     /* 與上方內容的間距 */
+}
+
+/* 控制【賽季數據 Tab / 年份切換器下方的靜態網站說明文字】 */
+.year-note {
+    font-size: .78rem;      /* 小字 */
+    color: var(--text-3);   /* 最淡的灰色（輔助說明） */
+    font-style: italic;     /* 斜體，顯示這是備注說明 */
+}

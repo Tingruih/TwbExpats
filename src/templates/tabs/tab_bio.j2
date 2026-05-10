@@ -1,0 +1,160 @@
+{# ── TAB 1: BIO ── #}
+<div class="tab-panel tab-panel--active" id="panel-bio">
+
+    <div class="bio-grid">
+        {# Personal Info #}
+        <div class="bio-card glass-panel">
+            <h3 class="bio-card-title">個人資料</h3>
+            <dl class="bio-dl">
+                {% if player.birth_date %}
+                <dt>出生日期</dt><dd>{{ player.birth_date }}{% if player.age %} ({{ player.age }}歲){% endif %}</dd>
+                {% endif %}
+                {% if player.birth_city or player.birth_country %}
+                <dt>出生地</dt><dd>{{ player.birth_city }}{% if player.birth_city and player.birth_country %}, {% endif %}{{ player.birth_country }}</dd>
+                {% endif %}
+                {% if player.height %}
+                <dt>身高</dt><dd>{{ player.height }}{% if height_cm %} ({{ height_cm }} cm){% endif %}</dd>
+                {% endif %}
+                {% if player.weight %}
+                <dt>體重</dt><dd>{{ player.weight }} lbs{% if weight_kg %} ({{ weight_kg }} kg){% endif %}</dd>
+                {% endif %}
+                {% if player.bat_side %}
+                <dt>打擊方向</dt><dd>{{ player.bat_side }}</dd>
+                {% endif %}
+                {% if player.pitch_hand %}
+                <dt>投球手</dt><dd>{{ player.pitch_hand }}</dd>
+                {% endif %}
+                <dt>狀態</dt>
+                <dd>
+                    {% if player.roster_status %}
+                        {% set s = player.roster_status %}
+                        {% if "Injured" in s or "IL" in s or "DL" in s %}
+                            <span class="status-pill injured">{{ s }}</span>
+                        {% elif "Restricted" in s or "Suspended" in s or "Bereavement" in s %}
+                            <span class="status-pill restricted">{{ s }}</span>
+                        {% elif "Active" in s %}
+                            <span class="status-pill active">{{ s }}</span>
+                        {% else %}
+                            <span class="status-pill other">{{ s }}</span>
+                        {% endif %}
+                    {% elif player.is_active %}
+                        <span class="status-pill active">Active</span>
+                    {% else %}
+                        <span class="status-pill inactive">Inactive</span>
+                    {% endif %}
+                </dd>
+            </dl>
+        </div>
+
+        {# Next Game #}
+        {% if next_game %}
+        <div class="bio-card glass-panel next-game-card">
+            <h3 class="bio-card-title">Next Game</h3>
+            <div class="next-game-info">
+                <div class="ng-matchup">
+                    <span class="ng-ha">{% if next_game.is_home %}vs{% else %}@{% endif %}</span>
+                    <span class="ng-opponent">{{ next_game.opponent }}</span>
+                </div>
+                <div class="ng-details">
+                    <span class="ng-time">{{ next_game.game_time }}</span>
+                    {% if next_game.venue %}
+                    <span class="ng-venue">{{ next_game.venue }}</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% else %}
+        <div class="bio-card glass-panel next-game-card">
+            <h3 class="bio-card-title">Next Game</h3>
+            <p class="next-game-empty">近期尚無可用賽程資料</p>
+        </div>
+        {% endif %}
+
+        {# Transaction History #}
+        {% if transactions %}
+        <div class="bio-card glass-panel tx-card">
+            <h3 class="bio-card-title">異動紀錄 <span class="tx-count">({{ transactions|length }})</span></h3>
+            <div class="tx-timeline">
+                {% for tx in transactions %}
+                <div class="tx-item">
+                    <div class="tx-dot"></div>
+                    <div class="tx-content">
+                        <div class="tx-header">
+                            <span class="tx-date">{{ tx.date }}</span>
+                            {% if tx.type %}<span class="tx-type-badge">{{ tx.type }}</span>{% endif %}
+                        </div>
+                        <p class="tx-desc">{{ tx.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif player.latest_transaction %}
+        <div class="bio-card glass-panel">
+            <h3 class="bio-card-title">最新異動</h3>
+            <p class="tx-desc">{{ player.latest_transaction }}</p>
+        </div>
+        {% endif %}
+
+        {# ── COMBINED CAREER + SEASON CARD ── #}
+        {% if total_career or season_combined %}
+        <div class="bio-card glass-panel career-combined-card">
+
+            {# Total Career #}
+            {% if total_career %}
+            <h3 class="bio-card-title">生涯累計 ({{ total_career.years_range }})</h3>
+            {% if is_pitcher %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.so|num_dash }}</span><span class="ms-l">K</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.wins|num_dash }}-{{ total_career.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.ip|floatformat(1) if total_career.ip else '-' }}</span><span class="ms-l">IP</span></div>
+            </div>
+            {% else %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.hr|num_dash }}</span><span class="ms-l">HR</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
+                <div class="ms-item"><span class="ms-v">{{ total_career.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {# Divider #}
+            {% if total_career and season_combined %}
+            <div class="career-divider"></div>
+            {% endif %}
+
+            {# Current Season Combined #}
+            {% if season_combined %}
+            {% set sc = season_combined %}
+            <h3 class="bio-card-title">{{ sc.year }} 賽季 — {{ sc.teams_display }}</h3>
+            {% if is_pitcher %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.so|num_dash }}</span><span class="ms-l">K</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.wins|num_dash }}-{{ sc.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.ip|floatformat(1) if sc.ip else '-' }}</span><span class="ms-l">IP</span></div>
+            </div>
+            {% else %}
+            <div class="mini-stats-grid highlight-only">
+                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.hr|num_dash }}</span><span class="ms-l">HR</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
+                <div class="ms-item"><span class="ms-v">{{ sc.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>

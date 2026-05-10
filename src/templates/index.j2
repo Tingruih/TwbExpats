@@ -91,29 +91,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    function sortCards(mode) {
-        var grid = document.getElementById("player-grid");
-        var cards = Array.from(grid.querySelectorAll(".player-card"));
-
-        cards.sort(function(a, b) {
-            if (mode === "level") {
-                return parseInt(a.dataset.levelOrder) - parseInt(b.dataset.levelOrder);
-            } else {
-                var da = a.dataset.lastGame || "0000-00-00";
-                var db = b.dataset.lastGame || "0000-00-00";
-                return da > db ? -1 : da < db ? 1 : 0;
-            }
-        });
-
-        cards.forEach(function(c) { grid.appendChild(c); });
-
-        document.getElementById("btn-level").classList.toggle("sort-btn-active", mode === "level");
-        document.getElementById("btn-recent").classList.toggle("sort-btn-active", mode === "recent");
-    }
-    // Expose to inline onclick
-    window.sortCards = sortCards;
-});
-</script>
+<script src="{{ static_url('js/index-sort.js') }}"></script>
 {% endblock %}

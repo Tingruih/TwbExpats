@@ -1,0 +1,7 @@
+/* ═══════════════════════════════════════════════════════════
+   「守備」Tab 樣式（tab_fielding.j2）
+   守備數據目前直接複用 .data-table（stats.css）與
+   .adv-definitions（advanced.css）的共用樣式，
+   此檔預留給未來守備專屬樣式擴充。
+═══════════════════════════════════════════════════════════ */
+/* Fielding currently reuses data table and definition styles. */

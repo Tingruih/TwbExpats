@@ -1,0 +1,206 @@
+/* ═══════════════════════════════════════════════════════════
+   首頁專用樣式（index.html）
+   包含：標題區、球員卡片 Grid、每張卡片的 header / stats-row、
+   右上角「資料更新時間」、排序列 (sort-bar) 按鈕。
+   僅載入於 index.j2，不影響球員詳細頁。
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【首頁 / 頁面標題區塊】
+   顯示在球員卡片 Grid 最上方，包含網站名稱和副標題 */
+.dashboard-header {
+    text-align: center;         /* 文字置中 */
+    margin-bottom: 2.5rem;      /* 與下方球員卡片 Grid 的距離 */
+}
+
+/* 控制【首頁 / 頁面主標題大小】 */
+.dashboard-header h1 {
+    font-size: 2rem; /* 主標題文字大小 → 改這裡調整首頁標題大小 */
+}
+
+/* 控制【首頁 / 頁面副標題文字】 */
+.dashboard-sub {
+    color: var(--text-2);   /* 灰色（副標題比主標題淡） */
+    font-size: 1rem;        /* 副標題文字大小 */
+}
+
+/* 控制【首頁 / 球員卡片 Grid 排版】
+   所有球員卡片的外層 Grid 容器，自動決定每行幾張卡片 */
+.dashboard-grid {
+    display: grid;                                          /* 使用 Grid 排版 */
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); /* 每欄最小 290px，自動換行 */
+    gap: 1rem;                                              /* 卡片之間的間距 */
+}
+
+/* 控制【首頁 / 排序列 + 更新時間的外層容器】
+   包住「依層級/依最新出賽」按鈕組與右側更新時間戳 */
+.index-controls {
+    display: flex;                  /* Flex 讓左右元件排成一排 */
+    align-items: center;            /* 垂直置中對齊 */
+    justify-content: space-between; /* 左右推到兩端 */
+    gap: 1rem;                      /* 左右間距 */
+    margin-bottom: 1.25rem;         /* 與下方球員卡片 Grid 的距離 */
+    flex-wrap: wrap;                /* 螢幕太窄時允許換行 */
+}
+
+/* 控制【首頁 / 排序列在 index-controls 內的佈局】 */
+.index-controls .sort-bar {
+    margin-bottom: 0;   /* 在 index-controls 內不需要底部 margin */
+    flex: 1;            /* 讓排序列佔滿剩餘空間 */
+}
+
+/* 控制【首頁 / 右上角資料更新時間戳】
+   顯示最後 build 時間，讓使用者知道資料最新程度 */
+.header-time-badge {
+    font-size: 0.72rem;     /* 小字（次要資訊） */
+    color: var(--text-3);   /* 最淡的灰色 */
+    white-space: nowrap;    /* 防止時間戳文字換行 */
+}
+
+/* 控制【首頁 / 每張球員卡片的外框】
+   每位球員一張卡片，包含頭像、姓名、層級標籤和數據方塊 */
+.player-card {
+    padding: 1.25rem;           /* 卡片內部四邊留白 */
+    display: flex;              /* Flex 讓卡片內容直向排列 */
+    flex-direction: column;     /* 直向堆疊（頭部在上、數據在下） */
+    position: relative;         /* 讓卡片內的絕對定位元素能定位 */
+    overflow: hidden;           /* 裁掉超出卡片圓角的內容 */
+    transition: var(--ease);    /* hover 時 transform/shadow 有過渡動畫 */
+    gap: 0;                     /* 子元件之間不額外加間距（各自用 margin 控制） */
+}
+
+/* 控制【首頁 / 球員卡片 hover 效果】 */
+.player-card:hover {
+    border-color: var(--text-3);                /* hover 時邊框變亮 */
+    transform: translateY(-2px);                /* hover 時卡片微微上移（浮起感） */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* hover 時出現陰影（加強浮起感） */
+}
+
+/* 控制【首頁 / 球員卡片頂部橫排區塊（頭像 + 姓名 + 標籤）】 */
+.player-header {
+    display: flex;          /* Flex 讓頭像和文字橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: 0.85rem;           /* 頭像與文字之間的間距 */
+    margin-bottom: 1rem;    /* 與下方數據方塊的距離 */
+}
+
+/* 控制【首頁 / 球員姓名 h2】 */
+.player-info h2 {
+    margin: 0;                  /* 移除 h2 預設 margin */
+    font-size: 1.05rem;         /* 球員姓名字體大小 */
+    display: flex;              /* Flex 讓姓名和層級 tag 並排 */
+    align-items: center;        /* 垂直置中 */
+    gap: 0.4rem;                /* 姓名和 tag 之間的間距 */
+    flex-wrap: wrap;            /* 太長時允許 tag 換行 */
+    line-height: 1.4;           /* 行高（換行時不會太擠） */
+}
+
+/* 控制【首頁 / 球員姓名旁的層級 tag（如 MLB）字體大小】 */
+.player-info h2 .level-tag {
+    font-size: 0.65rem; /* 比姓名字體更小 */
+}
+
+/* 控制【首頁 / 球員卡片的層級文字（如 Triple-A）】 */
+.player-info .level {
+    color: var(--text-2);           /* 灰色（次要資訊） */
+    font-weight: 500;               /* 中粗體 */
+    font-size: 0.8rem;              /* 較小文字 */
+    text-transform: uppercase;      /* 全大寫 */
+    letter-spacing: 1px;            /* 字間距 */
+    margin-top: 0.15rem;            /* 與上方姓名的間距 */
+}
+
+/* 控制【首頁 / 球員卡片的所屬球隊名稱】 */
+.player-info .team {
+    color: var(--text-2);   /* 灰色（次要資訊） */
+    font-size: 0.8rem;      /* 較小文字 */
+}
+
+/* 控制【首頁 / 球員卡片底部數據方塊列（stats-row）】
+   顯示 4 個主要欄位數據的深色小格子 */
+.stats-row {
+    display: grid;                                  /* Grid 排列 4 個數據格 */
+    grid-template-columns: repeat(4, 1fr);          /* 4 欄等寬 */
+    gap: 0.5rem;                                    /* 格子之間的間距 */
+    background: var(--card-surface);                /* 深灰底色（比卡片背景略淺） */
+    padding: 0.75rem;                               /* 數據列內邊距 */
+    border-radius: var(--radius);                   /* 圓角 */
+    border: 1px solid var(--border);                /* 細邊框 */
+}
+
+/* 控制【首頁 / 每個數據格（stat-box）】
+   顯示單一數據（標籤在上、數值在下） */
+.stat-box {
+    display: flex;              /* Flex 直向堆疊 */
+    flex-direction: column;     /* 標籤在上、數值在下 */
+    align-items: center;        /* 水平置中 */
+    padding: 0.25rem 0;         /* 上下留白 */
+}
+
+/* 控制【首頁 / 數據格的欄位標籤（如 AVG、ERA）】 */
+.stat-label {
+    font-size: 0.68rem;         /* 很小的文字（縮寫標籤） */
+    color: var(--text-3);       /* 最淡的灰色（輔助標籤） */
+    text-transform: uppercase;  /* 全大寫 */
+    letter-spacing: 0.5px;      /* 字間距 */
+    margin-bottom: 0.2rem;      /* 與下方數值的間距 */
+}
+
+/* 控制【首頁 / 數據格的數值（如 .312、3.45）】 */
+.stat-value {
+    font-size: 1.1rem;                      /* 數值字體較大（突顯重要資訊） */
+    font-weight: 600;                       /* 半粗體 */
+    font-variant-numeric: tabular-nums;     /* 等寬數字，讓小數點對齊 */
+    color: var(--text-1);                   /* 白色（主要資訊） */
+}
+
+/* 控制【首頁 / 球員卡片右下角年份標籤（如 "2025"）】 */
+.card-year-tag {
+    margin-top: 0.8rem;         /* 與上方數據列的間距 */
+    text-align: right;          /* 靠右對齊 */
+    font-size: 0.72rem;         /* 小字 */
+    color: var(--text-2);       /* 灰色（次要資訊） */
+}
+
+/* 控制【首頁 / 排序列（sort-bar）整體容器】
+   包住「依層級/依最新出賽」等排序按鈕 */
+.sort-bar {
+    display: flex;              /* Flex 讓標籤和按鈕橫排 */
+    align-items: center;        /* 垂直置中 */
+    gap: .5rem;                 /* 按鈕之間的間距 */
+    padding: .7rem 1.2rem;      /* 排序列內邊距 */
+    margin-bottom: 1.25rem;     /* 與下方球員 Grid 的距離 */
+    flex-wrap: wrap;            /* 螢幕太窄時允許換行 */
+    background: var(--card-bg); /* 背景色（與頁面背景同色，形成無縫感） */
+}
+
+/* 控制【首頁 / 排序列左側「排序方式：」標籤文字】 */
+.sort-label {
+    font-weight: 500;       /* 中粗體 */
+    color: var(--text-2);   /* 灰色 */
+    font-size: .85rem;      /* 小文字 */
+}
+
+/* 控制【首頁 / 排序按鈕（未選中狀態）】 */
+.sort-btn {
+    padding: .3rem .8rem;           /* 按鈕內邊距 */
+    border-radius: var(--radius);   /* 圓角 */
+    font-size: .82rem;              /* 按鈕文字大小 */
+    font-weight: 500;               /* 中粗體 */
+    color: var(--text-2);           /* 灰色文字（未選中） */
+    background: transparent;        /* 透明背景（未選中） */
+    border: 1px solid var(--border); /* 細邊框 */
+    transition: var(--ease);        /* hover 動畫 */
+}
+
+/* 控制【首頁 / 排序按鈕 hover 狀態】 */
+.sort-btn:hover {
+    color: var(--text-1);           /* hover 時文字變白 */
+    background: var(--secondary);   /* hover 時出現深灰背景 */
+}
+
+/* 控制【首頁 / 排序按鈕（已選中狀態）】 */
+.sort-btn-active {
+    color: var(--primary-fg);       /* 黑色文字（白底上用黑字） */
+    background: var(--primary);     /* 白色背景（選中狀態最顯眼） */
+    border-color: var(--primary);   /* 邊框也改為白色 */
+}

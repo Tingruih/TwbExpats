@@ -1,0 +1,549 @@
+/* ═══════════════════════════════════════════════════════════
+   「圖表」Tab 樣式（tab_plot.j2）
+   包含：
+   - .chart-wrap               ：Chart.js 折線圖外框
+   - .pitch-chart-grid         ：球種用球率與位移圖的二欄 Grid
+   - .pitch-chart-svg          ：SVG 圖表本體（共用 title/gridline/tick 樣式）
+   - .pitch-usage-bar          ：橫條圖的矩形條
+   - .pitch-movement-point     ：位移散點圖的各點（hover 放大）
+   - .pitch-chart-tooltip      ：滑鼠移入散點時的浮動說明泡泡
+   - .pitch-chart-legend       ：圖例列（球種顏色點 + 名稱）
+═══════════════════════════════════════════════════════════ */
+
+/* 控制【圖表 Tab / Chart.js 折線圖外框卡片（手動製作圖表的容器）】 */
+.chart-wrap {
+    padding: 1.5rem;        /* 卡片內邊距 */
+    margin-bottom: 1.5rem;  /* 與下方元件的距離 */
+}
+
+/* 控制【圖表 Tab / Chart.js 卡片標題（如「出賽年份趨勢」）】 */
+.chart-wrap h3 {
+    font-size: 1.05rem;     /* 標題文字大小 */
+    margin-bottom: 1rem;    /* 標題與圖表之間的距離 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖（球路結果漏斗圖）的篩選欄】 */
+.pitch-plinko-filter-bar {
+    padding: 0;             /* 不需要內邊距 */
+    margin-bottom: 1rem;    /* 與下方圖表的距離 */
+}
+
+/* 控制【圖表 Tab / 球種用球率橫條圖 + 球種位移散點圖的二欄並排容器】 */
+.pitch-chart-grid {
+    display: grid;                              /* Grid 排版 */
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* 二等份欄位 */
+    gap: 1.35rem;                               /* 欄位之間的間距 */
+    align-items: start;                         /* 頂部對齊（高度不同時不拉伸） */
+    margin: 0 0 1.45rem;                        /* 底部與下方區塊的距離 */
+}
+
+/* 控制【圖表 Tab / 圖表子區塊容器（橫條圖 / 位移圖）— 防止溢出 Grid】 */
+.pitch-chart-section,
+.pitch-usage-hand-root,
+.pitch-movement-root {
+    min-width: 0; /* 防止 SVG 撐破 Grid 格 */
+}
+
+/* 控制【圖表 Tab / 球種位移散點圖的根元件（用來定位 Tooltip）】 */
+.pitch-movement-root {
+    position: relative; /* Tooltip 使用 absolute 定位時的參考點 */
+}
+
+/* 控制【圖表 Tab / SVG 圖表本體（共用於橫條圖與散點圖）】 */
+.pitch-chart-svg {
+    display: block;     /* 消除 inline 底部空白 */
+    width: 100%;        /* 填滿容器寬度 */
+    height: auto;       /* 高度自動（依 viewBox 比例縮放） */
+    overflow: visible;  /* 讓圖表的標籤文字可以超出 SVG 邊界 */
+}
+
+/* 控制【圖表 Tab / SVG 內所有文字的字型設定】 */
+.pitch-chart-svg text {
+    font-family: 'Inter', sans-serif; /* 與頁面字型一致 */
+    letter-spacing: 0;                /* 不調整字間距 */
+}
+
+/* 控制【圖表 Tab / SVG 圖表標題文字】 */
+.pitch-chart-title {
+    fill: var(--text-1);    /* 白色文字 */
+    font-size: 1.05rem;     /* 標題大小 */
+    font-weight: 700;       /* 粗體 */
+    text-anchor: middle;    /* 水平置中 */
+}
+
+/* 控制【圖表 Tab / SVG 背景輔助格線】 */
+.pitch-chart-gridline {
+    stroke: rgba(255, 255, 255, 0.08); /* 極淡白色（輔助線不搶焦點） */
+    stroke-width: 1.2;                 /* 細線 */
+}
+
+/* 控制【圖表 Tab / 散點圖的 X=0 垂直中線（粗白實線）】 */
+.pitch-chart-zero-line {
+    stroke: rgba(255, 255, 255, 0.42); /* 稍亮白色（比格線突出） */
+    stroke-width: 2.1;                 /* 略粗 */
+}
+
+/* 控制【圖表 Tab / 散點圖的 Y=0 水平中線（虛線）】 */
+.pitch-chart-zero-line--horizontal {
+    stroke: rgba(255, 255, 255, 0.18); /* 比垂直中線更淡 */
+    stroke-dasharray: 10 9;            /* 虛線模式 */
+}
+
+/* 控制【圖表 Tab / SVG X 軸刻度標籤（底部數字）】
+   .pitch-chart-y-tick-label 再加上靠左對齊，覆蓋預設 */
+.pitch-chart-tick-label,
+.pitch-chart-y-tick-label {
+    fill: var(--text-2);            /* 灰色文字 */
+    font-size: 14px;                /* 刻度文字大小 */
+    font-weight: 700;               /* 半粗 */
+    text-anchor: middle;            /* X 軸刻度置中 */
+    dominant-baseline: middle;      /* 垂直居中 */
+    font-variant-numeric: tabular-nums; /* 等寬數字（讓數字對齊） */
+}
+
+/* 控制【圖表 Tab / SVG Y 軸刻度標籤（左側數字）— 靠右對齊】 */
+.pitch-chart-y-tick-label {
+    text-anchor: end; /* Y 軸標籤靠右（貼近軸線） */
+}
+
+/* 控制【圖表 Tab / SVG 橫條圖列標籤（球種縮寫）】 */
+.pitch-chart-row-label {
+    fill: var(--text-1);        /* 白色文字 */
+    font-size: 16px;            /* 標籤文字大小 */
+    font-weight: 700;           /* 粗體 */
+    text-anchor: end;           /* 靠右對齊（貼近橫條左端） */
+    dominant-baseline: middle;  /* 垂直居中 */
+}
+
+/* 控制【圖表 Tab / SVG 軸線標籤（X 軸底部文字、Y 軸左側文字）】
+   .pitch-chart-hand-label 再覆蓋顏色與斜體 */
+.pitch-chart-axis-label,
+.pitch-chart-hand-label {
+    fill: var(--text-1);    /* 白色文字 */
+    font-size: 16px;        /* 軸標籤大小 */
+    font-weight: 800;       /* 特粗 */
+    text-anchor: middle;    /* 置中 */
+}
+
+/* 控制【圖表 Tab / SVG 左/右打者標籤（覆蓋為灰色斜體）】 */
+.pitch-chart-hand-label {
+    fill: var(--text-2);    /* 灰色（比軸線標籤淡） */
+    font-style: italic;     /* 斜體區分左右打者標籤 */
+}
+
+/* 控制【圖表 Tab / SVG 球種使用率橫條圖的矩形條】 */
+.pitch-usage-bar {
+    rx: 0;                          /* 直角（不圓角） */
+    shape-rendering: crispEdges;    /* 精確像素渲染（避免模糊） */
+}
+
+/* 控制【圖表 Tab / SVG 橫條圖右端的數值標籤（使用率 %）】 */
+.pitch-usage-value-label {
+    fill: var(--text-1);            /* 白色文字 */
+    font-size: 16px;                /* 標籤大小 */
+    font-weight: 800;               /* 特粗 */
+    dominant-baseline: middle;      /* 垂直居中 */
+    font-variant-numeric: tabular-nums; /* 等寬數字 */
+}
+
+/* 控制【圖表 Tab / 橫條圖左側數值標籤（靠右對齊，貼近橫條左端）】 */
+.pitch-usage-value-label--left {
+    text-anchor: end; /* 靠右對齊 */
+}
+
+/* 控制【圖表 Tab / 位移散點圖每個球種的圓點】 */
+.pitch-movement-point {
+    stroke: rgba(255, 255, 255, 0.34);  /* 白色描邊（提升可見度） */
+    stroke-width: 1.35;                 /* 描邊粗細 */
+    cursor: pointer;                    /* 滑鼠指標（提示可點擊） */
+    transition: r .12s ease, opacity .12s ease; /* hover 半徑與透明度動畫 */
+    opacity: 0.82;                      /* 預設略透明 */
+}
+
+/* 控制【圖表 Tab / 位移散點圖圓點 Hover 狀態（放大且完全不透明）】 */
+.pitch-movement-point:hover {
+    r: 6.2;     /* 半徑放大（SVG 屬性） */
+    opacity: 1; /* 完全不透明 */
+}
+
+/* 控制【圖表 Tab / 散點圖下方圖例列（球種顏色點 + 名稱）】 */
+.pitch-chart-legend {
+    display: flex;              /* Flex 排列 */
+    flex-wrap: wrap;            /* 超出寬度時換行 */
+    justify-content: center;    /* 圖例項目置中 */
+    gap: 0.72rem 1.2rem;        /* 行間距 / 欄間距 */
+    margin-top: 0.1rem;         /* 與圖表的距離 */
+    color: var(--text-1);       /* 白色文字 */
+    font-size: 0.86rem;         /* 文字大小 */
+    font-weight: 700;           /* 粗體 */
+    line-height: 1.35;          /* 行高 */
+}
+
+/* 控制【圖表 Tab / 圖例的每個項目（顏色點 + 球種名稱）】 */
+.pitch-chart-legend-item {
+    display: inline-flex;   /* Flex 讓顏色點與文字橫排 */
+    align-items: center;    /* 垂直置中 */
+    gap: 0.36rem;           /* 顏色點與文字的距離 */
+    white-space: nowrap;    /* 不換行 */
+}
+
+/* 控制【圖表 Tab / 圖例項目的顏色圓點（用 <i> 標籤渲染）】 */
+.pitch-chart-legend-item i {
+    display: inline-block;                          /* 確保可設定 width/height */
+    width: 11px;                                    /* 圓點寬度 */
+    height: 11px;                                   /* 圓點高度 */
+    border-radius: 50%;                             /* 正圓 */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22); /* 淡白描邊 */
+}
+
+/* 控制【圖表 Tab / 滑鼠移入散點圓點時的浮動 Tooltip】
+   顯示球種速度、轉速、位移等詳細資訊 */
+.pitch-chart-tooltip {
+    position: absolute;                             /* 絕對定位（相對 .pitch-movement-root） */
+    z-index: 7;                                     /* 浮在所有圖表元件上方 */
+    display: none;                                  /* 預設隱藏 */
+    min-width: 150px;                               /* 最小寬度 */
+    max-width: min(230px, calc(100% - 1rem));       /* 最大寬度（不超出容器） */
+    padding: 0.68rem 0.78rem;                       /* 內邊距 */
+    border-radius: 8px;                             /* 圓角 */
+    background: rgba(30, 31, 41, 0.96);             /* 深色半透明背景 */
+    color: #fff;                                    /* 白色文字 */
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.24); /* 陰影 */
+    pointer-events: none;                           /* 不接受滑鼠事件（避免遮住圓點） */
+    backdrop-filter: blur(4px);                     /* 背景模糊 */
+    border: 1px solid rgba(255, 255, 255, 0.06);    /* 極淡邊框 */
+}
+
+/* 控制【圖表 Tab / Tooltip 顯示狀態（JS 加上此 class 時顯示）】 */
+.pitch-chart-tooltip--visible {
+    display: block; /* 覆蓋 display: none */
+}
+
+/* 控制【圖表 Tab / Tooltip 球種名稱標題】 */
+.pitch-chart-tooltip-title {
+    color: #fff;            /* 白色 */
+    font-size: 1rem;        /* 大一點的標題 */
+    font-weight: 800;       /* 特粗 */
+    line-height: 1.2;       /* 行高 */
+    margin-bottom: 0.48rem; /* 與下方數據行的距離 */
+}
+
+/* 控制【圖表 Tab / Tooltip 每行數據（如「球速：152.3 km/h」）】 */
+.pitch-chart-tooltip-row {
+    display: flex;                  /* Flex 左右排列 */
+    justify-content: space-between; /* 標籤靠左，數值靠右 */
+    gap: 1rem;                      /* 標籤與數值之間的最小間距 */
+    min-height: 1.35rem;            /* 最小行高（保持整齊） */
+    color: rgba(255, 255, 255, 0.78); /* 稍透明白色 */
+    font-size: 0.84rem;             /* 較小文字 */
+    font-weight: 650;               /* 中粗 */
+}
+
+/* 控制【圖表 Tab / Tooltip 數值的 <strong> 文字（白色等寬數字）】 */
+.pitch-chart-tooltip-row strong {
+    color: #fff;                        /* 數值用純白色（比標籤更突出） */
+    font-weight: 800;                   /* 特粗 */
+    font-variant-numeric: tabular-nums; /* 等寬數字 */
+}
+
+/* 控制【圖表 Tab / 無球種圖表資料時的空白提示框】 */
+.pitch-chart-empty {
+    display: flex;                  /* Flex 置中文字 */
+    align-items: center;            /* 垂直置中 */
+    justify-content: center;        /* 水平置中 */
+    min-height: 280px;              /* 最小高度（佔位，不讓頁面塌陷） */
+    border: 1px solid var(--border); /* 細邊框 */
+    border-radius: var(--radius);   /* 圓角 */
+    color: var(--text-2);           /* 灰色文字 */
+    background: var(--card-surface); /* 卡片背景 */
+    font-weight: 600;               /* 半粗體 */
+}
+
+/* 控制【圖表 Tab / Plinko 球路結果漏斗圖的根元件（用來定位 Tooltip）】 */
+.pitch-plinko-root {
+    position: relative; /* Tooltip 使用 absolute 定位時的參考點 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖的卡片容器】 */
+.pitch-plinko-card {
+    position: relative;         /* 供子元件定位 */
+    overflow: hidden;           /* 裁剪超出邊界的內容 */
+    background: transparent;    /* 透明背景（由外層卡片提供背景） */
+    color: var(--text-2);       /* 預設文字灰色 */
+    border-radius: 6px;         /* 圓角 */
+    padding: 0.2rem 0 0;        /* 頂部少量內邊距 */
+    font-family: 'Inter', sans-serif; /* 字型 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖卡片頂部標題區塊】 */
+.pitch-plinko-heading {
+    text-align: center;     /* 標題置中 */
+    margin-bottom: 0.25rem; /* 與下方圖表的距離 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖卡片頂部的 h3 標題文字】 */
+.pitch-plinko-heading h3 {
+    margin: 0 0 0.3rem;         /* 只保留底部間距 */
+    color: var(--text-1);       /* 白色標題 */
+    font-size: 1.05rem;         /* 文字大小 */
+    font-weight: 700;           /* 粗體 */
+    letter-spacing: 0;          /* 不調整字間距 */
+}
+
+/* 控制【圖表 Tab / SVG 圖表（散點圖/橫條圖）上方標題區塊】 */
+.pitch-chart-heading {
+    text-align: center;     /* 標題置中 */
+    margin-bottom: 0.25rem; /* 與下方圖表的距離 */
+}
+
+/* 控制【圖表 Tab / SVG 圖表標題的 h3 文字】 */
+.pitch-chart-heading h3 {
+    margin: 0 0 0.3rem;     /* 只保留底部間距 */
+    color: var(--text-1);   /* 白色標題 */
+    font-size: 1.05rem;     /* 文字大小 */
+    font-weight: 700;       /* 粗體 */
+    letter-spacing: 0;      /* 不調整字間距 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖標題下方的說明段落文字】 */
+.pitch-plinko-heading p {
+    margin: 0;              /* 無外邊距 */
+    color: var(--text-2);   /* 灰色文字 */
+    font-size: 0.86rem;     /* 略小文字 */
+    font-weight: 500;       /* 中等粗細 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖對左/右打者的二欄並排 Grid】 */
+.pitch-plinko-grid {
+    display: grid;                              /* Grid 排版 */
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* 二等份欄位 */
+    gap: 1.5rem;                                /* 欄位之間的間距 */
+    align-items: start;                         /* 頂部對齊 */
+    max-width: 980px;                           /* 圖表最大寬度（避免過寬） */
+    margin: 0 auto;                             /* 水平置中 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖左打者/右打者的子區塊】 */
+.pitch-plinko-split {
+    min-width: 0; /* 防止 Grid 子項目溢出 */
+}
+
+/* 控制【圖表 Tab / Plinko 子圖標題（如「vs. LHB」「vs. RHB」）】 */
+.pitch-plinko-split h4 {
+    margin: 0.65rem 0 0;        /* 頂部間距 */
+    color: var(--text-1);       /* 白色文字 */
+    text-align: center;         /* 置中 */
+    font-size: 0.95rem;         /* 文字大小 */
+    font-weight: 800;           /* 特粗 */
+    letter-spacing: 0;          /* 不調整字間距 */
+}
+
+/* 控制【圖表 Tab / Plinko 子圖標題中的次要文字（如年份或樣本數）】 */
+.pitch-plinko-split h4 span {
+    color: var(--text-2);   /* 灰色（比標題淡） */
+    font-weight: 500;       /* 較細 */
+}
+
+/* 控制【圖表 Tab / Plinko SVG 圖本體】 */
+.pitch-plinko-svg {
+    display: block;     /* 消除底部空白 */
+    width: 100%;        /* 填滿容器 */
+    height: auto;       /* 依比例縮放 */
+    overflow: visible;  /* 允許標籤超出邊界 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖連接球路結果節點的邊線】 */
+.pitch-plinko-edge {
+    stroke: rgba(255, 255, 255, 0.34); /* 淡白色連線 */
+    stroke-linecap: round;             /* 線段末端圓角 */
+    vector-effect: non-scaling-stroke; /* 縮放時線寬不變 */
+}
+
+/* 控制【圖表 Tab / Plinko 邊線的透明擴大點擊區域（Hover/Click 用）】 */
+.pitch-plinko-edge-hit {
+    stroke: transparent;               /* 透明（不可見） */
+    fill: none;                        /* 無填充 */
+    pointer-events: stroke;            /* 只在線段上觸發事件 */
+    cursor: pointer;                   /* 指標 */
+    vector-effect: non-scaling-stroke; /* 縮放時線寬不變 */
+}
+
+/* 控制【圖表 Tab / Plinko 節點的背景環形（灰色環）】 */
+.pitch-plinko-ring-bg {
+    fill: none;                         /* 無填充（只有邊框） */
+    stroke: rgba(255, 255, 255, 0.16);  /* 淡白色環 */
+}
+
+/* 控制【圖表 Tab / Plinko 節點中心圓（遮蓋連線交叉處）】 */
+.pitch-plinko-node-center {
+    fill: var(--card-bg); /* 與卡片背景同色（遮蓋連線） */
+}
+
+/* 控制【圖表 Tab / Plinko 無資料節點的背景環顏色（稍亮）】 */
+.pitch-plinko-node-empty .pitch-plinko-ring-bg {
+    stroke: rgba(255, 255, 255, 0.22); /* 略亮的環（與有資料節點區分） */
+}
+
+/* 控制【圖表 Tab / Plinko 節點中心的使用率百分比文字】 */
+.pitch-plinko-node-pct {
+    fill: var(--text-1);            /* 白色文字 */
+    text-anchor: middle;            /* 水平置中 */
+    dominant-baseline: central;     /* 垂直居中（SVG） */
+    alignment-baseline: central;    /* 垂直居中（兼容） */
+    font-size: 12px;                /* 文字大小 */
+    font-weight: 800;               /* 特粗 */
+    letter-spacing: 0;              /* 不調整字間距 */
+    font-variant-numeric: tabular-nums; /* 等寬數字 */
+}
+
+/* 控制【圖表 Tab / Plinko 節點旁邊的球數標籤】 */
+.pitch-plinko-count-label {
+    text-anchor: middle;        /* 水平置中 */
+    dominant-baseline: middle;  /* 垂直居中 */
+    font-size: 12px;            /* 文字大小 */
+    font-weight: 800;           /* 特粗 */
+    letter-spacing: 0;          /* 不調整字間距 */
+}
+
+/* 控制【圖表 Tab / Plinko 節點的透明點擊熱區（擴大可互動範圍）】 */
+.pitch-plinko-node-hit {
+    fill: transparent;      /* 透明（不可見） */
+    cursor: pointer;        /* 指標 */
+    pointer-events: all;    /* 接受所有滑鼠事件 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖下方的球種圖例列】 */
+.pitch-plinko-legend {
+    display: flex;              /* Flex 排列 */
+    flex-wrap: wrap;            /* 超出寬度換行 */
+    justify-content: center;    /* 置中 */
+    gap: 0.7rem 1.18rem;        /* 行間距 / 欄間距 */
+    margin-top: 0.35rem;        /* 與圖表的距離 */
+    color: var(--text-1);       /* 白色文字 */
+    font-size: 0.84rem;         /* 文字大小 */
+    font-weight: 700;           /* 粗體 */
+    line-height: 1.35;          /* 行高 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖例的每個項目（色塊 + 球種名稱）】 */
+.pitch-plinko-legend-item {
+    display: inline-flex;   /* Flex 橫排 */
+    align-items: center;    /* 垂直置中 */
+    min-width: 0;           /* 防止溢出 */
+    gap: 0.28rem;           /* 色塊與文字的間距 */
+    white-space: nowrap;    /* 不換行 */
+}
+
+/* 控制【圖表 Tab / Plinko 圖例的方形色塊】 */
+.pitch-plinko-swatch {
+    width: 13px;        /* 寬度 */
+    height: 13px;       /* 高度 */
+    border-radius: 2px; /* 圓角（方形但角略圓） */
+    flex: 0 0 auto;     /* 不收縮不放大 */
+}
+
+/* 控制【圖表 Tab / 滑鼠移入 Plinko 節點時的浮動 Tooltip】 */
+.pitch-plinko-tooltip {
+    position: absolute;                             /* 絕對定位（相對 .pitch-plinko-root） */
+    z-index: 6;                                     /* 浮在圖表上方 */
+    display: none;                                  /* 預設隱藏 */
+    min-width: 185px;                               /* 最小寬度 */
+    max-width: min(260px, calc(100% - 1rem));       /* 最大寬度 */
+    padding: 0.72rem 0.82rem;                       /* 內邊距 */
+    border-radius: 8px;                             /* 圓角 */
+    background: rgba(30, 31, 41, 0.96);             /* 深色半透明背景 */
+    color: #ffffff;                                 /* 白色文字 */
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.24); /* 陰影 */
+    pointer-events: none;                           /* 不接受滑鼠事件 */
+    backdrop-filter: blur(4px);                     /* 背景模糊 */
+    border: 1px solid rgba(255, 255, 255, 0.06);    /* 極淡邊框 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 顯示狀態（JS 加上此 class 時顯示）】 */
+.pitch-plinko-tooltip--visible {
+    display: block; /* 覆蓋 display: none */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 頂部標題行（球種名稱 + 結果類型）】 */
+.pitch-plinko-tooltip-title {
+    display: flex;          /* Flex 讓球種名稱與結果橫排 */
+    align-items: baseline;  /* 基線對齊 */
+    gap: 0.25rem;           /* 文字間距 */
+    margin-bottom: 0.55rem; /* 與下方數據行的距離 */
+    font-size: 0.88rem;     /* 文字大小 */
+    line-height: 1.2;       /* 行高 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 標題的粗體球種名稱】 */
+.pitch-plinko-tooltip-title strong {
+    font-size: 1rem;    /* 比說明文字大 */
+    font-weight: 800;   /* 特粗 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 標題的次要文字（如「全投」「好球數」）】 */
+.pitch-plinko-tooltip-title span {
+    color: rgba(255, 255, 255, 0.78); /* 稍透明白色 */
+    font-weight: 600;                 /* 中粗 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 標題在需要多行時的 Grid 排列】 */
+.pitch-plinko-tooltip-title--stacked {
+    display: grid;   /* Grid（允許換行） */
+    gap: 0.22rem;    /* 行間距 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 強調數值（如「出局率」的紅色數字）】 */
+.pitch-plinko-tooltip-accent {
+    color: #ff0a78 !important; /* 紅色強調（覆蓋繼承色） */
+    font-size: 1rem;           /* 略大 */
+    font-weight: 800 !important; /* 特粗 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 強調數值（球數，綠色）】 */
+.pitch-plinko-tooltip-accent--ball {
+    color: #4fd18b !important; /* 綠色強調（球的顏色） */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 每行數據（顏色點 + 球種 + 球數 + 比例）】 */
+.pitch-plinko-tooltip-row {
+    display: grid;                                              /* Grid 排版（四欄） */
+    grid-template-columns: 10px minmax(6rem, 1fr) 2rem 3.2rem; /* 顏色點 | 球種名稱 | 球數 | 比例 */
+    align-items: center;                                        /* 垂直置中 */
+    gap: 0.35rem;                                               /* 欄間距 */
+    min-height: 1.36rem;                                        /* 最小行高 */
+    font-size: 0.84rem;                                         /* 文字大小 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 每行的顏色圓點】 */
+.pitch-plinko-tooltip-dot {
+    width: 9px;         /* 圓點寬度 */
+    height: 9px;        /* 圓點高度 */
+    border-radius: 50%; /* 正圓 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 球種名稱（超出則截斷）】 */
+.pitch-plinko-tooltip-name {
+    overflow: hidden;       /* 隱藏溢出 */
+    text-overflow: ellipsis; /* 截斷時顯示「...」 */
+    white-space: nowrap;    /* 不換行 */
+}
+
+/* 控制【圖表 Tab / Plinko Tooltip 數值（球數與比例靠右對齊）】 */
+.pitch-plinko-tooltip-row strong,
+.pitch-plinko-tooltip-row span:last-child {
+    text-align: right;              /* 數值靠右對齊 */
+    font-variant-numeric: tabular-nums; /* 等寬數字 */
+}
+
+/* 控制【圖表 Tab / 無 Plinko 圖資料時的空白提示框】 */
+.pitch-plinko-empty {
+    display: flex;                  /* Flex 置中文字 */
+    align-items: center;            /* 垂直置中 */
+    justify-content: center;        /* 水平置中 */
+    min-height: 260px;              /* 最小高度（佔位） */
+    border: 1px solid var(--border); /* 細邊框 */
+    border-radius: var(--radius);   /* 圓角 */
+    color: var(--text-2);           /* 灰色文字 */
+    background: var(--card-surface); /* 卡片背景 */
+    font-weight: 600;               /* 半粗體 */
+}
