@@ -475,7 +475,10 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
             stat_doc = row["stat_json"]
             fielding_doc = row["fielding_json"]
 
-            stat_doc["gp"] = safe_int(stat.get("gamesPlayed"))
+            # Only overwrite gp from hitting/pitching; fielding splits have per-position
+            # gamesPlayed which would otherwise clobber the correct total.
+            if group_name != "fielding":
+                stat_doc["gp"] = safe_int(stat.get("gamesPlayed"))
             _apply_yearbyyear_fields(stat_doc, group_name, stat)
 
             if group_name == "fielding":
