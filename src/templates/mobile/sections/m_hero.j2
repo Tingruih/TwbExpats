@@ -1,0 +1,44 @@
+<section class="m-hero glass-panel" aria-label="球員摘要">
+    <div class="m-hero-photo">
+        <div class="m-hero-avatar">
+            <img
+                src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
+                data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
+                alt="{{ player.name_en }}"
+                class="avatar-img"
+            >
+            <div class="avatar-initials avatar-fallback" aria-hidden="true">
+                {{ player.name_en[:1] }}
+            </div>
+        </div>
+    </div>
+
+    <div class="m-hero-info">
+        <h1>{{ player.name_tw or player.name_en }}</h1>
+        <span class="m-hero-name-en">{{ player.name_en }}</span>
+        <div class="m-hero-meta">
+            <span class="badge badge-level">{{ player.level }}</span>
+            <span>{{ player.team }}</span>
+            <span>{% if is_pitcher %}{{ (player.pitch_hand or "R") }}HP{% else %}{{ (player.bat_side or "?")[:1] }}{% endif %} · {{ player.position }}</span>
+        </div>
+    </div>
+
+    {% if latest_team_stat %}
+    {% set stat = latest_team_stat %}
+    <div class="m-hero-stats" aria-label="關鍵數據">
+        {% if is_pitcher %}
+            <div class="m-hero-stat"><span>{{ stat.era|floatformat(2) }}</span><b>ERA</b></div>
+            <div class="m-hero-stat"><span>{{ stat.whip|floatformat(2) }}</span><b>WHIP</b></div>
+            <div class="m-hero-stat"><span>{{ stat.so|num_dash }}</span><b>K</b></div>
+            <div class="m-hero-stat"><span>{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span><b>W-L</b></div>
+            <div class="m-hero-stat"><span>{{ stat.ip|floatformat(1) }}</span><b>IP</b></div>
+        {% else %}
+            <div class="m-hero-stat"><span>{{ stat.avg|floatformat(3) }}</span><b>AVG</b></div>
+            <div class="m-hero-stat"><span>{{ stat.ops|floatformat(3) }}</span><b>OPS</b></div>
+            <div class="m-hero-stat"><span>{{ stat.hr|num_dash }}</span><b>HR</b></div>
+            <div class="m-hero-stat"><span>{{ stat.rbi|num_dash }}</span><b>RBI</b></div>
+            <div class="m-hero-stat"><span>{{ stat.sb|num_dash }}</span><b>SB</b></div>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>

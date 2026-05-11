@@ -26,9 +26,28 @@ _SPORT_ID_MAP = {
 }
 
 
-# 對 people/mlb_id?hydrate=transactions,rosterEntries,currentTeam 取得基本資料，transactions status 
 def get_player_profile(mlb_id: int) -> dict:
-    """Fetch player bio, transactions, and current roster status."""
+    """
+    api endpoint: /people/{mlb_id}?hydrate=transactions,rosterEntries,currentTeam
+    
+    回傳 dict :  mlb_id
+                full_name (英文名字)
+                position (位置)
+                height (身高)
+                weight (體重)
+                birth_date (出生日期)
+                birth_city (出生城市)
+                birth_country (出生國家)
+                is_active (active定義為只要還在名單上，不論有無受傷或被下放都算active)
+                bat_side (打擊慣用手)
+                pitch_hand (投球慣用手)
+                latest_transaction (最新交易)
+                transactions_json (list of dicts with date, type, description)
+                roster_status (e.g. "Active Roster", "Injured List", etc.)
+                team_id (球隊 ID)
+                current_team_name (目前球隊名稱)
+                current_team_level (球隊等級，如 MLB, AAA, AA 等)
+    """
     url = f"{BASE_URL}/people/{mlb_id}?hydrate=transactions,rosterEntries,currentTeam"
     resp = requests.get(url, timeout=TIMEOUT)
     resp.raise_for_status()
@@ -100,10 +119,11 @@ def get_player_profile(mlb_id: int) -> dict:
 
 
 def get_player_stats(mlb_id: int) -> list:
-    """Fetch yearByYear stats (hitting, pitching, fielding) from both MLB and MiLB endpoints.
+    """
+    api endpoint: /people/{mlb_id}/stats?stats=yearByYear&group={groups}" (MLB)
+                : /people/{mlb_id}/stats?stats=yearByYear&leagueListId=milb_all&group={groups}" (MiLB)
 
-    Always fetches both endpoints so shuttle players (MLB ↔ MiLB) get complete data
-    regardless of current assignment. The MLB endpoint returns empty for pure MiLB players.
+    回傳所有年份的選手MLB與MiLB基礎數據，包含打擊、投球和守備。
     """
     all_stats = []
     groups = "hitting,pitching,fielding"
@@ -129,12 +149,14 @@ def get_player_stats(mlb_id: int) -> list:
     return all_stats
 
 
-def get_player_advanced_stats(
-    mlb_id: int, years: Optional[list[int]] = None
-) -> list:
-    """Fetch seasonAdvanced stats (hitting + pitching) for specified years.
+def get_player_advanced_stats(mlb_id: int, years: Optional[list[int]] = None) -> list:
+    """
+    api endpoint: /people/{mlb_id}/stats?stats=seasonAdvanced&group={groups}&season={year} (MLB)
+                : /people/{mlb_id}/stats?stats=seasonAdvanced&leagueListId=milb_all&group={groups}&season={year} (MiLB)
 
-    Always fetches both MLB and MiLB endpoints so shuttle players get complete data.
+    傳入要查詢的 Mlb ID 與 年份
+    回傳每年份的選手MLB與MiLB進階數據，包含以下
+        
     """
     all_stats = []
     groups = "hitting,pitching"

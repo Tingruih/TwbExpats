@@ -1,0 +1,28 @@
+.page-mobile {
+    --m-gap: 0.85rem;
+    --m-panel-pad: 1rem;
+}
+
+.page-mobile h1,
+.page-mobile h2,
+.page-mobile h3,
+.page-mobile h4 {
+    letter-spacing: 0;
+}
+
+.m-empty-text {
+    color: var(--text-2);
+    margin: 0;
+}
+
+.m-filter-bar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.8rem 0.9rem;
+}
+
+.m-filter-bar .filter-select {
+    min-height: 36px;
+}

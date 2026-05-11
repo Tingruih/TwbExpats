@@ -1,0 +1,31 @@
+.m-player-shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-gap);
+}
+
+.m-section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-gap);
+}
+
+.m-section-panel {
+    display: none;
+}
+
+.m-section-panel.m-section-panel--active {
+    display: block;
+}
+
+.m-table-card,
+.m-chart-wrap {
+    overflow: hidden;
+}
+
+.m-table-card h3,
+.m-chart-wrap h3,
+.page-mobile .adv-definitions h3 {
+    font-size: 1rem;
+    margin-bottom: 0.85rem;
+}

@@ -1,0 +1,101 @@
+<section class="m-section-stack" aria-label="進階數據">
+    <div class="adv-definitions glass-panel">
+        <h3>進階數據說明</h3>
+        <div class="def-grid m-def-grid">
+            {% if is_pitcher %}
+            <div class="def-item"><span class="def-abbr">WHIP</span><span class="def-text">Walks plus Hits per Inning Pitched</span></div>
+            <div class="def-item"><span class="def-abbr">K/9</span><span class="def-text">每9局三振數</span></div>
+            <div class="def-item"><span class="def-abbr">BB/9</span><span class="def-text">每9局保送數</span></div>
+            <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">三振保送比</span></div>
+            {% else %}
+            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">三振率 = SO / PA</span></div>
+            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">保送率 = BB / PA</span></div>
+            <div class="def-item"><span class="def-abbr">ISO</span><span class="def-text">純長打率 = SLG - AVG</span></div>
+            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">場內打擊率</span></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="m-table-card data-table-section glass-panel">
+        <h3>歷年進階數據</h3>
+        <div class="table-scroll m-table-scroll">
+            <table class="data-table year-group-table m-sticky-table" id="m-stats-table-adv">
+                <thead>
+                    <tr>
+                        <th class="col-toggle"></th><th>年度</th><th>層級</th><th>球隊</th>
+                        {% if is_pitcher %}
+                        <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th><th>BABIP</th><th>GO/AO</th><th>OPS</th>
+                        {% else %}
+                        <th>K%</th><th>BB%</th><th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th><th>P/PA</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grp in stats_year_groups %}
+                    {% set yr = grp.year %}
+                    {% set sm = grp.summary %}
+                    <tr class="year-summary-row {% if yr == selected_year %}highlight-row{% endif %}" data-year="{{ yr }}" {% if grp.multi %}onclick="toggleMobileYearGroup('adv','{{ yr }}')" style="cursor:pointer;"{% endif %}>
+                        <td class="col-toggle">{% if grp.multi %}<span class="toggle-arrow" id="m-arrow-adv-{{ yr }}"></span>{% endif %}</td>
+                        <td><strong>{{ yr }}</strong></td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
+                        <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
+                        {% if is_pitcher %}
+                        <td class="num">{{ sm.whip|floatformat(2) }}</td><td class="num">{{ sm.k_per_9|floatformat(1) }}</td><td class="num">{{ sm.bb_per_9|floatformat(1) }}</td><td class="num">{{ sm.h_per_9|floatformat(1) }}</td><td class="num">{{ sm.hr_per_9|floatformat(2) }}</td><td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td><td class="num">{{ sm.p_babip|floatformat(3) }}</td><td class="num">{{ sm.p_go_ao|floatformat(2) }}</td><td class="num">{{ sm.p_ops|num_dash }}</td>
+                        {% else %}
+                        <td class="num">{{ sm.k_pct|pct_fmt }}</td><td class="num">{{ sm.bb_pct|pct_fmt }}</td><td class="num">{{ sm.iso|floatformat(3) }}</td><td class="num">{{ sm.babip|floatformat(3) }}</td><td class="num">{{ sm.xbh|num_dash }}</td><td class="num">{{ sm.ab_per_hr|floatformat(1) }}</td><td class="num">{{ sm.go_ao|floatformat(2) }}</td><td class="num">{{ sm.sb_pct|num_dash }}</td><td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
+                        {% endif %}
+                    </tr>
+                    {% if grp.multi %}
+                    {% for stat in grp.rows %}
+                    <tr class="year-detail-row" data-tbl="m-adv" data-grp="{{ yr }}" style="display:none;">
+                        <td></td><td></td><td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td><td>{{ stat.team_name }}</td>
+                        {% if is_pitcher %}
+                        <td class="num">{{ stat.whip|floatformat(2) }}</td><td class="num">{{ stat.k_per_9|floatformat(1) }}</td><td class="num">{{ stat.bb_per_9|floatformat(1) }}</td><td class="num">{{ stat.h_per_9|floatformat(1) }}</td><td class="num">{{ stat.hr_per_9|floatformat(2) }}</td><td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td><td class="num">{{ stat.p_babip|floatformat(3) }}</td><td class="num">{{ stat.p_go_ao|floatformat(2) }}</td><td class="num">{{ stat.p_ops|num_dash }}</td>
+                        {% else %}
+                        <td class="num">{{ stat.k_pct|pct_fmt }}</td><td class="num">{{ stat.bb_pct|pct_fmt }}</td><td class="num">{{ stat.iso|floatformat(3) }}</td><td class="num">{{ stat.babip|floatformat(3) }}</td><td class="num">{{ stat.xbh|num_dash }}</td><td class="num">{{ stat.ab_per_hr|floatformat(1) }}</td><td class="num">{{ stat.go_ao|floatformat(2) }}</td><td class="num">{{ stat.sb_pct|num_dash }}</td><td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    {% else %}
+                    <tr><td colspan="20" class="td-empty">尚無數據</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if statcast_available %}
+    <div class="m-table-card data-table-section glass-panel">
+        <h3>Statcast 概覽</h3>
+        <div class="table-scroll m-table-scroll">
+            <table class="data-table m-sticky-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th>
+                        {% if is_pitcher %}<th>FIP</th><th>wOBA</th><th>xwOBA</th><th>Barrel%</th><th>Hard-Hit%</th><th>Whiff%</th>{% else %}<th>BBE</th><th>wOBA</th><th>xwOBA</th><th>wRC+</th><th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for yr in available_statcast_years %}
+                    {% set entries = statcast_by_year[yr] %}
+                    {% set level_entries = entries if entries|length == 1 else entries[1:] %}
+                    {% for entry in level_entries %}
+                    {% set sc = entry.sc %}
+                    {% set ss_row = entry.stat %}
+                    <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
+                        <td><strong>{{ yr }}</strong></td><td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
+                        {% if is_pitcher %}
+                        <td class="num">{% if ss_row and ss_row.fip %}{{ ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td><td class="num">{{ sc.woba_against|floatformat(3) }}</td><td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td><td class="num">{{ sc.barrel_pct|pct_fmt }}</td><td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td><td class="num">{{ sc.whiff_pct|pct_fmt }}</td>
+                        {% else %}
+                        <td class="num">{{ sc.bbe|num_dash }}</td><td class="num">{{ sc.woba|floatformat(3) }}</td><td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td><td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</td><td class="num">{{ sc.barrel_pct|pct_fmt }}</td><td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td><td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</section>

@@ -1,0 +1,65 @@
+<section class="m-section-stack" aria-label="逐場紀錄">
+    <div class="m-filter-bar glass-panel">
+        <label class="filter-label" for="m-gamelog-year-select">年度</label>
+        <select id="m-gamelog-year-select" class="filter-select">
+            {% for y in available_log_years %}
+            <option value="{{ y }}"{% if loop.first %} selected{% endif %}>{{ y }}</option>
+            {% else %}
+            <option value="{{ selected_year }}" selected>{{ selected_year }}</option>
+            {% endfor %}
+        </select>
+        <label class="filter-label" for="m-gamelog-level-select">層級</label>
+        <select id="m-gamelog-level-select" class="filter-select"></select>
+    </div>
+
+    {% for y in available_log_years %}
+    {% set year_logs = logs_by_year[y] %}
+    <div class="m-gamelog-year" id="m-gamelogs-{{ y }}" {% if not loop.first %}style="display:none;"{% endif %}>
+        {% for log in year_logs %}
+        {% set s = log.stats_json %}
+        <article class="m-gamelog-card glass-panel{% if log.pitch_data_url %} m-gamelog-card--expandable{% endif %}" data-level="{{ log.sport_level }}">
+            <div class="m-gamelog-head">
+                <div>
+                    <time>{{ log.date }}</time>
+                    <strong>{% if log.is_home %}vs{% else %}@{% endif %} {{ log.opponent }}</strong>
+                </div>
+                <span class="level-tag level-{{ log.sport_level|lower }}">{{ log.sport_level }}</span>
+            </div>
+            <div class="m-gamelog-summary">
+                {% if is_pitcher %}
+                <span>{{ s.inningsPitched|num_dash }} IP</span><span>{{ s.hits|default_if_none("0") }} H</span><span>{{ s.earnedRuns|default_if_none("0") }} ER</span><span>{{ s.strikeOuts|default_if_none("0") }} K</span>
+                {% else %}
+                <span>{{ s.atBats|default_if_none("0") }} AB</span><span>{{ s.hits|default_if_none("0") }} H</span><span>{{ s.homeRuns|default_if_none("0") }} HR</span><span>{{ s.rbi|default_if_none("0") }} RBI</span>
+                {% endif %}
+            </div>
+            <div class="m-gamelog-stat-grid">
+                {% if is_pitcher %}
+                    <div><span>{{ s.baseOnBalls|default_if_none("0") }}</span><b>BB</b></div>
+                    <div><span>{{ s.homeRuns|default_if_none("0") }}</span><b>HR</b></div>
+                    <div><span>{{ s.era|num_dash }}</span><b>ERA</b></div>
+                    <div><span>{% if s.wins %}W{% elif s.losses %}L{% elif s.saves %}S{% elif s.holds %}H{% else %}-{% endif %}</span><b>結果</b></div>
+                {% else %}
+                    <div><span>{{ s.runs|default_if_none("0") }}</span><b>R</b></div>
+                    <div><span>{{ s.baseOnBalls|default_if_none("0") }}</span><b>BB</b></div>
+                    <div><span>{{ s.strikeOuts|default_if_none("0") }}</span><b>K</b></div>
+                    <div><span>{{ s.ops|num_dash }}</span><b>OPS</b></div>
+                {% endif %}
+            </div>
+            {% if log.pitch_data_url %}
+            <button type="button" class="m-pitch-log-toggle" onclick="toggleMobilePitchLog('m-pitchlog-{{ y }}-{{ loop.index }}')">
+                <span class="toggle-arrow" id="m-arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>
+                <span>逐球紀錄</span>
+            </button>
+            <div class="m-pitch-log-panel" id="m-pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" style="display:none;">
+                <div class="pitch-log-scroll m-pitch-log-scroll" id="m-pitchlog-content-{{ y }}-{{ loop.index }}"></div>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if not available_log_years %}
+    <div class="glass-panel empty-season-msg">{{ selected_year }} 尚無出賽紀錄</div>
+    {% endif %}
+</section>

@@ -1,0 +1,41 @@
+.m-table-scroll {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.m-sticky-table {
+    min-width: 720px;
+}
+
+.m-sticky-table th,
+.m-sticky-table td {
+    font-size: 0.78rem;
+}
+
+.m-sticky-table th:first-child,
+.m-sticky-table td:first-child {
+    background: var(--card-bg);
+    left: 0;
+    position: sticky;
+    z-index: 2;
+}
+
+.m-sticky-table.year-group-table th:nth-child(2),
+.m-sticky-table.year-group-table td:nth-child(2) {
+    background: var(--card-bg);
+    left: 34px;
+    position: sticky;
+    z-index: 2;
+}
+
+.m-sticky-table thead th:first-child,
+.m-sticky-table.year-group-table thead th:nth-child(2) {
+    background: var(--card-surface);
+    z-index: 3;
+}
+
+.m-table-card .td-empty,
+.page-mobile .empty-season-msg {
+    padding: 1.2rem;
+    text-align: center;
+}

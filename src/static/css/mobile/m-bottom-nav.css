@@ -1,0 +1,40 @@
+.m-bottom-nav {
+    background: rgba(9, 9, 11, 0.96);
+    border-top: 1px solid var(--border);
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    left: 0;
+    padding: 0.42rem 0.35rem calc(0.42rem + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    z-index: 30;
+}
+
+.m-bottom-nav-btn {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    color: var(--text-2);
+    display: flex;
+    flex-direction: column;
+    font: inherit;
+    font-size: 0.68rem;
+    gap: 0.16rem;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.34rem 0.2rem;
+    touch-action: manipulation;
+}
+
+.m-bottom-nav-btn svg {
+    fill: currentColor;
+    height: 19px;
+    width: 19px;
+}
+
+.m-bottom-nav-btn--active {
+    background: rgba(20, 184, 166, 0.22);
+    color: #d9fffa;
+}

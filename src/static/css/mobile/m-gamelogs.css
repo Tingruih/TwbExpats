@@ -1,0 +1,99 @@
+.m-gamelog-year {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.m-gamelog-card {
+    padding: 0.95rem;
+}
+
+.m-gamelog-head {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.m-gamelog-head div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    min-width: 0;
+}
+
+.m-gamelog-head time {
+    color: var(--text-3);
+    font-size: 0.76rem;
+}
+
+.m-gamelog-head strong {
+    font-size: 0.98rem;
+    overflow-wrap: anywhere;
+}
+
+.m-gamelog-summary {
+    color: var(--text-2);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    gap: 0.45rem 0.7rem;
+    margin-top: 0.7rem;
+}
+
+.m-gamelog-stat-grid {
+    display: grid;
+    gap: 0.45rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 0.75rem;
+}
+
+.m-gamelog-stat-grid div {
+    background: var(--card-surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    min-width: 0;
+    padding: 0.52rem 0.3rem;
+    text-align: center;
+}
+
+.m-gamelog-stat-grid span {
+    display: block;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.m-gamelog-stat-grid b {
+    color: var(--text-3);
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 600;
+    margin-top: 0.18rem;
+}
+
+.m-pitch-log-toggle {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-1);
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.82rem;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    min-height: 34px;
+    padding: 0.35rem 0.65rem;
+}
+
+.m-pitch-log-panel {
+    border-top: 1px solid var(--border);
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+}
+
+.m-pitch-log-scroll {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    max-height: 320px;
+}

@@ -1,0 +1,28 @@
+.m-chart-wrap {
+    padding: 1rem;
+}
+
+.m-chart-wrap canvas {
+    max-width: 100%;
+}
+
+.m-pitch-chart-grid,
+.page-mobile .pitch-chart-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: 1fr;
+}
+
+.page-mobile .pitch-chart-section,
+.page-mobile .pitch-plinko-card {
+    overflow-x: auto;
+}
+
+.page-mobile .pitch-chart-svg,
+.page-mobile .pitch-plinko-svg {
+    min-width: 560px;
+}
+
+.page-mobile .pitch-plinko-grid {
+    grid-template-columns: 1fr;
+}

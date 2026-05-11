@@ -1,0 +1,50 @@
+<section class="m-section-stack" aria-label="數據圖表">
+    {% if chart_data %}
+    <div class="chart-wrap glass-panel m-chart-wrap">
+        <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
+        <canvas id="mPerformanceChart" height="160" data-chart-label="{% if is_pitcher %}ERA{% else %}AVG{% endif %}" data-reverse-y="{% if is_pitcher %}true{% else %}false{% endif %}"></canvas>
+    </div>
+    {% endif %}
+
+    {% if statcast_available %}
+    <div class="chart-wrap glass-panel pitch-plinko-wrap m-chart-wrap">
+        <div class="m-filter-bar">
+            <label class="filter-label" for="m-plinko-year-select">年度</label>
+            <select id="m-plinko-year-select" class="filter-select">
+                {% for yr in available_statcast_years %}
+                <option value="{{ yr }}"{% if loop.first %} selected{% endif %}>{{ yr }}</option>
+                {% endfor %}
+            </select>
+            <label class="filter-label" for="m-plinko-level-select">層級</label>
+            <select id="m-plinko-level-select" class="filter-select"></select>
+        </div>
+
+        {% for yr in available_statcast_years %}
+        {% set _entries = statcast_by_year[yr] %}
+        <div class="m-pitch-plinko-year-container" id="m-plinko-{{ yr }}" {% if not loop.first %}style="display:none;"{% endif %}>
+            {% for _e in _entries %}
+            {% set sc = _e.sc %}
+            {% set _level = _e.sport_level %}
+            {% set _plinko = sc.pitch_plinko if sc and sc.pitch_plinko else {} %}
+            <div class="pitch-plinko-level-container m-pitch-plinko-level-container" data-level="{{ _level }}" data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}" {% if not loop.first %}style="display:none;"{% endif %}>
+                {% if is_pitcher %}
+                {% set _splits = sc.pitcher_bat_side_splits if sc and sc.pitcher_bat_side_splits else {} %}
+                {% set _movement = sc.pitch_movement if sc and sc.pitch_movement else {} %}
+                <script type="application/json" class="pitch-usage-hand-data">{{ _splits|tojson_safe }}</script>
+                <script type="application/json" class="pitch-movement-data">{{ _movement|tojson_safe }}</script>
+                <div class="pitch-chart-grid m-pitch-chart-grid">
+                    <section class="pitch-chart-section"><div class="pitch-usage-hand-root"></div></section>
+                    <section class="pitch-chart-section"><div class="pitch-movement-root"></div></section>
+                </div>
+                {% endif %}
+                <script type="application/json" class="pitch-plinko-data">{{ _plinko|tojson_safe }}</script>
+                <div class="pitch-plinko-root"></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif not chart_data %}
+    <div class="glass-panel empty-season-msg">尚無本賽季數據圖表</div>
+    {% endif %}
+</section>

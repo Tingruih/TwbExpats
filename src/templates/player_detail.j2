@@ -2,6 +2,8 @@
 
 {% block content %}
 
+<div class="page-desktop">
+
 {# ── TAB SYSTEM (JS-based for performance) ── #}
 
 {# ── PLAYER HERO ── #}
@@ -69,12 +71,20 @@
 {% include 'tabs/tab_advanced.j2' %}
 {% include 'tabs/tab_fielding.j2' %}
 {% include 'tabs/tab_plot.j2' %}
+
+</div>
+
+<div class="page-mobile">
+    {% include 'mobile/m_player_detail.j2' %}
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{{ static_url('js/stats-table.js') }}"></script>
 <script src="{{ static_url('js/pitch-log.js') }}"></script>
 <script src="{{ static_url('js/gamelogs.js') }}"></script>
+<script src="{{ static_url('js/mobile/m-pitch-log.js') }}"></script>
+<script src="{{ static_url('js/mobile/m-gamelogs.js') }}"></script>
 <script src="{{ static_url('js/arsenal-filters.js') }}"></script>
 <script src="{{ static_url('js/pitcher-charts.js') }}"></script>
 <script src="{{ static_url('js/pitch-plinko.js') }}"></script>
@@ -84,5 +94,6 @@
 <script type="application/json" id="chart-data">{{ chart_data|tojson_safe }}</script>
 <script src="{{ static_url('js/charts.js') }}"></script>
 {% endif %}
+<script src="{{ static_url('js/mobile/m-charts.js') }}"></script>
 <script src="{{ static_url('js/tabs.js') }}"></script>
 {% endblock %}

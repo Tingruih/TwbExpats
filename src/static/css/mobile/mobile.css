@@ -1,0 +1,55 @@
+@import "m-base.css";
+@import "m-layout.css";
+@import "m-hero.css";
+@import "m-bottom-nav.css";
+@import "m-bio.css";
+@import "m-stats.css";
+@import "m-gamelogs.css";
+@import "m-advanced.css";
+@import "m-charts.css";
+
+.page-desktop { display: block; }
+.page-mobile { display: none; }
+
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+
+    .container {
+        max-width: none;
+        width: 100%;
+        padding: 0.75rem;
+    }
+
+    header,
+    header.glass-panel {
+        align-items: center;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 1rem;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .brand-logo {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-time-badge {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    main {
+        padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+
+    .page-desktop { display: none; }
+    .page-mobile { display: block; }
+}

@@ -13,6 +13,7 @@
    - advanced.css   ：進階數據 + 球種使用表 Tab
    - charts.css     ：圖表 Tab（折線圖/散點圖/用球率圖）
    - fielding.css   ：守備 Tab（目前複用共用樣式）
+   - mobile/         ：手機版 Player Detail 專用樣式
 ═══════════════════════════════════════════════════════════ */
 @import "base.css";
 @import "layout.css";
@@ -26,3 +27,4 @@
 @import "advanced.css";
 @import "charts.css";
 @import "fielding.css";
+@import "mobile/mobile.css";
