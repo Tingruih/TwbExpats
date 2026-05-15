@@ -8,12 +8,9 @@
                         <th class="col-toggle"></th><th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
                             <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
-                            <th>P/IP</th><th>S%</th><th>BABIP</th><th>GO/AO</th>
-                            <th>WPCT</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
-                            <th>NP</th><th>IBB</th><th>QS</th><th>GF</th><th>SVO</th>
-                            <th>2B</th><th>3B</th><th>GIDP</th><th>GIDPO</th><th>CS</th>
-                            <th>P/PA</th><th>RS/9</th><th>IR</th><th>IR_S</th><th>SB</th>
-                            <th>BQR</th><th>BQR_S</th><th>PK</th>
+                            <th>K%</th><th>BB%</th><th>Strike%</th>
+                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
+                            <th>BABIP</th><th>GO/AO</th><th>P/PA</th>
                         {% else %}
                             <th>K%</th><th>BB%</th>
                             <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
@@ -38,33 +35,16 @@
                             <td class="num">{{ sm.h_per_9|floatformat(1) }}</td>
                             <td class="num">{{ sm.hr_per_9|floatformat(2) }}</td>
                             <td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td>
-                            <td class="num">{{ sm.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.strike_pct|num_dash }}</td>
-                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
-                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
-                            <td class="num">{{ sm.win_pct|num_dash }}</td>
                             <td class="num">{{ sm.p_avg|num_dash }}</td>
                             <td class="num">{{ sm.p_obp|num_dash }}</td>
                             <td class="num">{{ sm.p_slg|num_dash }}</td>
                             <td class="num">{{ sm.p_ops|num_dash }}</td>
-                            <td class="num">{{ sm.np|num_dash }}</td>
-                            <td class="num">{{ sm.p_ibb|num_dash }}</td>
-                            <td class="num">{{ sm.qs|num_dash }}</td>
-                            <td class="num">{{ sm.gf|num_dash }}</td>
-                            <td class="num">{{ sm.svo|num_dash }}</td>
-                            <td class="num">{{ sm.p_doubles|num_dash }}</td>
-                            <td class="num">{{ sm.p_triples|num_dash }}</td>
-                            <td class="num">{{ sm.p_gdp|num_dash }}</td>
-                            <td class="num">{{ sm.p_gidpo|num_dash }}</td>
-                            <td class="num">{{ sm.p_cs|num_dash }}</td>
+                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
                             <td class="num">{{ sm.pitches_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ sm.rs_per_9|floatformat(2) }}</td>
-                            <td class="num">{{ sm.ir|num_dash }}</td>
-                            <td class="num">{{ sm.irs|num_dash }}</td>
-                            <td class="num">{{ sm.p_sb|num_dash }}</td>
-                            <td class="num">{{ sm.bqr|num_dash }}</td>
-                            <td class="num">{{ sm.bqr_s|num_dash }}</td>
-                            <td class="num">{{ sm.pickoffs|num_dash }}</td>
                         {% else %}
                             <td class="num">{{ sm.k_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
@@ -97,33 +77,16 @@
                             <td class="num">{{ stat.h_per_9|floatformat(1) }}</td>
                             <td class="num">{{ stat.hr_per_9|floatformat(2) }}</td>
                             <td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td>
-                            <td class="num">{{ stat.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.strike_pct|num_dash }}</td>
-                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
-                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
-                            <td class="num">{{ stat.win_pct|num_dash }}</td>
                             <td class="num">{{ stat.p_avg|num_dash }}</td>
                             <td class="num">{{ stat.p_obp|num_dash }}</td>
                             <td class="num">{{ stat.p_slg|num_dash }}</td>
                             <td class="num">{{ stat.p_ops|num_dash }}</td>
-                            <td class="num">{{ stat.np|num_dash }}</td>
-                            <td class="num">{{ stat.p_ibb|num_dash }}</td>
-                            <td class="num">{{ stat.qs|num_dash }}</td>
-                            <td class="num">{{ stat.gf|num_dash }}</td>
-                            <td class="num">{{ stat.svo|num_dash }}</td>
-                            <td class="num">{{ stat.p_doubles|num_dash }}</td>
-                            <td class="num">{{ stat.p_triples|num_dash }}</td>
-                            <td class="num">{{ stat.p_gdp|num_dash }}</td>
-                            <td class="num">{{ stat.p_gidpo|num_dash }}</td>
-                            <td class="num">{{ stat.p_cs|num_dash }}</td>
+                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
                             <td class="num">{{ stat.pitches_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ stat.rs_per_9|floatformat(2) }}</td>
-                            <td class="num">{{ stat.ir|num_dash }}</td>
-                            <td class="num">{{ stat.irs|num_dash }}</td>
-                            <td class="num">{{ stat.p_sb|num_dash }}</td>
-                            <td class="num">{{ stat.bqr|num_dash }}</td>
-                            <td class="num">{{ stat.bqr_s|num_dash }}</td>
-                            <td class="num">{{ stat.pickoffs|num_dash }}</td>
                         {% else %}
                             <td class="num">{{ stat.k_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
