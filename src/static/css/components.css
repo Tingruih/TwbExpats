@@ -222,3 +222,9 @@
     color: var(--text-3);   /* 最淡的灰色（輔助說明） */
     font-style: italic;     /* 斜體，顯示這是備注說明 */
 }
+
+/* 控制【全站 / 表格欄標題 Tooltip 游標樣式】
+   有 data-tooltip 屬性的 <th> 顯示問號游標，提示使用者可懸停查看說明 */
+.data-table th[data-tooltip] {
+    cursor: help;
+}

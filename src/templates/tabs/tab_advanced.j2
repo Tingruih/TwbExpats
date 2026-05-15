@@ -1,64 +1,6 @@
 {# ── TAB 4: ADVANCED STATS ── #}
 <div class="tab-panel" id="panel-advanced">
 
-    {# Stat Definitions #}
-    <div class="adv-definitions glass-panel">
-        <h3>進階數據說明</h3>
-        {% if is_pitcher %}
-        <div class="def-grid">
-            <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">Strikeout-to-Walk Ratio — 三振保送比</span></div>
-            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">Strikeout Rate — 三振率 = SO / BF</span></div>
-            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">Walk Rate — 保送率 = BB / BF</span></div>
-            <div class="def-item"><span class="def-abbr">HR/9</span><span class="def-text">Home Runs per 9 IP — 每9局被全壘打數</span></div>
-            <div class="def-item"><span class="def-abbr">P/IP</span><span class="def-text">Pitches per Inning — 每局用球數</span></div>
-            <div class="def-item"><span class="def-abbr">S%</span><span class="def-text">Strike Percentage — 好球率</span></div>
-            <div class="def-item"><span class="def-abbr">WPCT</span><span class="def-text">Win Percentage — 勝率</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
-            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比，>1 為滾地球型投手</span></div>
-            <div class="def-item"><span class="def-abbr">AVG</span><span class="def-text">Batting Average Against — 被打擊率</span></div>
-            <div class="def-item"><span class="def-abbr">OBP</span><span class="def-text">On-Base Percentage Against — 被上壘率</span></div>
-            <div class="def-item"><span class="def-abbr">SLG</span><span class="def-text">Slugging Against — 被長打率</span></div>
-            <div class="def-item"><span class="def-abbr">OPS</span><span class="def-text">OPS Against — 被攻擊指數</span></div>
-            <div class="def-item"><span class="def-abbr">NP</span><span class="def-text">Number of Pitches — 投球總數</span></div>
-            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
-            <div class="def-item"><span class="def-abbr">QS</span><span class="def-text">Quality Starts — 優質先發（6局以上且自責分3以下）</span></div>
-            <div class="def-item"><span class="def-abbr">GF</span><span class="def-text">Games Finished — 終結比賽數</span></div>
-            <div class="def-item"><span class="def-abbr">SVO</span><span class="def-text">Save Opportunities — 救援機會</span></div>
-            <div class="def-item"><span class="def-abbr">2B</span><span class="def-text">Doubles Allowed — 被二壘安打</span></div>
-            <div class="def-item"><span class="def-abbr">3B</span><span class="def-text">Triples Allowed — 被三壘安打</span></div>
-            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 製造雙殺</span></div>
-            <div class="def-item"><span class="def-abbr">CS</span><span class="def-text">Caught Stealing — 阻殺盜壘</span></div>
-            <div class="def-item"><span class="def-abbr">SB</span><span class="def-text">Stolen bases (against) — 投球時被盜壘成功次數</span></div>
-            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per Plate Appearance — 每打席用球數</span></div>
-            <div class="def-item"><span class="def-abbr">IR</span><span class="def-text">Inherited Runners — 繼承跑者</span></div>
-            <div class="def-item"><span class="def-abbr">IR_S</span><span class="def-text">Inherited Runners Scored — 繼承跑者得分</span></div>
-            <div class="def-item"><span class="def-abbr">WP</span><span class="def-text">Wild Pitches — 暴投</span></div>
-            <div class="def-item"><span class="def-abbr">BK</span><span class="def-text">Balks — 投手犯規</span></div>
-            <div class="def-item"><span class="def-abbr">PK</span><span class="def-text">Pickoffs — 牽制出局</span></div>
-        </div>
-        {% else %}
-        <div class="def-grid">
-            <div class="def-item"><span class="def-abbr">ISO</span><span class="def-text">Isolated Power — 純長打率 = SLG - AVG</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
-            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">Strikeout Rate — 三振率 = SO / PA</span></div>
-            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">Walk Rate — 保送率 = BB / PA</span></div>
-            <div class="def-item"><span class="def-abbr">XBH</span><span class="def-text">Extra-Base Hits — 長打 = 2B + 3B + HR</span></div>
-            <div class="def-item"><span class="def-abbr">AB/HR</span><span class="def-text">At Bats per Home Run — 每幾個打數擊出一支全壘打</span></div>
-            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比</span></div>
-            <div class="def-item"><span class="def-abbr">SB%</span><span class="def-text">Stolen Base Percentage — 盜壘成功率</span></div>
-            <div class="def-item"><span class="def-abbr">LOB</span><span class="def-text">Left On Base — 殘壘數</span></div>
-            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per PA — 每打席面對球數</span></div>
-            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
-            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 打成雙殺</span></div>
-            <div class="def-item"><span class="def-abbr">GIDPO</span><span class="def-text">GIDP Opportunities — 雙殺機會</span></div>
-            <div class="def-item"><span class="def-abbr">ROE</span><span class="def-text">Reached On Error — 因失誤上壘</span></div>
-            <div class="def-item"><span class="def-abbr">WO</span><span class="def-text">Walk-Off — 再見安打</span></div>
-            <div class="def-item"><span class="def-abbr">SF</span><span class="def-text">Sacrifice Flies — 高飛犧牲打</span></div>
-            <div class="def-item"><span class="def-abbr">SH</span><span class="def-text">Sacrifice Hits — 犧牲觸擊</span></div>
-        </div>
-        {% endif %}
-    </div>
-
     {# Advanced Stats Table #}
     <div class="data-table-section glass-panel">
         <h3>歷年進階數據</h3>
@@ -69,18 +11,18 @@
                         <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
-                            <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
-                            <th>P/IP</th><th>S%</th><th>BABIP</th><th>GO/AO</th>
-                            <th>WPCT</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
-                            <th>NP</th><th>IBB</th><th>QS</th><th>GF</th><th>SVO</th>
-                            <th>2B</th><th>3B</th><th>GIDP</th><th>GIDPO</th><th>CS</th>
-                            <th>P/PA</th><th>RS/9</th><th>IR</th><th>IR_S</th><th>SB</th>
-                            <th>BQR</th><th>BQR_S</th><th>PK</th>
+                            <th data-tooltip="每局被上壘率：(H+BB) ÷ IP">WHIP</th><th data-tooltip="每9局三振數">K/9</th><th data-tooltip="每9局保送數">BB/9</th><th data-tooltip="每9局被安打數">H/9</th><th data-tooltip="每9局被全壘打數">HR/9</th><th data-tooltip="三振保送比">K/BB</th>
+                            <th data-tooltip="每局用球數">P/IP</th><th data-tooltip="好球率">S%</th><th data-tooltip="場內打擊率（運氣指標，聯盟均約 .300）">BABIP</th><th data-tooltip="滾飛比，>1 為滾地球型">GO/AO</th>
+                            <th data-tooltip="勝率">WPCT</th><th data-tooltip="被打擊率">AVG</th><th data-tooltip="被上壘率">OBP</th><th data-tooltip="被長打率">SLG</th><th data-tooltip="被攻擊指數（OBP+SLG）">OPS</th>
+                            <th data-tooltip="投球總數">NP</th><th data-tooltip="故意四壞球數">IBB</th><th data-tooltip="優質先發（≥6局且自責分≤3）">QS</th><th data-tooltip="終結比賽數">GF</th><th data-tooltip="救援機會數">SVO</th>
+                            <th data-tooltip="被二壘安打數">2B</th><th data-tooltip="被三壘安打數">3B</th><th data-tooltip="製造雙殺數">GIDP</th><th data-tooltip="雙殺機會數">GIDPO</th><th data-tooltip="阻殺盜壘數">CS</th>
+                            <th data-tooltip="每打席用球數">P/PA</th><th data-tooltip="每9局支援得分">RS/9</th><th data-tooltip="繼承跑者數">IR</th><th data-tooltip="繼承跑者得分數">IR_S</th><th data-tooltip="被盜壘成功數">SB</th>
+                            <th data-tooltip="低品質繼承跑者數">BQR</th><th data-tooltip="低品質繼承跑者得分">BQR_S</th><th data-tooltip="牽制出局數">PK</th>
                         {% else %}
-                            <th>K%</th><th>BB%</th>
-                            <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
-                            <th>P/PA</th><th>IBB</th><th>HBP</th><th>GIDP</th><th>GIDPO</th>
-                            <th>SF</th><th>SH</th><th>LOB</th><th>ROE</th><th>WO</th>
+                            <th data-tooltip="三振率：SO ÷ PA">K%</th><th data-tooltip="保送率：BB ÷ PA">BB%</th>
+                            <th data-tooltip="純長打率：SLG − AVG">ISO</th><th data-tooltip="場內打擊率（運氣指標，聯盟均約 .300）">BABIP</th><th data-tooltip="長打數：2B+3B+HR">XBH</th><th data-tooltip="每幾打數一支全壘打">AB/HR</th><th data-tooltip="滾飛比">GO/AO</th><th data-tooltip="盜壘成功率">SB%</th>
+                            <th data-tooltip="每打席面對球數">P/PA</th><th data-tooltip="故意四壞球數">IBB</th><th data-tooltip="觸身球數">HBP</th><th data-tooltip="打成雙殺數">GIDP</th><th data-tooltip="雙殺機會數">GIDPO</th>
+                            <th data-tooltip="高飛犧牲打數">SF</th><th data-tooltip="犧牲觸擊數">SH</th><th data-tooltip="殘壘數">LOB</th><th data-tooltip="因失誤上壘數">ROE</th><th data-tooltip="再見安打數">WO</th>
                         {% endif %}
                     </tr>
                 </thead>

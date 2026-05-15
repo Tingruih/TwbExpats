@@ -6,6 +6,11 @@
     max-width: 100%;
 }
 
+.m-performance-chart-container {
+    position: relative;
+    height: 220px;
+}
+
 .m-pitch-chart-grid,
 .page-mobile .pitch-chart-grid {
     display: grid;
@@ -13,16 +18,38 @@
     grid-template-columns: 1fr;
 }
 
-.page-mobile .pitch-chart-section,
-.page-mobile .pitch-plinko-card {
-    overflow-x: auto;
+/* Pitch 使用率/位移 SVG：縮放以填滿容器寬度，不需橫向捲動 */
+.page-mobile .pitch-chart-svg {
+    width: 100%;
+    min-width: 0;
+    height: auto;
 }
 
-.page-mobile .pitch-chart-svg,
+/* Plinko SVG：縮放以填滿容器，不需要橫向捲動 */
 .page-mobile .pitch-plinko-svg {
-    min-width: 560px;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+}
+
+/* Plinko 卡片：允許縮放後的 SVG 正常顯示（覆蓋 overflow: hidden） */
+.page-mobile .pitch-plinko-card {
+    overflow: visible;
 }
 
 .page-mobile .pitch-plinko-grid {
     grid-template-columns: 1fr;
+}
+
+/* 圖表卡片：移除 overflow: hidden 裁剪 */
+.page-mobile .m-chart-wrap {
+    overflow: visible;
+}
+
+/* Pitch 圖表區塊：移除 glass-panel 樣式（背景、邊框、陰影、內距） */
+.page-mobile .pitch-plinko-wrap {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
 }
