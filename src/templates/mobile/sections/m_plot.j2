@@ -2,7 +2,9 @@
     {% if chart_data %}
     <div class="chart-wrap glass-panel m-chart-wrap">
         <h3>{{ selected_year }} 賽季走勢 — {% if is_pitcher %}ERA{% else %}AVG{% endif %}</h3>
-        <canvas id="mPerformanceChart" height="160" data-chart-label="{% if is_pitcher %}ERA{% else %}AVG{% endif %}" data-reverse-y="{% if is_pitcher %}true{% else %}false{% endif %}"></canvas>
+        <div class="m-performance-chart-container">
+            <canvas id="mPerformanceChart" data-chart-label="{% if is_pitcher %}ERA{% else %}AVG{% endif %}" data-reverse-y="{% if is_pitcher %}true{% else %}false{% endif %}"></canvas>
+        </div>
     </div>
     {% endif %}
 

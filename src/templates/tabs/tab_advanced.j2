@@ -6,35 +6,22 @@
         <h3>進階數據說明</h3>
         {% if is_pitcher %}
         <div class="def-grid">
+            <div class="def-item"><span class="def-abbr">WHIP</span><span class="def-text">Walks + Hits per Inning Pitched — 每局被上壘數</span></div>
+            <div class="def-item"><span class="def-abbr">K/9</span><span class="def-text">Strikeouts per 9 IP — 每9局三振數</span></div>
+            <div class="def-item"><span class="def-abbr">BB/9</span><span class="def-text">Walks per 9 IP — 每9局保送數</span></div>
+            <div class="def-item"><span class="def-abbr">H/9</span><span class="def-text">Hits per 9 IP — 每9局被安打數</span></div>
+            <div class="def-item"><span class="def-abbr">HR/9</span><span class="def-text">Home Runs per 9 IP — 每9局被全壘打數</span></div>
             <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">Strikeout-to-Walk Ratio — 三振保送比</span></div>
             <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">Strikeout Rate — 三振率 = SO / BF</span></div>
             <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">Walk Rate — 保送率 = BB / BF</span></div>
-            <div class="def-item"><span class="def-abbr">HR/9</span><span class="def-text">Home Runs per 9 IP — 每9局被全壘打數</span></div>
-            <div class="def-item"><span class="def-abbr">P/IP</span><span class="def-text">Pitches per Inning — 每局用球數</span></div>
-            <div class="def-item"><span class="def-abbr">S%</span><span class="def-text">Strike Percentage — 好球率</span></div>
-            <div class="def-item"><span class="def-abbr">WPCT</span><span class="def-text">Win Percentage — 勝率</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
-            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比，>1 為滾地球型投手</span></div>
+            <div class="def-item"><span class="def-abbr">Strike%</span><span class="def-text">Strike Percentage — 好球率 = 好球數 / 投球數</span></div>
             <div class="def-item"><span class="def-abbr">AVG</span><span class="def-text">Batting Average Against — 被打擊率</span></div>
             <div class="def-item"><span class="def-abbr">OBP</span><span class="def-text">On-Base Percentage Against — 被上壘率</span></div>
             <div class="def-item"><span class="def-abbr">SLG</span><span class="def-text">Slugging Against — 被長打率</span></div>
             <div class="def-item"><span class="def-abbr">OPS</span><span class="def-text">OPS Against — 被攻擊指數</span></div>
-            <div class="def-item"><span class="def-abbr">NP</span><span class="def-text">Number of Pitches — 投球總數</span></div>
-            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
-            <div class="def-item"><span class="def-abbr">QS</span><span class="def-text">Quality Starts — 優質先發（6局以上且自責分3以下）</span></div>
-            <div class="def-item"><span class="def-abbr">GF</span><span class="def-text">Games Finished — 終結比賽數</span></div>
-            <div class="def-item"><span class="def-abbr">SVO</span><span class="def-text">Save Opportunities — 救援機會</span></div>
-            <div class="def-item"><span class="def-abbr">2B</span><span class="def-text">Doubles Allowed — 被二壘安打</span></div>
-            <div class="def-item"><span class="def-abbr">3B</span><span class="def-text">Triples Allowed — 被三壘安打</span></div>
-            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 製造雙殺</span></div>
-            <div class="def-item"><span class="def-abbr">CS</span><span class="def-text">Caught Stealing — 阻殺盜壘</span></div>
-            <div class="def-item"><span class="def-abbr">SB</span><span class="def-text">Stolen bases (against) — 投球時被盜壘成功次數</span></div>
+            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
+            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比，>1 為滾地球型投手</span></div>
             <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per Plate Appearance — 每打席用球數</span></div>
-            <div class="def-item"><span class="def-abbr">IR</span><span class="def-text">Inherited Runners — 繼承跑者</span></div>
-            <div class="def-item"><span class="def-abbr">IR_S</span><span class="def-text">Inherited Runners Scored — 繼承跑者得分</span></div>
-            <div class="def-item"><span class="def-abbr">WP</span><span class="def-text">Wild Pitches — 暴投</span></div>
-            <div class="def-item"><span class="def-abbr">BK</span><span class="def-text">Balks — 投手犯規</span></div>
-            <div class="def-item"><span class="def-abbr">PK</span><span class="def-text">Pickoffs — 牽制出局</span></div>
         </div>
         {% else %}
         <div class="def-grid">
@@ -70,12 +57,9 @@
                         <th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
                             <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
-                            <th>P/IP</th><th>S%</th><th>BABIP</th><th>GO/AO</th>
-                            <th>WPCT</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
-                            <th>NP</th><th>IBB</th><th>QS</th><th>GF</th><th>SVO</th>
-                            <th>2B</th><th>3B</th><th>GIDP</th><th>GIDPO</th><th>CS</th>
-                            <th>P/PA</th><th>RS/9</th><th>IR</th><th>IR_S</th><th>SB</th>
-                            <th>BQR</th><th>BQR_S</th><th>PK</th>
+                            <th>K%</th><th>BB%</th><th>Strike%</th>
+                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
+                            <th>BABIP</th><th>GO/AO</th><th>P/PA</th>
                         {% else %}
                             <th>K%</th><th>BB%</th>
                             <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
@@ -105,33 +89,16 @@
                             <td class="num">{{ sm.h_per_9|floatformat(1) }}</td>
                             <td class="num">{{ sm.hr_per_9|floatformat(2) }}</td>
                             <td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td>
-                            <td class="num">{{ sm.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.strike_pct|num_dash }}</td>
-                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
-                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
-                            <td class="num">{{ sm.win_pct|num_dash }}</td>
                             <td class="num">{{ sm.p_avg|num_dash }}</td>
                             <td class="num">{{ sm.p_obp|num_dash }}</td>
                             <td class="num">{{ sm.p_slg|num_dash }}</td>
                             <td class="num">{{ sm.p_ops|num_dash }}</td>
-                            <td class="num">{{ sm.np|num_dash }}</td>
-                            <td class="num">{{ sm.p_ibb|num_dash }}</td>
-                            <td class="num">{{ sm.qs|num_dash }}</td>
-                            <td class="num">{{ sm.gf|num_dash }}</td>
-                            <td class="num">{{ sm.svo|num_dash }}</td>
-                            <td class="num">{{ sm.p_doubles|num_dash }}</td>
-                            <td class="num">{{ sm.p_triples|num_dash }}</td>
-                            <td class="num">{{ sm.p_gdp|num_dash }}</td>
-                            <td class="num">{{ sm.p_gidpo|num_dash }}</td>
-                            <td class="num">{{ sm.p_cs|num_dash }}</td>
+                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
                             <td class="num">{{ sm.pitches_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ sm.rs_per_9|floatformat(2) }}</td>
-                            <td class="num">{{ sm.ir|num_dash }}</td>
-                            <td class="num">{{ sm.irs|num_dash }}</td>
-                            <td class="num">{{ sm.p_sb|num_dash }}</td>
-                            <td class="num">{{ sm.bqr|num_dash }}</td>
-                            <td class="num">{{ sm.bqr_s|num_dash }}</td>
-                            <td class="num">{{ sm.pickoffs|num_dash }}</td>
                         {% else %}
                             <td class="num">{{ sm.k_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
@@ -168,33 +135,16 @@
                             <td class="num">{{ stat.h_per_9|floatformat(1) }}</td>
                             <td class="num">{{ stat.hr_per_9|floatformat(2) }}</td>
                             <td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td>
-                            <td class="num">{{ stat.p_per_ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.strike_pct|num_dash }}</td>
-                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
-                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
-                            <td class="num">{{ stat.win_pct|num_dash }}</td>
                             <td class="num">{{ stat.p_avg|num_dash }}</td>
                             <td class="num">{{ stat.p_obp|num_dash }}</td>
                             <td class="num">{{ stat.p_slg|num_dash }}</td>
                             <td class="num">{{ stat.p_ops|num_dash }}</td>
-                            <td class="num">{{ stat.np|num_dash }}</td>
-                            <td class="num">{{ stat.p_ibb|num_dash }}</td>
-                            <td class="num">{{ stat.qs|num_dash }}</td>
-                            <td class="num">{{ stat.gf|num_dash }}</td>
-                            <td class="num">{{ stat.svo|num_dash }}</td>
-                            <td class="num">{{ stat.p_doubles|num_dash }}</td>
-                            <td class="num">{{ stat.p_triples|num_dash }}</td>
-                            <td class="num">{{ stat.p_gdp|num_dash }}</td>
-                            <td class="num">{{ stat.p_gidpo|num_dash }}</td>
-                            <td class="num">{{ stat.p_cs|num_dash }}</td>
+                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
                             <td class="num">{{ stat.pitches_per_pa|floatformat(2) }}</td>
-                            <td class="num">{{ stat.rs_per_9|floatformat(2) }}</td>
-                            <td class="num">{{ stat.ir|num_dash }}</td>
-                            <td class="num">{{ stat.irs|num_dash }}</td>
-                            <td class="num">{{ stat.p_sb|num_dash }}</td>
-                            <td class="num">{{ stat.bqr|num_dash }}</td>
-                            <td class="num">{{ stat.bqr_s|num_dash }}</td>
-                            <td class="num">{{ stat.pickoffs|num_dash }}</td>
                         {% else %}
                             <td class="num">{{ stat.k_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
@@ -219,7 +169,7 @@
                     {% endfor %}
                     {% endif %}
                     {% else %}
-                    <tr><td colspan="30" class="td-empty">尚無數據</td></tr>
+                    <tr><td colspan="20" class="td-empty">尚無數據</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

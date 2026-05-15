@@ -1,21 +1,4 @@
 <section class="m-section-stack" aria-label="進階數據">
-    <div class="adv-definitions glass-panel">
-        <h3>進階數據說明</h3>
-        <div class="def-grid m-def-grid">
-            {% if is_pitcher %}
-            <div class="def-item"><span class="def-abbr">WHIP</span><span class="def-text">Walks plus Hits per Inning Pitched</span></div>
-            <div class="def-item"><span class="def-abbr">K/9</span><span class="def-text">每9局三振數</span></div>
-            <div class="def-item"><span class="def-abbr">BB/9</span><span class="def-text">每9局保送數</span></div>
-            <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">三振保送比</span></div>
-            {% else %}
-            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">三振率 = SO / PA</span></div>
-            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">保送率 = BB / PA</span></div>
-            <div class="def-item"><span class="def-abbr">ISO</span><span class="def-text">純長打率 = SLG - AVG</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">場內打擊率</span></div>
-            {% endif %}
-        </div>
-    </div>
-
     <div class="m-table-card data-table-section glass-panel">
         <h3>歷年進階數據</h3>
         <div class="table-scroll m-table-scroll">
@@ -24,9 +7,15 @@
                     <tr>
                         <th class="col-toggle"></th><th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
-                        <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th><th>BABIP</th><th>GO/AO</th><th>OPS</th>
+                            <th>WHIP</th><th>K/9</th><th>BB/9</th><th>H/9</th><th>HR/9</th><th>K/BB</th>
+                            <th>K%</th><th>BB%</th><th>Strike%</th>
+                            <th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
+                            <th>BABIP</th><th>GO/AO</th><th>P/PA</th>
                         {% else %}
-                        <th>K%</th><th>BB%</th><th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th><th>P/PA</th>
+                            <th>K%</th><th>BB%</th>
+                            <th>ISO</th><th>BABIP</th><th>XBH</th><th>AB/HR</th><th>GO/AO</th><th>SB%</th>
+                            <th>P/PA</th><th>IBB</th><th>HBP</th><th>GIDP</th><th>GIDPO</th>
+                            <th>SF</th><th>SH</th><th>LOB</th><th>ROE</th><th>WO</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -40,9 +29,41 @@
                         <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         {% if is_pitcher %}
-                        <td class="num">{{ sm.whip|floatformat(2) }}</td><td class="num">{{ sm.k_per_9|floatformat(1) }}</td><td class="num">{{ sm.bb_per_9|floatformat(1) }}</td><td class="num">{{ sm.h_per_9|floatformat(1) }}</td><td class="num">{{ sm.hr_per_9|floatformat(2) }}</td><td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td><td class="num">{{ sm.p_babip|floatformat(3) }}</td><td class="num">{{ sm.p_go_ao|floatformat(2) }}</td><td class="num">{{ sm.p_ops|num_dash }}</td>
+                            <td class="num">{{ sm.whip|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.bb_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.h_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ sm.hr_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_bb_ratio|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.strike_pct|num_dash }}</td>
+                            <td class="num">{{ sm.p_avg|num_dash }}</td>
+                            <td class="num">{{ sm.p_obp|num_dash }}</td>
+                            <td class="num">{{ sm.p_slg|num_dash }}</td>
+                            <td class="num">{{ sm.p_ops|num_dash }}</td>
+                            <td class="num">{{ sm.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.p_go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ sm.pitches_per_pa|floatformat(2) }}</td>
                         {% else %}
-                        <td class="num">{{ sm.k_pct|pct_fmt }}</td><td class="num">{{ sm.bb_pct|pct_fmt }}</td><td class="num">{{ sm.iso|floatformat(3) }}</td><td class="num">{{ sm.babip|floatformat(3) }}</td><td class="num">{{ sm.xbh|num_dash }}</td><td class="num">{{ sm.ab_per_hr|floatformat(1) }}</td><td class="num">{{ sm.go_ao|floatformat(2) }}</td><td class="num">{{ sm.sb_pct|num_dash }}</td><td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
+                            <td class="num">{{ sm.iso|floatformat(3) }}</td>
+                            <td class="num">{{ sm.babip|floatformat(3) }}</td>
+                            <td class="num">{{ sm.xbh|num_dash }}</td>
+                            <td class="num">{{ sm.ab_per_hr|floatformat(1) }}</td>
+                            <td class="num">{{ sm.go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ sm.sb_pct|num_dash }}</td>
+                            <td class="num">{{ sm.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ sm.ibb|num_dash }}</td>
+                            <td class="num">{{ sm.hbp|num_dash }}</td>
+                            <td class="num">{{ sm.gdp|num_dash }}</td>
+                            <td class="num">{{ sm.gidpo|num_dash }}</td>
+                            <td class="num">{{ sm.sac_flies|num_dash }}</td>
+                            <td class="num">{{ sm.sac_bunts|num_dash }}</td>
+                            <td class="num">{{ sm.lob|num_dash }}</td>
+                            <td class="num">{{ sm.roe|num_dash }}</td>
+                            <td class="num">{{ sm.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
                     {% if grp.multi %}
@@ -50,9 +71,41 @@
                     <tr class="year-detail-row" data-tbl="m-adv" data-grp="{{ yr }}" style="display:none;">
                         <td></td><td></td><td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td><td>{{ stat.team_name }}</td>
                         {% if is_pitcher %}
-                        <td class="num">{{ stat.whip|floatformat(2) }}</td><td class="num">{{ stat.k_per_9|floatformat(1) }}</td><td class="num">{{ stat.bb_per_9|floatformat(1) }}</td><td class="num">{{ stat.h_per_9|floatformat(1) }}</td><td class="num">{{ stat.hr_per_9|floatformat(2) }}</td><td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td><td class="num">{{ stat.p_babip|floatformat(3) }}</td><td class="num">{{ stat.p_go_ao|floatformat(2) }}</td><td class="num">{{ stat.p_ops|num_dash }}</td>
+                            <td class="num">{{ stat.whip|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.bb_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.h_per_9|floatformat(1) }}</td>
+                            <td class="num">{{ stat.hr_per_9|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_bb_ratio|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.strike_pct|num_dash }}</td>
+                            <td class="num">{{ stat.p_avg|num_dash }}</td>
+                            <td class="num">{{ stat.p_obp|num_dash }}</td>
+                            <td class="num">{{ stat.p_slg|num_dash }}</td>
+                            <td class="num">{{ stat.p_ops|num_dash }}</td>
+                            <td class="num">{{ stat.p_babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.p_go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ stat.pitches_per_pa|floatformat(2) }}</td>
                         {% else %}
-                        <td class="num">{{ stat.k_pct|pct_fmt }}</td><td class="num">{{ stat.bb_pct|pct_fmt }}</td><td class="num">{{ stat.iso|floatformat(3) }}</td><td class="num">{{ stat.babip|floatformat(3) }}</td><td class="num">{{ stat.xbh|num_dash }}</td><td class="num">{{ stat.ab_per_hr|floatformat(1) }}</td><td class="num">{{ stat.go_ao|floatformat(2) }}</td><td class="num">{{ stat.sb_pct|num_dash }}</td><td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
+                            <td class="num">{{ stat.iso|floatformat(3) }}</td>
+                            <td class="num">{{ stat.babip|floatformat(3) }}</td>
+                            <td class="num">{{ stat.xbh|num_dash }}</td>
+                            <td class="num">{{ stat.ab_per_hr|floatformat(1) }}</td>
+                            <td class="num">{{ stat.go_ao|floatformat(2) }}</td>
+                            <td class="num">{{ stat.sb_pct|num_dash }}</td>
+                            <td class="num">{{ stat.p_per_pa|floatformat(2) }}</td>
+                            <td class="num">{{ stat.ibb|num_dash }}</td>
+                            <td class="num">{{ stat.hbp|num_dash }}</td>
+                            <td class="num">{{ stat.gdp|num_dash }}</td>
+                            <td class="num">{{ stat.gidpo|num_dash }}</td>
+                            <td class="num">{{ stat.sac_flies|num_dash }}</td>
+                            <td class="num">{{ stat.sac_bunts|num_dash }}</td>
+                            <td class="num">{{ stat.lob|num_dash }}</td>
+                            <td class="num">{{ stat.roe|num_dash }}</td>
+                            <td class="num">{{ stat.wo|num_dash }}</td>
                         {% endif %}
                     </tr>
                     {% endfor %}
@@ -73,7 +126,16 @@
                 <thead>
                     <tr>
                         <th>年度</th><th>層級</th>
-                        {% if is_pitcher %}<th>FIP</th><th>wOBA</th><th>xwOBA</th><th>Barrel%</th><th>Hard-Hit%</th><th>Whiff%</th>{% else %}<th>BBE</th><th>wOBA</th><th>xwOBA</th><th>wRC+</th><th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>{% endif %}
+                        {% if is_pitcher %}
+                            <th>FIP</th><th>xWPCT</th><th>wOBA</th><th>xwOBA</th>
+                            <th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>
+                            <th>GB%</th><th>HR/FB%</th><th>Whiff%</th><th>Avg Ext</th>
+                        {% else %}
+                            <th>BBE</th><th>wOBA</th><th>xwOBA</th>
+                            <th>wRC+</th><th>WAR</th>
+                            <th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>
+                            <th>Max EV</th><th>EV90</th><th>Avg LA</th><th>SwSp%</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -86,9 +148,30 @@
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
                         <td><strong>{{ yr }}</strong></td><td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
                         {% if is_pitcher %}
-                        <td class="num">{% if ss_row and ss_row.fip %}{{ ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td><td class="num">{{ sc.woba_against|floatformat(3) }}</td><td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td><td class="num">{{ sc.barrel_pct|pct_fmt }}</td><td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td><td class="num">{{ sc.whiff_pct|pct_fmt }}</td>
+                            <td class="num">{% if ss_row and ss_row.fip %}{{ ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.xwpct %}{{ ss_row.xwpct|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{{ sc.woba_against|floatformat(3) }}</td>
+                            <td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{{ sc.barrel_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
+                            <td class="num">{{ sc.gb_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.hr_fb_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.whiff_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.avg_extension|floatformat(2) }}</td>
                         {% else %}
-                        <td class="num">{{ sc.bbe|num_dash }}</td><td class="num">{{ sc.woba|floatformat(3) }}</td><td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td><td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</td><td class="num">{{ sc.barrel_pct|pct_fmt }}</td><td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td><td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
+                            <td class="num">{{ sc.bbe|num_dash }}</td>
+                            <td class="num">{{ sc.woba|floatformat(3) }}</td>
+                            <td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.war %}{{ ss_row.war|floatformat(1) }}{% else %}—{% endif %}</td>
+                            <td class="num">{{ sc.barrel_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.avg_ev|floatformat(1) }}</td>
+                            <td class="num">{{ sc.max_ev|floatformat(1) }}</td>
+                            <td class="num">{{ sc.ev90|floatformat(1) }}</td>
+                            <td class="num">{{ sc.avg_la|floatformat(1) }}</td>
+                            <td class="num">{{ sc.swsp_pct|pct_fmt }}</td>
                         {% endif %}
                     </tr>
                     {% endfor %}
@@ -96,6 +179,315 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="m-table-card data-table-section glass-panel">
+        <h3>Plate Discipline</h3>
+        <div class="table-scroll m-table-scroll">
+            <table class="data-table m-sticky-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th><th>Pitches</th>
+                        {% if is_pitcher %}
+                            <th>Zone%</th><th>Z-Swing%</th><th>O-Swing%</th>
+                            <th>Z-Contact%</th><th>Swing%</th><th>Whiff%</th>
+                            <th>CSW%</th><th>SwStr%</th>
+                        {% else %}
+                            <th>Strike%</th><th>Zone%</th><th>Z-Swing%</th><th>O-Swing%</th>
+                            <th>Z-Contact%</th><th>Swing%</th><th>Whiff%</th>
+                            <th>CSW%</th><th>SwStr%</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for yr in available_statcast_years %}
+                    {% set entries = statcast_by_year[yr] %}
+                    {% set level_entries = entries if entries|length == 1 else entries[1:] %}
+                    {% for entry in level_entries %}
+                    {% set sc = entry.sc %}
+                    <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
+                        <td><strong>{{ yr }}</strong></td>
+                        <td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
+                        <td class="num">{{ sc.total_pitches|num_dash }}</td>
+                        {% if is_pitcher %}
+                            <td class="num">{{ sc.zone_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.z_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.o_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.z_contact_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.whiff_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.csw_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.swstr_pct|pct_fmt }}</td>
+                        {% else %}
+                            <td class="num">{{ sc.strike_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.zone_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.z_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.o_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.z_contact_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.whiff_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.csw_pct|pct_fmt }}</td>
+                            <td class="num">{{ sc.swstr_pct|pct_fmt }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="m-table-card data-table-section glass-panel">
+        <h3>擊球型態</h3>
+        <div class="table-scroll m-table-scroll">
+            <table class="data-table m-sticky-table">
+                <thead>
+                    <tr>
+                        <th>年度</th><th>層級</th>
+                        <th>BBE</th>
+                        <th>GB%</th><th>LD%</th><th>FB%</th><th>PU%</th><th>Air%</th>
+                        <th>Pull%</th><th>Straight%</th><th>Oppo%</th>
+                        {% if not is_pitcher %}<th>PullAir%</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for yr in available_statcast_years %}
+                    {% set entries = statcast_by_year[yr] %}
+                    {% set level_entries = entries if entries|length == 1 else entries[1:] %}
+                    {% for entry in level_entries %}
+                    {% set sc = entry.sc %}
+                    {% if sc.bbe is not none %}
+                    <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
+                        <td><strong>{{ yr }}</strong></td>
+                        <td><span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span></td>
+                        <td class="num">{{ sc.bbe|num_dash }}</td>
+                        <td class="num">{{ sc.gb_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.ld_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.fb_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.pu_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.air_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.pull_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.straight_pct|pct_fmt }}</td>
+                        <td class="num">{{ sc.oppo_pct|pct_fmt }}</td>
+                        {% if not is_pitcher %}<td class="num">{{ sc.pull_air_pct|pct_fmt }}</td>{% endif %}
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="m-table-card data-table-section glass-panel">
+        <h3>{% if is_pitcher %}投球球種分析{% else %}對戰球種分析{% endif %}</h3>
+        <div class="log-filter-bar" style="margin-bottom:0.75rem;">
+            <label class="filter-label" for="m-arsenal-year-select">年度</label>
+            <select id="m-arsenal-year-select" class="filter-select">
+                {% for yr in available_statcast_years %}
+                <option value="{{ yr }}"{% if loop.first %} selected{% endif %}>{{ yr }}</option>
+                {% endfor %}
+            </select>
+            <label class="filter-label" for="m-arsenal-level-select">層級</label>
+            <select id="m-arsenal-level-select" class="filter-select"></select>
+            {% if is_pitcher %}
+            <label class="filter-label" for="m-arsenal-bat-side-select">對戰打者</label>
+            <select id="m-arsenal-bat-side-select" class="filter-select">
+                <option value="all" selected>全部</option>
+                <option value="L">左打</option>
+                <option value="R">右打</option>
+            </select>
+            {% endif %}
+        </div>
+
+        {% for yr in available_statcast_years %}
+        {% set _entries = statcast_by_year[yr] %}
+        {% set _has_multiple = _entries|length > 1 %}
+        <div class="arsenal-table-container" id="m-arsenal-{{ yr }}" {% if not loop.first %}style="display: none;"{% endif %}>
+            {% for _e in _entries %}
+            {% set sc = _e.sc %}
+            {% set _level = _e.sport_level %}
+            <div class="arsenal-level-container" id="m-arsenal-{{ yr }}-{{ _level }}"
+                 data-level="{{ _level }}"
+                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
+                 {% if not loop.first %}style="display: none;"{% endif %}>
+                {% if is_pitcher %}
+                {% set splits = sc.pitcher_bat_side_splits if sc.pitcher_bat_side_splits else {} %}
+                {% for _side in ["all", "L", "R"] %}
+                {% set split = splits.get(_side) if splits else none %}
+                {% if not split and _side == "all" %}
+                    {% set arsenal = sc.pitch_arsenal if sc.pitch_arsenal else [] %}
+                    {% set outcomes = sc.pitch_outcomes if sc.pitch_outcomes else [] %}
+                    {% set usage = sc.pitch_usage_by_count if sc.pitch_usage_by_count else {} %}
+                {% else %}
+                    {% set arsenal = split.pitch_arsenal if split and split.pitch_arsenal else [] %}
+                    {% set outcomes = split.pitch_outcomes if split and split.pitch_outcomes else [] %}
+                    {% set usage = split.pitch_usage_by_count if split and split.pitch_usage_by_count else {} %}
+                {% endif %}
+                {% set usage_types = usage.pitch_types if usage and usage.pitch_types else [] %}
+                {% set usage_rows = usage.rows if usage and usage.rows else [] %}
+                <div class="arsenal-split-container" data-bat-side="{{ _side }}" {% if not loop.first %}style="display: none;"{% endif %}>
+                    {% if arsenal or outcomes or usage_types %}
+                    <div class="arsenal-table-stack">
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">球種數據</h4>
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>球種</th><th>Pitch%</th><th>Velo</th><th>iVB</th><th>HB</th>
+                                            <th>Spin</th><th>Ext.</th><th>vRel</th><th>hRel</th>
+                                            <th>Zone%</th><th>Chase%</th><th>Whiff%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pt in arsenal %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td class="num">{{ pt.pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.velo|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.ivb|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.hb|floatformat(1) }}</td>
+                                            <td class="num">{{ pt.spin|num_dash }}</td>
+                                            <td class="num">{{ pt.extension|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.v_rel|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.h_rel|floatformat(2) }}</td>
+                                            <td class="num">{{ pt.zone_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.chase_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.whiff_pct|pct_fmt }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="12" class="td-empty">無球種資料</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">對戰結果</h4>
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>球種</th><th>Pitches</th><th>Pitch%</th><th>Strike%</th>
+                                            <th>Z-Whiff%</th><th>O-Swing%</th><th>SwStr%</th><th>CSW%</th>
+                                            <th>PutAway%</th><th>AVG</th><th>wOBA</th><th>Barrel%</th><th>HardHit%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pt in outcomes %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td class="num">{{ pt.count|num_dash }}</td>
+                                            <td class="num">{{ pt.pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.strike_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.z_whiff_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.o_swing_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.swstr_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.csw_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.put_away_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.avg|floatformat(3) }}</td>
+                                            <td class="num">{{ pt.woba|floatformat(3) }}</td>
+                                            <td class="num">{{ pt.barrel_pct|pct_fmt }}</td>
+                                            <td class="num">{{ pt.hard_hit_pct|pct_fmt }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="13" class="td-empty">無球種資料</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <section class="arsenal-subsection">
+                            <h4 class="arsenal-subtitle">各球數配球比例</h4>
+                            {% if usage_types and usage_rows %}
+                            <div class="table-scroll">
+                                <table class="data-table pitch-usage-table">
+                                    <thead>
+                                        <tr>
+                                            <th>球種</th>
+                                            {% for row in usage_rows %}
+                                            {% if row.key != 'all' %}
+                                            <th>{{ row.label }}<br><span class="pitch-usage-subhead">{{ row.counts_label }}</span></th>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pitch in usage_types %}
+                                        <tr>
+                                            <td><span class="pitch-tag pitch-{{ pitch.type|lower }}">{{ pitch.name or pitch.type }}</span></td>
+                                            {% for row in usage_rows %}
+                                            {% if row.key != 'all' %}
+                                            {% set pitch_cell = namespace(pct=none) %}
+                                            {% for pt in row.pitch_types %}
+                                            {% if pt.type == pitch.type %}
+                                            {% set pitch_cell.pct = pt.pct %}
+                                            {% endif %}
+                                            {% endfor %}
+                                            <td class="num">{{ pitch_cell.pct|pct_fmt }}</td>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="pitch-analysis-empty">無球種資料</div>
+                            {% endif %}
+                        </section>
+                    </div>
+                    {% else %}
+                    <div class="pitch-analysis-empty">無球種資料</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="table-scroll">
+                {% set vs = sc.vs_pitch_types if sc.vs_pitch_types else [] %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>球種</th><th>Pitches</th><th>Strike%</th><th>Zone%</th>
+                            <th>Z-Swing%</th><th>O-Swing%</th><th>Whiff%</th><th>SwStr%</th>
+                            <th>CSW%</th><th>Put Away%</th><th>AVG</th><th>wOBA</th>
+                            <th>Barrel%</th><th>Hard-Hit%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pt in vs %}
+                        <tr>
+                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                            <td class="num">{{ pt.count|num_dash }}</td>
+                            <td class="num">{{ pt.strike_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.zone_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.z_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.o_swing_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.whiff_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.swstr_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.csw_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.put_away_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.avg|floatformat(3) }}</td>
+                            <td class="num">{{ pt.woba|floatformat(3) }}</td>
+                            <td class="num">{{ pt.barrel_pct|pct_fmt }}</td>
+                            <td class="num">{{ pt.hard_hit_pct|pct_fmt }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="14" class="td-empty">尚無數據</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-panel empty-season-msg">
+        尚無 Statcast 數據 — 請先執行 <code>python build.py statcast</code>
     </div>
     {% endif %}
 </section>
