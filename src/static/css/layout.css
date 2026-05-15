@@ -105,3 +105,30 @@ header nav a:hover {
     color: var(--text-1);           /* hover 時文字變白色 */
     background: var(--secondary);  /* hover 時出現深灰色背景 */
 }
+
+.site-footer {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem 0 0;
+    color: var(--text-3);
+    font-size: 0.82rem;
+}
+
+.site-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-1);
+}
+
+.site-footer a:hover {
+    color: var(--text-1);
+}
+
+.site-footer-icon {
+    width: 1em;
+    height: 1em;
+    fill: var(--text-1);
+}

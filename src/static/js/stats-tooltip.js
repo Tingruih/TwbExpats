@@ -20,29 +20,50 @@
     });
     document.body.appendChild(tip);
 
-    document.querySelectorAll('th[data-tooltip]').forEach(function (th) {
-        th.addEventListener('mouseenter', function () {
-            tip.textContent = th.dataset.tooltip;
-            tip.style.visibility = 'visible';
-            tip.style.opacity = '1';
+    var activeHeader = null;
 
-            var r    = th.getBoundingClientRect();
-            var tipW = tip.offsetWidth;
-            var tipH = tip.offsetHeight;
-            var left = r.left + r.width / 2 - tipW / 2;
-            var top  = r.top - tipH - 6;
+    function positionTip(header) {
+        var rect = header.getBoundingClientRect();
+        var tipWidth = tip.offsetWidth;
+        var tipHeight = tip.offsetHeight;
+        var left = rect.left + rect.width / 2 - tipWidth / 2;
+        var top = rect.top - tipHeight - 6;
 
-            // 超出左右視窗邊界時夾住
-            left = Math.max(4, Math.min(left, window.innerWidth - tipW - 4));
-            // 若頂部空間不足則改為顯示在下方
-            if (top < 4) top = r.bottom + 6;
+        // 超出左右視窗邊界時夾住
+        left = Math.max(4, Math.min(left, window.innerWidth - tipWidth - 4));
+        // 若頂部空間不足則改為顯示在下方
+        if (top < 4) top = rect.bottom + 6;
 
-            tip.style.left = left + 'px';
-            tip.style.top  = top  + 'px';
-        });
-        th.addEventListener('mouseleave', function () {
-            tip.style.opacity    = '0';
-            tip.style.visibility = 'hidden';
-        });
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+    }
+
+    function showTip(header) {
+        activeHeader = header;
+        tip.textContent = header.dataset.tooltip;
+        tip.style.visibility = 'visible';
+        tip.style.opacity = '1';
+        positionTip(header);
+    }
+
+    function hideTip() {
+        activeHeader = null;
+        tip.style.opacity = '0';
+        tip.style.visibility = 'hidden';
+    }
+
+    document.addEventListener('mouseover', function (event) {
+        var header = event.target.closest && event.target.closest('th[data-tooltip]');
+        if (!header || header === activeHeader || header.contains(event.relatedTarget)) return;
+        showTip(header);
+    });
+
+    document.addEventListener('mouseout', function (event) {
+        if (!activeHeader || activeHeader.contains(event.relatedTarget)) return;
+        hideTip();
+    });
+
+    window.addEventListener('resize', function () {
+        if (activeHeader) positionTip(activeHeader);
     });
 }());

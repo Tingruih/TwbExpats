@@ -1,51 +1,6 @@
 {# ── TAB 4: ADVANCED STATS ── #}
 <div class="tab-panel" id="panel-advanced">
 
-    {# Stat Definitions #}
-    <div class="adv-definitions glass-panel">
-        <h3>進階數據說明</h3>
-        {% if is_pitcher %}
-        <div class="def-grid">
-            <div class="def-item"><span class="def-abbr">WHIP</span><span class="def-text">Walks + Hits per Inning Pitched — 每局被上壘數</span></div>
-            <div class="def-item"><span class="def-abbr">K/9</span><span class="def-text">Strikeouts per 9 IP — 每9局三振數</span></div>
-            <div class="def-item"><span class="def-abbr">BB/9</span><span class="def-text">Walks per 9 IP — 每9局保送數</span></div>
-            <div class="def-item"><span class="def-abbr">H/9</span><span class="def-text">Hits per 9 IP — 每9局被安打數</span></div>
-            <div class="def-item"><span class="def-abbr">HR/9</span><span class="def-text">Home Runs per 9 IP — 每9局被全壘打數</span></div>
-            <div class="def-item"><span class="def-abbr">K/BB</span><span class="def-text">Strikeout-to-Walk Ratio — 三振保送比</span></div>
-            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">Strikeout Rate — 三振率 = SO / BF</span></div>
-            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">Walk Rate — 保送率 = BB / BF</span></div>
-            <div class="def-item"><span class="def-abbr">Strike%</span><span class="def-text">Strike Percentage — 好球率 = 好球數 / 投球數</span></div>
-            <div class="def-item"><span class="def-abbr">AVG</span><span class="def-text">Batting Average Against — 被打擊率</span></div>
-            <div class="def-item"><span class="def-abbr">OBP</span><span class="def-text">On-Base Percentage Against — 被上壘率</span></div>
-            <div class="def-item"><span class="def-abbr">SLG</span><span class="def-text">Slugging Against — 被長打率</span></div>
-            <div class="def-item"><span class="def-abbr">OPS</span><span class="def-text">OPS Against — 被攻擊指數</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
-            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比，>1 為滾地球型投手</span></div>
-            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per Plate Appearance — 每打席用球數</span></div>
-        </div>
-        {% else %}
-        <div class="def-grid">
-            <div class="def-item"><span class="def-abbr">ISO</span><span class="def-text">Isolated Power — 純長打率 = SLG - AVG</span></div>
-            <div class="def-item"><span class="def-abbr">BABIP</span><span class="def-text">Batting Average on Balls In Play — 場內打擊率，聯盟平均約 .300</span></div>
-            <div class="def-item"><span class="def-abbr">K%</span><span class="def-text">Strikeout Rate — 三振率 = SO / PA</span></div>
-            <div class="def-item"><span class="def-abbr">BB%</span><span class="def-text">Walk Rate — 保送率 = BB / PA</span></div>
-            <div class="def-item"><span class="def-abbr">XBH</span><span class="def-text">Extra-Base Hits — 長打 = 2B + 3B + HR</span></div>
-            <div class="def-item"><span class="def-abbr">AB/HR</span><span class="def-text">At Bats per Home Run — 每幾個打數擊出一支全壘打</span></div>
-            <div class="def-item"><span class="def-abbr">GO/AO</span><span class="def-text">Ground Outs / Air Outs — 滾飛比</span></div>
-            <div class="def-item"><span class="def-abbr">SB%</span><span class="def-text">Stolen Base Percentage — 盜壘成功率</span></div>
-            <div class="def-item"><span class="def-abbr">LOB</span><span class="def-text">Left On Base — 殘壘數</span></div>
-            <div class="def-item"><span class="def-abbr">P/PA</span><span class="def-text">Pitches per PA — 每打席面對球數</span></div>
-            <div class="def-item"><span class="def-abbr">IBB</span><span class="def-text">Intentional Walks — 故意四壞球</span></div>
-            <div class="def-item"><span class="def-abbr">GIDP</span><span class="def-text">Ground Into Double Play — 打成雙殺</span></div>
-            <div class="def-item"><span class="def-abbr">GIDPO</span><span class="def-text">GIDP Opportunities — 雙殺機會</span></div>
-            <div class="def-item"><span class="def-abbr">ROE</span><span class="def-text">Reached On Error — 因失誤上壘</span></div>
-            <div class="def-item"><span class="def-abbr">WO</span><span class="def-text">Walk-Off — 再見安打</span></div>
-            <div class="def-item"><span class="def-abbr">SF</span><span class="def-text">Sacrifice Flies — 高飛犧牲打</span></div>
-            <div class="def-item"><span class="def-abbr">SH</span><span class="def-text">Sacrifice Hits — 犧牲觸擊</span></div>
-        </div>
-        {% endif %}
-    </div>
-
     {# Advanced Stats Table #}
     <div class="data-table-section glass-panel">
         <h3>歷年進階數據</h3>
@@ -186,14 +141,14 @@
                     <tr>
                         <th>年度</th><th>層級</th>
                         {% if is_pitcher %}
-                            <th>FIP</th><th>xWPCT</th><th>wOBA</th><th>xwOBA</th>
-                            <th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>
-                            <th>GB%</th><th>HR/FB%</th><th>Whiff%</th><th>Avg Ext</th>
+                            <th data-tooltip="守備無關防禦率">FIP</th><th data-tooltip="預期勝率">xWPCT</th><th data-tooltip="被加權上壘率">wOBA</th><th data-tooltip="預期被加權上壘率">xwOBA</th>
+                            <th data-tooltip="被強勁長打比例">Barrel%</th><th data-tooltip="被強擊球比例">Hard-Hit%</th><th data-tooltip="平均被擊球初速">Avg EV</th>
+                            <th data-tooltip="滾地球比例">GB%</th><th data-tooltip="飛球中被全壘打比例">HR/FB%</th><th data-tooltip="揮空率">Whiff%</th><th data-tooltip="平均出手延伸距離">Avg Ext</th>
                         {% else %}
-                            <th>BBE</th><th>wOBA</th><th>xwOBA</th>
-                            <th>wRC+</th><th>WAR</th>
-                            <th>Barrel%</th><th>Hard-Hit%</th><th>Avg EV</th>
-                            <th>Max EV</th><th>EV90</th><th>Avg LA</th><th>SwSp%</th>
+                            <th data-tooltip="進場擊球數">BBE</th><th data-tooltip="加權上壘率">wOBA</th><th data-tooltip="預期加權上壘率">xwOBA</th>
+                            <th data-tooltip="得分創造指數，100 為聯盟平均">wRC+</th><th data-tooltip="勝利貢獻值">WAR</th>
+                            <th data-tooltip="強勁長打比例">Barrel%</th><th data-tooltip="強擊球比例">Hard-Hit%</th><th data-tooltip="平均擊球初速">Avg EV</th>
+                            <th data-tooltip="最高擊球初速">Max EV</th><th data-tooltip="前10%擊球初速平均">EV90</th><th data-tooltip="平均擊球仰角">Avg LA</th><th data-tooltip="揮空加看球好球比例">SwSp%</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -248,15 +203,15 @@
             <table class="data-table year-group-table" id="stats-table-pd">
                 <thead>
                     <tr>
-                        <th>年度</th><th>層級</th><th>Pitches</th>
+                        <th>年度</th><th>層級</th><th data-tooltip="總投球數">Pitches</th>
                         {% if is_pitcher %}
-                            <th>Zone%</th><th>Z-Swing%</th><th>O-Swing%</th>
-                            <th>Z-Contact%</th><th>Swing%</th><th>Whiff%</th>
-                            <th>CSW%</th><th>SwStr%</th>
+                            <th data-tooltip="投進好球帶比例">Zone%</th><th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th>
+                            <th data-tooltip="好球帶內接觸率">Z-Contact%</th><th data-tooltip="總揮棒率">Swing%</th><th data-tooltip="揮空率">Whiff%</th>
+                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
                         {% else %}
-                            <th>Strike%</th><th>Zone%</th><th>Z-Swing%</th><th>O-Swing%</th>
-                            <th>Z-Contact%</th><th>Swing%</th><th>Whiff%</th>
-                            <th>CSW%</th><th>SwStr%</th>
+                            <th data-tooltip="面對投球中的好球比例">Strike%</th><th data-tooltip="進好球帶比例">Zone%</th><th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th>
+                            <th data-tooltip="好球帶內接觸率">Z-Contact%</th><th data-tooltip="總揮棒率">Swing%</th><th data-tooltip="揮空率">Whiff%</th>
+                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -306,10 +261,10 @@
                 <thead>
                     <tr>
                         <th>年度</th><th>層級</th>
-                        <th>BBE</th>
-                        <th>GB%</th><th>LD%</th><th>FB%</th><th>PU%</th><th>Air%</th>
-                        <th>Pull%</th><th>Straight%</th><th>Oppo%</th>
-                        {% if not is_pitcher %}<th>PullAir%</th>{% endif %}
+                        <th data-tooltip="進場擊球數">BBE</th>
+                        <th data-tooltip="滾地球比例">GB%</th><th data-tooltip="平飛球比例">LD%</th><th data-tooltip="飛球比例">FB%</th><th data-tooltip="內野高飛球比例">PU%</th><th data-tooltip="空中擊球比例（平飛+飛球）">Air%</th>
+                        <th data-tooltip="拉打比例">Pull%</th><th data-tooltip="中間方向擊球比例">Straight%</th><th data-tooltip="反方向擊球比例">Oppo%</th>
+                        {% if not is_pitcher %}<th data-tooltip="拉打空中球比例">PullAir%</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -402,9 +357,9 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>球種</th><th>Pitch%</th><th>Velo</th><th>iVB</th><th>HB</th>
-                                            <th>Spin</th><th>Ext.</th><th>vRel</th><th>hRel</th>
-                                            <th>Zone%</th><th>Chase%</th><th>Whiff%</th>
+                                            <th data-tooltip="投手球種">球種</th><th data-tooltip="該球種使用比例">Pitch%</th><th data-tooltip="平均球速">Velo</th><th data-tooltip="誘導垂直位移">iVB</th><th data-tooltip="水平位移">HB</th>
+                                            <th data-tooltip="平均轉速">Spin</th><th data-tooltip="出手延伸距離">Ext.</th><th data-tooltip="垂直出手點">vRel</th><th data-tooltip="水平出手點">hRel</th>
+                                            <th data-tooltip="進好球帶比例">Zone%</th><th data-tooltip="誘使追打比例">Chase%</th><th data-tooltip="揮空率">Whiff%</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -437,9 +392,9 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>球種</th><th>Pitches</th><th>Pitch%</th><th>Strike%</th>
-                                            <th>Z-Whiff%</th><th>O-Swing%</th><th>SwStr%</th><th>CSW%</th>
-                                            <th>PutAway%</th><th>AVG</th><th>wOBA</th><th>Barrel%</th><th>HardHit%</th>
+                                            <th data-tooltip="投手球種">球種</th><th data-tooltip="該球種投球數">Pitches</th><th data-tooltip="該球種使用比例">Pitch%</th><th data-tooltip="好球比例">Strike%</th>
+                                            <th data-tooltip="好球帶內揮空率">Z-Whiff%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th><th data-tooltip="看球好球加揮空比例">CSW%</th>
+                                            <th data-tooltip="兩好球後解決打者比例">PutAway%</th><th data-tooltip="被打擊率">AVG</th><th data-tooltip="被加權上壘率">wOBA</th><th data-tooltip="被強勁長打比例">Barrel%</th><th data-tooltip="被強擊球比例">HardHit%</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -474,10 +429,10 @@
                                 <table class="data-table pitch-usage-table">
                                     <thead>
                                         <tr>
-                                            <th>球種</th>
+                                            <th data-tooltip="投手球種">球種</th>
                                             {% for row in usage_rows %}
                                             {% if row.key != 'all' %}
-                                            <th>{{ row.label }}<br><span class="pitch-usage-subhead">{{ row.counts_label }}</span></th>
+                                            <th data-tooltip="該球數下此球種的使用比例">{{ row.label }}<br><span class="pitch-usage-subhead">{{ row.counts_label }}</span></th>
                                             {% endif %}
                                             {% endfor %}
                                         </tr>
@@ -518,10 +473,10 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>球種</th><th>Pitches</th><th>Strike%</th><th>Zone%</th>
-                            <th>Z-Swing%</th><th>O-Swing%</th><th>Whiff%</th><th>SwStr%</th>
-                            <th>CSW%</th><th>Put Away%</th><th>AVG</th><th>wOBA</th>
-                            <th>Barrel%</th><th>Hard-Hit%</th>
+                            <th data-tooltip="面對球種">球種</th><th data-tooltip="面對該球種投球數">Pitches</th><th data-tooltip="好球比例">Strike%</th><th data-tooltip="進好球帶比例">Zone%</th>
+                            <th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th><th data-tooltip="揮空率">Whiff%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
+                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="兩好球後被解決比例">Put Away%</th><th data-tooltip="對該球種打擊率">AVG</th><th data-tooltip="對該球種加權上壘率">wOBA</th>
+                            <th data-tooltip="對該球種強勁長打比例">Barrel%</th><th data-tooltip="對該球種強擊球比例">Hard-Hit%</th>
                         </tr>
                     </thead>
                     <tbody>

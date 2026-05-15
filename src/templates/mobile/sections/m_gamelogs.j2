@@ -1,5 +1,5 @@
 <section class="m-section-stack" aria-label="逐場紀錄">
-    <div class="m-filter-bar glass-panel">
+    <div class="m-filter-bar">
         <label class="filter-label" for="m-gamelog-year-select">年度</label>
         <select id="m-gamelog-year-select" class="filter-select">
             {% for y in available_log_years %}
@@ -21,7 +21,10 @@
             <div class="m-gamelog-head">
                 <div>
                     <time>{{ log.date }}</time>
-                    <strong>{% if log.is_home %}vs{% else %}@{% endif %} {{ log.opponent }}</strong>
+                    <div class="m-gamelog-opponent">
+                        <span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">{% if log.is_home %}主{% else %}客{% endif %}</span>
+                        <strong>{{ log.opponent }}</strong>
+                    </div>
                 </div>
                 <span class="level-tag level-{{ log.sport_level|lower }}">{{ log.sport_level }}</span>
             </div>

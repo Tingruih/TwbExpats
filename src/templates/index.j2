@@ -15,6 +15,7 @@
     {% for item in player_data %}
     {% set player = item.player %}
     {% set stat = item.stat %}
+    {% set player_name = player.name_tw ~ ' ' ~ player.name_en if player.name_tw else player.name_en %}
     <a href="{{ player_url(player.mlb_id) }}" class="player-card glass-panel"
        data-level="{{ player.level }}"
        data-level-order="{{ loop.index }}"
@@ -24,7 +25,7 @@
                 <img
                     src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
                     data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
-                    alt="{{ player.name_en }}"
+                    alt="{{ player_name }}"
                     loading="lazy"
                     class="avatar-img"
                 >

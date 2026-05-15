@@ -7,6 +7,7 @@ For GitHub Pages sub-path deployment, pass base_url="/repo/".
 
 import json
 import os
+from urllib.parse import urljoin
 from decimal import Decimal, ROUND_HALF_UP
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -53,6 +54,11 @@ def tojson_safe(value):
     return Markup(json.dumps(value, ensure_ascii=False))
 
 
+def jsonld(value):
+    """Serialize compact JSON-LD and mark safe for embedding in <script>."""
+    return Markup(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+
+
 def pct_fmt(value, digits=1):
     """Format a decimal fraction (e.g. 0.345) as a percentage string (34.5%).
 
@@ -78,7 +84,7 @@ def _make_url_helpers(base_url: str):
     base = base_url.rstrip("/")
 
     def player_url(mlb_id):
-        return f"{base}/player/{mlb_id}/index.html"
+        return f"{base}/player/{mlb_id}/"
 
     def static_url(path):
         return f"{base}/static/{path}"
@@ -86,10 +92,23 @@ def _make_url_helpers(base_url: str):
     return player_url, static_url
 
 
+def _make_absolute_url(site_origin: str, base_url: str):
+    site_root = urljoin(site_origin.rstrip("/") + "/", base_url.lstrip("/"))
+
+    def absolute_url(path=""):
+        return urljoin(site_root, str(path).lstrip("/"))
+
+    return site_root, absolute_url
+
+
 # ── Environment Factory ──
 
 
-def create_jinja_env(template_dir=None, base_url="/"):
+def create_jinja_env(
+    template_dir=None,
+    base_url="/",
+    site_origin="https://tingruih.github.io",
+):
     """Create and return a configured Jinja2 Environment."""
     tpl_dir = template_dir or _TEMPLATE_DIR
 
@@ -99,6 +118,7 @@ def create_jinja_env(template_dir=None, base_url="/"):
         base_url = base_url + "/"
 
     player_url, static_url = _make_url_helpers(base_url)
+    site_url, absolute_url = _make_absolute_url(site_origin, base_url)
 
     env = Environment(
         loader=FileSystemLoader(tpl_dir),
@@ -112,10 +132,14 @@ def create_jinja_env(template_dir=None, base_url="/"):
     env.filters["num_dash"] = num_dash
     env.filters["slice_prefix"] = slice_prefix
     env.filters["tojson_safe"] = tojson_safe
+    env.filters["jsonld"] = jsonld
     env.filters["pct_fmt"] = pct_fmt
 
     env.globals["player_url"] = player_url
     env.globals["static_url"] = static_url
+    env.globals["absolute_url"] = absolute_url
     env.globals["base_url"] = base_url
+    env.globals["site_url"] = site_url
+    env.globals["site_origin"] = site_origin.rstrip("/")
 
     return env

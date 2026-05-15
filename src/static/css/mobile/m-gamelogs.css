@@ -32,6 +32,12 @@
     overflow-wrap: anywhere;
 }
 
+.m-gamelog-head .m-gamelog-opponent {
+    align-items: center;
+    flex-direction: row;
+    gap: 0.4rem;
+}
+
 .m-gamelog-summary {
     color: var(--text-2);
     display: flex;

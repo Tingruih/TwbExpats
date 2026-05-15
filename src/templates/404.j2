@@ -1,13 +1,15 @@
 {% extends 'base.j2' %}
 
-{% block title %}404 — Taiwan MLB Tracker{% endblock %}
+{% set seo_title = '404 | TwbExpats' %}
+{% set seo_description = '找不到此頁面 / Page not found.' %}
+{% set robots_meta = 'noindex, follow' %}
 
 {% block content %}
 <div class="dashboard-header" style="margin-top: 4rem;">
     <h1>404</h1>
     <p class="dashboard-sub">找不到此頁面</p>
     <p style="margin-top: 1.5rem;">
-        <a href="{{ base_url }}index.html" class="sort-btn sort-btn-active" style="font-size: 1rem; padding: .6rem 1.5rem;">
+        <a href="{{ base_url }}" class="sort-btn sort-btn-active" style="font-size: 1rem; padding: .6rem 1.5rem;">
             回到首頁
         </a>
     </p>

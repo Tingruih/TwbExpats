@@ -27,10 +27,19 @@
     }
 
     function toggleMobileYearGroup(tableId, yr) {
+        var arrow = document.getElementById('m-arrow-' + tableId + '-' + yr);
+        // 卡片形式：切換子列表容器
+        var sublist = document.getElementById('m-subdetail-' + tableId + '-' + yr);
+        if (sublist) {
+            var open = sublist.style.display !== 'none';
+            sublist.style.display = open ? 'none' : '';
+            if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
+            return;
+        }
+        // 表格形式（進階數據等）：切換子列
         var table = document.getElementById('m-stats-table-' + tableId);
         if (!table) return;
         var rows = table.querySelectorAll('tr[data-tbl="m-' + tableId + '"][data-grp="' + yr + '"]');
-        var arrow = document.getElementById('m-arrow-' + tableId + '-' + yr);
         var open = rows.length > 0 && rows[0].style.display !== 'none';
         rows.forEach(function(row) {
             row.style.display = open ? 'none' : '';

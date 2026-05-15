@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 import requests as _requests
 
@@ -33,6 +34,16 @@ from site_builder.statcast import (
 )
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+_SITE_TITLE = "TwbExpats | 台灣旅美棒球員 MLB/MiLB Stats Tracker"
+_SITE_DESCRIPTION = (
+    "TwbExpats tracks 台灣旅美棒球員 / Taiwanese baseball players in MLB and MiLB, "
+    "including game logs, pitching stats, batting stats, and advanced metrics."
+)
+_SITE_SAME_AS = [
+    "https://www.threads.com/@twbexpats",
+    "https://github.com/Tingruih/twbexpats",
+]
 
 _BAT_SIDE_SPLITS = (
     ("all", "全部"),
@@ -608,6 +619,116 @@ def _pick_display_stat(stats_current, player):
     return stats_current[0]
 
 
+def _player_display_name(player) -> str:
+    if player.name_tw:
+        return f"{player.name_tw} {player.name_en}"
+    return player.name_en
+
+
+def _player_canonical_path(player) -> str:
+    return f"player/{player.mlb_id}/"
+
+
+def _player_description(player) -> str:
+    role = "投球 / pitching" if player.is_pitcher else "打擊 / batting"
+    level_team = " ".join(
+        part for part in [player.level, player.team] if part and part != "N/A"
+    )
+    team_text = f"，目前效力於 / currently with {level_team}" if level_team else ""
+    return (
+        f"查看 {_player_display_name(player)} 的 MLB/MiLB 年度成績 / season stats, "
+        f"逐場紀錄 / game logs{team_text}, including {role} stats, "
+        "advanced metrics, and transactions."
+    )
+
+
+def _index_structured_data(absolute_url, player_data):
+    site_url = absolute_url("")
+    return [
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "TwbExpats",
+            "url": site_url,
+            "description": _SITE_DESCRIPTION,
+            "inLanguage": "zh-Hant",
+            "sameAs": _SITE_SAME_AS,
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "name": "台灣旅美棒球員列表 / Taiwanese Baseball Players List",
+            "url": site_url,
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": idx,
+                    "url": absolute_url(_player_canonical_path(item["player"])),
+                    "name": _player_display_name(item["player"]),
+                }
+                for idx, item in enumerate(player_data, start=1)
+            ],
+        },
+    ]
+
+
+def _player_structured_data(absolute_url, player):
+    canonical_url = absolute_url(_player_canonical_path(player))
+    return [
+        {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": player.name_tw or player.name_en,
+            "alternateName": player.name_en,
+            "url": canonical_url,
+            "image": absolute_url(f"img/players/{player.mlb_id}.jpg"),
+            "jobTitle": "棒球員 / Baseball player",
+            "affiliation": player.team if player.team and player.team != "N/A" else None,
+            "sameAs": [f"https://www.mlb.com/player/{player.mlb_id}"],
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "TwbExpats",
+                    "item": absolute_url(""),
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": _player_display_name(player),
+                    "item": canonical_url,
+                },
+            ],
+        },
+    ]
+
+
+def _write_robots(out_dir: Path, sitemap_url: str):
+    content = f"User-agent: *\nAllow: /\n\nSitemap: {sitemap_url}\n"
+    (out_dir / "robots.txt").write_text(content, encoding="utf-8")
+
+
+def _write_sitemap(out_dir: Path, urls: list[dict]):
+    entries = []
+    for item in urls:
+        loc = escape(item["loc"])
+        lastmod = item.get("lastmod")
+        lastmod_xml = f"\n    <lastmod>{escape(lastmod)}</lastmod>" if lastmod else ""
+        entries.append(f"  <url>\n    <loc>{loc}</loc>{lastmod_xml}\n  </url>")
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(entries)
+        + "\n</urlset>\n"
+    )
+    (out_dir / "sitemap.xml").write_text(xml, encoding="utf-8")
+
+
 def _load_player_bundle(cur, player_row: sqlite3.Row):
     """Load a complete player data bundle from SQLite."""
     player = Obj(dict(player_row))
@@ -709,6 +830,7 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
 
     env = create_jinja_env(base_url=base_url)
     normalized_base_url = env.globals["base_url"]
+    absolute_url = env.globals["absolute_url"]
 
     # Build timestamp in UTC+8
     now_utc8 = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
@@ -766,6 +888,11 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
         player_data=player_data,
         current_sort="level",
         default_season_year=year,
+        seo_title=_SITE_TITLE,
+        seo_description=_SITE_DESCRIPTION,
+        canonical_url=absolute_url(""),
+        og_type="website",
+        structured_data=_index_structured_data(absolute_url, player_data),
     )
     (out_dir / "index.html").write_text(index_html, encoding="utf-8")
 
@@ -955,6 +1082,11 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
             "statcast_by_year": statcast_by_year,
             "statcast_available": statcast_available,
             "available_statcast_years": available_statcast_years,
+            "seo_title": f"{_player_display_name(player)} 數據 | TwbExpats",
+            "seo_description": _player_description(player),
+            "canonical_url": absolute_url(_player_canonical_path(player)),
+            "og_type": "profile",
+            "structured_data": _player_structured_data(absolute_url, player),
         }
 
         html = player_template.render(**context)
@@ -965,6 +1097,24 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
     # ── 404 page ──
     template_404 = env.get_template("404.j2")
     (out_dir / "404.html").write_text(template_404.render(), encoding="utf-8")
+
+    # ── Search engine discovery files ──
+    sitemap_urls = [
+        {
+            "loc": absolute_url(""),
+            "lastmod": now_utc8.date().isoformat(),
+        }
+    ]
+    for player, _, logs in bundles:
+        last_game_date = next((log.date for log in logs if log.date), None)
+        sitemap_urls.append(
+            {
+                "loc": absolute_url(_player_canonical_path(player)),
+                "lastmod": (last_game_date or now_utc8.date()).isoformat(),
+            }
+        )
+    _write_sitemap(out_dir, sitemap_urls)
+    _write_robots(out_dir, absolute_url("sitemap.xml"))
 
     # ── GitHub Pages marker ──
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")

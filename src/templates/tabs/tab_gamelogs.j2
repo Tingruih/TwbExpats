@@ -25,9 +25,9 @@
                     <tr>
                         <th>日期</th><th>主/客</th><th>對手</th>
                         {% if is_pitcher %}
-                            <th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>SO</th><th>HR</th><th>HB</th><th>ERA</th><th>結果</th>
+                            <th data-tooltip="投球局數">IP</th><th data-tooltip="被安打數">H</th><th data-tooltip="被得分數">R</th><th data-tooltip="被自責分數">ER</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="三振數">SO</th><th data-tooltip="被全壘打數">HR</th><th data-tooltip="投出觸身球數">HB</th><th data-tooltip="當賽季累計防禦率">ERA</th><th data-tooltip="勝敗、救援或中繼結果">結果</th>
                         {% else %}
-                            <th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>SB</th><th>CS</th><th>AVG</th><th>OPS</th>
+                            <th data-tooltip="打數">AB</th><th data-tooltip="得分數">R</th><th data-tooltip="安打數">H</th><th data-tooltip="二壘安打數">2B</th><th data-tooltip="三壘安打數">3B</th><th data-tooltip="全壘打數">HR</th><th data-tooltip="打點數">RBI</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="三振數">K</th><th data-tooltip="盜壘成功數">SB</th><th data-tooltip="盜壘失敗數">CS</th><th data-tooltip="當賽季累計打擊率">AVG</th><th data-tooltip="當賽季累計 OBP+SLG">OPS</th>
                         {% endif %}
                     </tr>
                 </thead>

@@ -23,10 +23,10 @@ function _fmt(v, d) {
 // 將逐球 JSON 數據轉成 HTML 表格字串（編號/球數/局倒/球種/車速/區帶等欄位）
 function _buildPitchTable(pitches) {
     var h = '<table class="pitch-log-table"><thead><tr>' +
-        '<th>#</th><th>Count</th><th>INN</th><th>Type</th><th>Speed</th>' +
-        '<th>Zone</th><th>Result</th><th>EV</th><th>LA</th>' +
-        '<th>iVB</th><th>HB</th><th>Spin</th><th>Ext</th>' +
-        '<th>PA Event</th></tr></thead><tbody>';
+        '<th data-tooltip="逐球序號">#</th><th data-tooltip="投球前球數">Count</th><th data-tooltip="局數">INN</th><th data-tooltip="球種">Type</th><th data-tooltip="球速">Speed</th>' +
+        '<th data-tooltip="進壘區域">Zone</th><th data-tooltip="單球結果">Result</th><th data-tooltip="擊球初速">EV</th><th data-tooltip="擊球仰角">LA</th>' +
+        '<th data-tooltip="誘導垂直位移">iVB</th><th data-tooltip="水平位移">HB</th><th data-tooltip="轉速">Spin</th><th data-tooltip="出手延伸距離">Ext</th>' +
+        '<th data-tooltip="打席結果">PA Event</th></tr></thead><tbody>';
     var prevBalls = 0, prevStrikes = 0, paEnded = true;
     for (var i = 0; i < pitches.length; i++) {
         var p = pitches[i];

@@ -154,10 +154,12 @@
    出現在 gamelog 表格的聯盟欄位 */
 .level-tag {
     display: inline-block;              /* 依內容寬度收縮 */
-    padding: .1rem .4rem;               /* 內邊距 */
+    padding: .15rem .52rem;             /* 內邊距 */
     border-radius: 4px;                 /* 輕微圓角 */
     font-size: .7rem;                   /* 小文字 */
-    font-weight: 500;                   /* 中粗體 */
+    font-weight: 600;                   /* 半粗體 */
+    letter-spacing: .5px;               /* 字間距 */
+    text-transform: uppercase;          /* 強制全大寫 */
     border: 1px solid var(--border);    /* 細邊框 */
     background: var(--secondary);       /* 深灰背景 */
     color: var(--text-1);               /* 白色文字 */
