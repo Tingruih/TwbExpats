@@ -10,9 +10,8 @@
                         <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th><th data-tooltip="出賽數">G</th>
                         {% if is_pitcher %}
-                            <th data-tooltip="勝投數">W</th><th data-tooltip="敗投數">L</th><th data-tooltip="防禦率：每9局平均自責分">ERA</th><th data-tooltip="先發場次">GS</th><th data-tooltip="完投場次">CG</th><th data-tooltip="完封場次">SHO</th>
-                            <th data-tooltip="救援成功數">SV</th><th data-tooltip="中繼成功數">HLD</th><th data-tooltip="投球局數">IP</th><th data-tooltip="被安打數">H</th><th data-tooltip="被得分數">R</th><th data-tooltip="被自責分數">ER</th>
-                            <th data-tooltip="被全壘打數">HR</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="三振數">SO</th><th data-tooltip="三振率：SO ÷ 面對打者數">K%</th><th data-tooltip="保送率：BB ÷ 面對打者數">BB%</th><th data-tooltip="觸身球數">HB</th><th data-tooltip="暴投數">WP</th><th data-tooltip="投手犯規數">BK</th><th data-tooltip="面對打者總數">TBF</th>
+                            <th data-tooltip="勝敗投紀錄">W/L</th><th data-tooltip="先發場次">GS</th><th data-tooltip="救援成功數">SV</th><th data-tooltip="中繼成功數">HLD</th><th data-tooltip="投球局數">IP</th><th data-tooltip="面對打者總數">BF</th>
+                            <th data-tooltip="被安打數">H</th><th data-tooltip="被自責分數">ER</th><th data-tooltip="被全壘打數">HR</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="觸身球數">HBP</th><th data-tooltip="三振數">SO</th><th data-tooltip="防禦率：每9局平均自責分">ERA</th>
                         {% else %}
                             <th data-tooltip="打席數">PA</th><th data-tooltip="打數（不含四壞、犧牲等）">AB</th><th data-tooltip="得分數">R</th><th data-tooltip="打點數">RBI</th><th data-tooltip="安打數">H</th><th data-tooltip="二壘安打數">2B</th><th data-tooltip="三壘安打數">3B</th>
                             <th data-tooltip="全壘打數">HR</th><th data-tooltip="盜壘成功數">SB</th><th data-tooltip="盜壘失敗數">CS</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="三振數">SO</th>
@@ -36,27 +35,19 @@
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         <td class="num">{{ sm.gp|num_dash }}</td>
                         {% if is_pitcher %}
-                            <td class="num">{{ sm.wins|num_dash }}</td>
-                            <td class="num">{{ sm.losses|num_dash }}</td>
-                            <td class="num">{{ sm.era|floatformat(2) }}</td>
+                            <td class="num">{{ sm.wins|num_dash }}-{{ sm.losses|num_dash }}</td>
                             <td class="num">{{ sm.gs|num_dash }}</td>
-                            <td class="num">{{ sm.cg|num_dash }}</td>
-                            <td class="num">{{ sm.sho|num_dash }}</td>
                             <td class="num">{{ sm.sv|num_dash }}</td>
                             <td class="num">{{ sm.hld|num_dash }}</td>
                             <td class="num">{{ sm.ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.bf|num_dash }}</td>
                             <td class="num">{{ sm.p_hits|num_dash }}</td>
-                            <td class="num">{{ sm.runs_allowed|num_dash }}</td>
                             <td class="num">{{ sm.earned_runs|num_dash }}</td>
                             <td class="num">{{ sm.p_hr|num_dash }}</td>
                             <td class="num">{{ sm.bb|num_dash }}</td>
-                            <td class="num">{{ sm.so|num_dash }}</td>
-                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.p_hbp|num_dash }}</td>
-                            <td class="num">{{ sm.wp|num_dash }}</td>
-                            <td class="num">{{ sm.balks|num_dash }}</td>
-                            <td class="num">{{ sm.bf|num_dash }}</td>
+                            <td class="num">{{ sm.so|num_dash }}</td>
+                            <td class="num">{{ sm.era|floatformat(2) }}</td>
                         {% else %}
                             <td class="num">{{ sm.pa|num_dash }}</td>
                             <td class="num">{{ sm.ab|num_dash }}</td>
@@ -86,27 +77,19 @@
                         <td>{{ stat.team_name }}</td>
                         <td class="num">{{ stat.gp|num_dash }}</td>
                         {% if is_pitcher %}
-                            <td class="num">{{ stat.wins|num_dash }}</td>
-                            <td class="num">{{ stat.losses|num_dash }}</td>
-                            <td class="num">{{ stat.era|floatformat(2) }}</td>
+                            <td class="num">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</td>
                             <td class="num">{{ stat.gs|num_dash }}</td>
-                            <td class="num">{{ stat.cg|num_dash }}</td>
-                            <td class="num">{{ stat.sho|num_dash }}</td>
                             <td class="num">{{ stat.sv|num_dash }}</td>
                             <td class="num">{{ stat.hld|num_dash }}</td>
                             <td class="num">{{ stat.ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.bf|num_dash }}</td>
                             <td class="num">{{ stat.p_hits|num_dash }}</td>
-                            <td class="num">{{ stat.runs_allowed|num_dash }}</td>
                             <td class="num">{{ stat.earned_runs|num_dash }}</td>
                             <td class="num">{{ stat.p_hr|num_dash }}</td>
                             <td class="num">{{ stat.bb|num_dash }}</td>
-                            <td class="num">{{ stat.so|num_dash }}</td>
-                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.p_hbp|num_dash }}</td>
-                            <td class="num">{{ stat.wp|num_dash }}</td>
-                            <td class="num">{{ stat.balks|num_dash }}</td>
-                            <td class="num">{{ stat.bf|num_dash }}</td>
+                            <td class="num">{{ stat.so|num_dash }}</td>
+                            <td class="num">{{ stat.era|floatformat(2) }}</td>
                         {% else %}
                             <td class="num">{{ stat.pa|num_dash }}</td>
                             <td class="num">{{ stat.ab|num_dash }}</td>
