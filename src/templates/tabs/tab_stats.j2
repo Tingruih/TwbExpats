@@ -10,9 +10,8 @@
                         <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th><th>G</th>
                         {% if is_pitcher %}
-                            <th>W</th><th>L</th><th>ERA</th><th>GS</th><th>CG</th><th>SHO</th>
-                            <th>SV</th><th>HLD</th><th>IP</th><th>H</th><th>R</th><th>ER</th>
-                            <th>HR</th><th>BB</th><th>SO</th><th>K%</th><th>BB%</th><th>HB</th><th>WP</th><th>BK</th><th>TBF</th>
+                            <th>W/L</th><th>GS</th><th>SV</th><th>HLD</th><th>IP</th><th>BF</th>
+                            <th>H</th><th>ER</th><th>HR</th><th>BB</th><th>HBP</th><th>SO</th><th>ERA</th>
                         {% else %}
                             <th>PA</th><th>AB</th><th>R</th><th>RBI</th><th>H</th><th>2B</th><th>3B</th>
                             <th>HR</th><th>SB</th><th>CS</th><th>BB</th><th>SO</th>
@@ -36,27 +35,19 @@
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         <td class="num">{{ sm.gp|num_dash }}</td>
                         {% if is_pitcher %}
-                            <td class="num">{{ sm.wins|num_dash }}</td>
-                            <td class="num">{{ sm.losses|num_dash }}</td>
-                            <td class="num">{{ sm.era|floatformat(2) }}</td>
+                            <td class="num">{{ sm.wins|num_dash }}-{{ sm.losses|num_dash }}</td>
                             <td class="num">{{ sm.gs|num_dash }}</td>
-                            <td class="num">{{ sm.cg|num_dash }}</td>
-                            <td class="num">{{ sm.sho|num_dash }}</td>
                             <td class="num">{{ sm.sv|num_dash }}</td>
                             <td class="num">{{ sm.hld|num_dash }}</td>
                             <td class="num">{{ sm.ip|floatformat(1) }}</td>
+                            <td class="num">{{ sm.bf|num_dash }}</td>
                             <td class="num">{{ sm.p_hits|num_dash }}</td>
-                            <td class="num">{{ sm.runs_allowed|num_dash }}</td>
                             <td class="num">{{ sm.earned_runs|num_dash }}</td>
                             <td class="num">{{ sm.p_hr|num_dash }}</td>
                             <td class="num">{{ sm.bb|num_dash }}</td>
-                            <td class="num">{{ sm.so|num_dash }}</td>
-                            <td class="num">{{ sm.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ sm.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ sm.p_hbp|num_dash }}</td>
-                            <td class="num">{{ sm.wp|num_dash }}</td>
-                            <td class="num">{{ sm.balks|num_dash }}</td>
-                            <td class="num">{{ sm.bf|num_dash }}</td>
+                            <td class="num">{{ sm.so|num_dash }}</td>
+                            <td class="num">{{ sm.era|floatformat(2) }}</td>
                         {% else %}
                             <td class="num">{{ sm.pa|num_dash }}</td>
                             <td class="num">{{ sm.ab|num_dash }}</td>
@@ -86,27 +77,19 @@
                         <td>{{ stat.team_name }}</td>
                         <td class="num">{{ stat.gp|num_dash }}</td>
                         {% if is_pitcher %}
-                            <td class="num">{{ stat.wins|num_dash }}</td>
-                            <td class="num">{{ stat.losses|num_dash }}</td>
-                            <td class="num">{{ stat.era|floatformat(2) }}</td>
+                            <td class="num">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</td>
                             <td class="num">{{ stat.gs|num_dash }}</td>
-                            <td class="num">{{ stat.cg|num_dash }}</td>
-                            <td class="num">{{ stat.sho|num_dash }}</td>
                             <td class="num">{{ stat.sv|num_dash }}</td>
                             <td class="num">{{ stat.hld|num_dash }}</td>
                             <td class="num">{{ stat.ip|floatformat(1) }}</td>
+                            <td class="num">{{ stat.bf|num_dash }}</td>
                             <td class="num">{{ stat.p_hits|num_dash }}</td>
-                            <td class="num">{{ stat.runs_allowed|num_dash }}</td>
                             <td class="num">{{ stat.earned_runs|num_dash }}</td>
                             <td class="num">{{ stat.p_hr|num_dash }}</td>
                             <td class="num">{{ stat.bb|num_dash }}</td>
-                            <td class="num">{{ stat.so|num_dash }}</td>
-                            <td class="num">{{ stat.k_pct|pct_fmt }}</td>
-                            <td class="num">{{ stat.bb_pct|pct_fmt }}</td>
                             <td class="num">{{ stat.p_hbp|num_dash }}</td>
-                            <td class="num">{{ stat.wp|num_dash }}</td>
-                            <td class="num">{{ stat.balks|num_dash }}</td>
-                            <td class="num">{{ stat.bf|num_dash }}</td>
+                            <td class="num">{{ stat.so|num_dash }}</td>
+                            <td class="num">{{ stat.era|floatformat(2) }}</td>
                         {% else %}
                             <td class="num">{{ stat.pa|num_dash }}</td>
                             <td class="num">{{ stat.ab|num_dash }}</td>

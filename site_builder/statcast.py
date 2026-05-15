@@ -887,7 +887,7 @@ def _discipline_metrics(agg: dict) -> dict:
         "z_swing_pct": _ratio(len(agg["in_zone_swings"]), len(agg["in_zone"])),
         "o_swing_pct": _ratio(len(agg["out_zone_swings"]), len(agg["out_zone"])),
         "z_contact_pct": _ratio(len(agg["in_zone_contact"]), len(agg["in_zone_swings"])),
-        "zone_pct": _ratio(len(agg["in_zone"]), total),
+        "zone_pct": _ratio(len(agg["in_zone"]), len(agg["in_zone"]) + len(agg["out_zone"])),
     }
 
 
@@ -1007,7 +1007,7 @@ def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = No
             "extension": _mean_round([p.get("extension") for p in ps], 2),
             "v_rel": _mean_round([p.get("z0") for p in ps], 2),
             "h_rel": _mean_round([p.get("x0") for p in ps], 2),
-            "zone_pct": _ratio(len(agg["in_zone"]), n),
+            "zone_pct": _ratio(len(agg["in_zone"]), len(agg["in_zone"]) + len(agg["out_zone"])),
             "chase_pct": _ratio(len(agg["out_zone_swings"]), len(agg["out_zone"])),
             "whiff_pct": _ratio(len(agg["whiffs"]), len(agg["swings"])),
             "put_away_pct": _ratio(two_strike_strikeouts, len(two_strike)),
@@ -1286,7 +1286,7 @@ def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = No
             "name": name,
             "count": n,
             "strike_pct": _ratio(strikes, n),
-            "zone_pct": _ratio(len(agg["in_zone"]), n),
+            "zone_pct": _ratio(len(agg["in_zone"]), len(agg["in_zone"]) + len(agg["out_zone"])),
             "z_swing_pct": _ratio(len(agg["in_zone_swings"]), len(agg["in_zone"])),
             "o_swing_pct": _ratio(len(agg["out_zone_swings"]), len(agg["out_zone"])),
             "whiff_pct": _ratio(len(agg["whiffs"]), len(agg["swings"])),
