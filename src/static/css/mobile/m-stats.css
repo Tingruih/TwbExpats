@@ -1,19 +1,25 @@
-/* ═══════════════════════════════════════
-   手機版基礎數據 ── 重構版
-   設計原則：數字優先、teal accent、5欄次要 grid
-═══════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   手機版基礎數據 ── 交替行設計 v3
+   ─────────────────────────────────────────────
+   核心原則：
+   · 標籤行 / 數值行嚴格分開，同行字號完全一致
+   · featured 區 1.05rem、secondary 區 0.88rem
+   · 標籤一律 0.6rem uppercase，全版統一
+   · 卡片間距加大，呼吸感明顯
+   · 無任何顏色區分當季
+═══════════════════════════════════════════════ */
 
 /* ── 外框 ── */
 .m-stats-card {
-    padding: 0.875rem 0.875rem 1rem;
+    padding: 1rem;
 }
 
 .m-stats-card > h3 {
-    color: var(--text-2);
-    font-size: 0.72rem;
+    color: var(--text-3);
+    font-size: 0.63rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    margin: 0 0 0.75rem;
+    letter-spacing: 0.1em;
+    margin: 0 0 0.875rem;
     text-transform: uppercase;
 }
 
@@ -21,165 +27,139 @@
 .m-stat-card-list {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.75rem;
 }
 
 /* ── 單一年度卡片 ── */
 .m-stat-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--card-surface);
     border: 1px solid var(--border);
-    border-left: 3px solid transparent;
     border-radius: 10px;
     overflow: hidden;
-    transition: border-color 0.15s ease;
 }
 
-/* 當季高亮：teal 左側 accent + 淡色底 */
+/* 無顏色當季區分 */
 .m-stat-card--hl {
-    background: rgba(20, 184, 166, 0.03);
-    border-left-color: var(--teal);
+    border-color: var(--border);
 }
 
 /* ── 卡片標題列 ── */
 .m-stat-card-hd {
     align-items: center;
-    background: rgba(255, 255, 255, 0.035);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
-    padding: 0.475rem 0.75rem;
-    gap: 0.5rem;
-    min-height: 0;
+    padding: 0.55rem 0.875rem;
 }
 
-.m-stat-card--hl .m-stat-card-hd {
-    background: rgba(20, 184, 166, 0.07);
-}
-
-/* 標題列左側：年度 + 層級 + 球隊 */
 .m-stat-yr-meta {
     align-items: center;
     display: flex;
     gap: 0.45rem;
+    min-width: 0;
     overflow: hidden;
 }
 
 .m-stat-yr {
     color: var(--text-1);
-    font-size: 0.92rem;
+    flex-shrink: 0;
+    font-size: 0.95rem;
     font-weight: 800;
     letter-spacing: -0.03em;
-    flex-shrink: 0;
 }
 
+/* 當季標題無顏色區分 */
 .m-stat-card--hl .m-stat-yr {
-    color: var(--teal);
+    color: var(--text-1);
 }
 
-/* 球隊名稱（非多隊時顯示）*/
 .m-stat-team {
     color: var(--text-3);
-    font-size: 0.68rem;
+    font-size: 0.67rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* ── 核心數據列（4 欄，數字在上、縮寫在下）── */
+/* ════════════════════════════════════════
+   核心指標區（4 欄，value 行在上 label 行在下）
+════════════════════════════════════════ */
 .m-stat-featured-row {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+    border-bottom: 1px solid var(--border);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    padding: 0.65rem 0.25rem 0.525rem;
+    /* 前 4 個 span = value 行，後 4 個 span = label 行 */
+    padding: 0.9rem 0.5rem 0.75rem;
+    row-gap: 0.375rem;
+    text-align: center;
 }
 
-.m-stat-feat {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: relative;
-}
-
-/* 欄間分隔線 */
-.m-stat-feat + .m-stat-feat::before {
-    background: rgba(255, 255, 255, 0.07);
-    bottom: 15%;
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 15%;
-    width: 1px;
-}
-
-/* 數字（DOM 第一個子元素 → 顯示在上方）*/
-.m-stat-feat .m-sv {
+/* value 行：大字、亮色 */
+.m-stat-featured-row .m-sv {
     color: var(--text-1);
     font-feature-settings: 'tnum';
-    font-size: 1.12rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     line-height: 1;
     white-space: nowrap;
 }
 
-/* 縮寫標籤（DOM 第二個子元素 → 顯示在下方）*/
-.m-stat-feat .m-sl {
+/* label 行：小字、暗色 */
+.m-stat-featured-row .m-sl {
     color: var(--text-3);
-    font-size: 0.565rem;
-    font-weight: 600;
+    font-size: 0.6rem;
+    font-weight: 500;
     letter-spacing: 0.07em;
     line-height: 1;
     text-transform: uppercase;
 }
 
-/* 當季第一個核心數字用 teal 強調 */
-.m-stat-card--hl .m-stat-feat:first-child .m-sv {
-    color: var(--teal);
-}
-
-/* ── 次要數據格子（5 欄）── */
+/* ════════════════════════════════════════
+   次要數據區（5 欄，label 行 / value 行交替）
+════════════════════════════════════════ */
 .m-stat-sec-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 0.45rem 0.2rem 0.5rem;
-    row-gap: 0.05rem;
+    padding: 0.625rem 0.375rem 0.8rem;
+    row-gap: 0.2rem;
+    text-align: center;
 }
 
-.m-sc {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0.2rem 0.05rem;
-}
-
-/* 標籤在上 */
-.m-sc .m-sl {
+/* label 行：與 featured 完全一致的樣式 */
+.m-stat-sec-grid .m-sl {
     color: var(--text-3);
-    font-size: 0.54rem;
+    font-size: 0.6rem;
     font-weight: 500;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.065em;
     line-height: 1;
     text-transform: uppercase;
 }
 
-/* 數值在下 */
-.m-sc .m-sv {
+/* value 行：比 featured 小但色調一致 */
+.m-stat-sec-grid .m-sv {
     color: var(--text-2);
     font-feature-settings: 'tnum';
-    font-size: 0.8rem;
+    font-size: 0.88rem;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
-/* ── 子球隊列表 ── */
+/* 組間分隔：佔滿整列，創造視覺空白 */
+.m-stat-group-sep {
+    grid-column: 1 / -1;
+    height: 0.45rem;
+}
+
+/* ════════════════════════════════════════
+   多球隊子卡片
+════════════════════════════════════════ */
 .m-stat-sub-list {
     border-top: 1px solid var(--border);
 }
 
 .m-stat-sub-card {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    border-bottom: 1px solid var(--border);
 }
 
 .m-stat-sub-card:last-child {
@@ -188,10 +168,10 @@
 
 .m-stat-sub-hd {
     align-items: center;
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.18);
     display: flex;
     gap: 0.5rem;
-    padding: 0.35rem 0.75rem;
+    padding: 0.375rem 0.875rem;
 }
 
 .m-stat-sub-hd .m-sub-team {
@@ -202,17 +182,17 @@
     white-space: nowrap;
 }
 
-/* 子卡片的核心數字縮小 */
+/* 子卡片的 featured 數字縮小 */
 .m-stat-sub-card .m-stat-featured-row {
-    padding: 0.45rem 0.25rem 0.375rem;
+    padding: 0.65rem 0.375rem 0.5rem;
 }
 
-.m-stat-sub-card .m-stat-feat .m-sv {
+.m-stat-sub-card .m-stat-featured-row .m-sv {
     font-size: 0.92rem;
 }
 
 /* ── 空狀態 ── */
 .m-stats-card .m-empty-text {
-    padding: 0 0 0.9rem;
+    padding: 0 0 0.875rem;
     text-align: center;
 }

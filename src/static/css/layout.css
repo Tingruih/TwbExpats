@@ -70,12 +70,11 @@ header h1 {
     gap: 0.1rem;            /* 主標題與副標題之間的間距 */
 }
 
-/* 控制【全站 / 品牌主標題文字 "TWBEXPATS"】 */
+/* 控制【全站 / 品牌主標題文字 "TwbExpats"】 */
 .brand-text {
     font-size: 1.05rem;         /* 主標題字型大小 */
     font-weight: 700;           /* 粗體 */
-    letter-spacing: 0.12em;     /* 字間距加大（大寫字母拉開字距更好看） */
-    text-transform: uppercase;  /* 強制全大寫（確保視覺一致） */
+    letter-spacing: 0.12em;     /* 字間距加大 */
     color: var(--text-1);       /* 白色文字 */
     margin: 0;                  /* 移除 p 標籤預設 margin */
 }
@@ -86,7 +85,6 @@ header h1 {
     font-size: 0.62rem;         /* 較小的文字（副標題比主標題小） */
     color: var(--text-3);       /* 較暗的灰色（次要資訊） */
     letter-spacing: 0.14em;     /* 字間距加大 */
-    text-transform: uppercase;  /* 全大寫 */
     font-weight: 500;           /* 中等粗細 */
 }
 

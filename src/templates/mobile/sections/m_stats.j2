@@ -7,7 +7,8 @@
             {% set yr = grp.year %}
             {% set sm = grp.summary %}
             <div class="m-stat-card{% if yr == selected_year %} m-stat-card--hl{% endif %}">
-                {# ── 卡片標題列 ── #}
+
+                {# ── 標題列 ── #}
                 <div class="m-stat-card-hd{% if grp.multi %} is-multi{% endif %}"
                     {% if grp.multi %}onclick="toggleMobileYearGroup('basic','{{ yr }}')" style="cursor:pointer;"{% endif %}>
                     <div class="m-stat-yr-meta">
@@ -16,81 +17,52 @@
                         <span class="multi-tag">{{ grp.rows|length }}隊</span>
                         {% else %}
                         <span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>
-                        {% endif %}
-                        {% if not grp.multi %}
                         <span class="m-stat-team">{{ grp.rows[0].team_name }}</span>
                         {% endif %}
                     </div>
                     {% if grp.multi %}<span class="toggle-arrow" id="m-arrow-basic-{{ yr }}"></span>{% endif %}
                 </div>
 
-                {# ── 核心數據（value 在上，label 在下）── #}
+                {# ── 核心指標：value 行 → label 行，4 欄 ── #}
                 {% if is_pitcher %}
                 <div class="m-stat-featured-row">
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.era|floatformat(2) }}</span>
-                        <span class="m-sl">ERA</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.wins|num_dash }}-{{ sm.losses|num_dash }}</span>
-                        <span class="m-sl">W-L</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.ip|floatformat(1) }}</span>
-                        <span class="m-sl">IP</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.so|num_dash }}</span>
-                        <span class="m-sl">SO</span>
-                    </div>
+                    <span class="m-sv">{{ sm.era|floatformat(2) }}</span>
+                    <span class="m-sv">{{ sm.wins|num_dash }}-{{ sm.losses|num_dash }}</span>
+                    <span class="m-sv">{{ sm.ip|floatformat(1) }}</span>
+                    <span class="m-sv">{{ sm.so|num_dash }}</span>
+                    <span class="m-sl">ERA</span>
+                    <span class="m-sl">W-L</span>
+                    <span class="m-sl">IP</span>
+                    <span class="m-sl">SO</span>
                 </div>
-                {# ── 次要數據（5欄，role→allowed 分組）── #}
+                {# ── 次要數據：label 行 / value 行交替，5 欄，組間分隔 ── #}
                 <div class="m-stat-sec-grid">
-                    <div class="m-sc"><span class="m-sl">G</span><span class="m-sv">{{ sm.gp|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">GS</span><span class="m-sv">{{ sm.gs|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">BF</span><span class="m-sv">{{ sm.bf|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">SV</span><span class="m-sv">{{ sm.sv|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">HLD</span><span class="m-sv">{{ sm.hld|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">H</span><span class="m-sv">{{ sm.p_hits|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">ER</span><span class="m-sv">{{ sm.earned_runs|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">HR</span><span class="m-sv">{{ sm.p_hr|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">BB</span><span class="m-sv">{{ sm.bb|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">HBP</span><span class="m-sv">{{ sm.p_hbp|num_dash }}</span></div>
+                    <span class="m-sl">G</span><span class="m-sl">GS</span><span class="m-sl">BF</span><span class="m-sl">SV</span><span class="m-sl">HLD</span>
+                    <span class="m-sv">{{ sm.gp|num_dash }}</span><span class="m-sv">{{ sm.gs|num_dash }}</span><span class="m-sv">{{ sm.bf|num_dash }}</span><span class="m-sv">{{ sm.sv|num_dash }}</span><span class="m-sv">{{ sm.hld|num_dash }}</span>
+                    <span class="m-stat-group-sep"></span>
+                    <span class="m-sl">H</span><span class="m-sl">ER</span><span class="m-sl">HR</span><span class="m-sl">BB</span><span class="m-sl">HBP</span>
+                    <span class="m-sv">{{ sm.p_hits|num_dash }}</span><span class="m-sv">{{ sm.earned_runs|num_dash }}</span><span class="m-sv">{{ sm.p_hr|num_dash }}</span><span class="m-sv">{{ sm.bb|num_dash }}</span><span class="m-sv">{{ sm.p_hbp|num_dash }}</span>
                 </div>
                 {% else %}
                 <div class="m-stat-featured-row">
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.avg|floatformat(3) }}</span>
-                        <span class="m-sl">AVG</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.obp|floatformat(3) }}</span>
-                        <span class="m-sl">OBP</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.slg|floatformat(3) }}</span>
-                        <span class="m-sl">SLG</span>
-                    </div>
-                    <div class="m-stat-feat">
-                        <span class="m-sv">{{ sm.ops|floatformat(3) }}</span>
-                        <span class="m-sl">OPS</span>
-                    </div>
+                    <span class="m-sv">{{ sm.avg|floatformat(3) }}</span>
+                    <span class="m-sv">{{ sm.obp|floatformat(3) }}</span>
+                    <span class="m-sv">{{ sm.slg|floatformat(3) }}</span>
+                    <span class="m-sv">{{ sm.ops|floatformat(3) }}</span>
+                    <span class="m-sl">AVG</span>
+                    <span class="m-sl">OBP</span>
+                    <span class="m-sl">SLG</span>
+                    <span class="m-sl">OPS</span>
                 </div>
-                {# ── 次要數據（5欄，計數→得分→攻守 分組）── #}
                 <div class="m-stat-sec-grid">
-                    <div class="m-sc"><span class="m-sl">G</span><span class="m-sv">{{ sm.gp|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">AB</span><span class="m-sv">{{ sm.ab|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">PA</span><span class="m-sv">{{ sm.pa|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">R</span><span class="m-sv">{{ sm.runs|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">H</span><span class="m-sv">{{ sm.hits|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">2B</span><span class="m-sv">{{ sm.doubles|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">3B</span><span class="m-sv">{{ sm.triples|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">HR</span><span class="m-sv">{{ sm.hr|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">RBI</span><span class="m-sv">{{ sm.rbi|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">BB</span><span class="m-sv">{{ sm.hit_bb|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">SO</span><span class="m-sv">{{ sm.h_so|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">SB</span><span class="m-sv">{{ sm.sb|num_dash }}</span></div>
-                    <div class="m-sc"><span class="m-sl">CS</span><span class="m-sv">{{ sm.cs|num_dash }}</span></div>
+                    <span class="m-sl">G</span><span class="m-sl">AB</span><span class="m-sl">PA</span><span class="m-sl">R</span><span class="m-sl">H</span>
+                    <span class="m-sv">{{ sm.gp|num_dash }}</span><span class="m-sv">{{ sm.ab|num_dash }}</span><span class="m-sv">{{ sm.pa|num_dash }}</span><span class="m-sv">{{ sm.runs|num_dash }}</span><span class="m-sv">{{ sm.hits|num_dash }}</span>
+                    <span class="m-stat-group-sep"></span>
+                    <span class="m-sl">2B</span><span class="m-sl">3B</span><span class="m-sl">HR</span><span class="m-sl">RBI</span><span class="m-sl">BB</span>
+                    <span class="m-sv">{{ sm.doubles|num_dash }}</span><span class="m-sv">{{ sm.triples|num_dash }}</span><span class="m-sv">{{ sm.hr|num_dash }}</span><span class="m-sv">{{ sm.rbi|num_dash }}</span><span class="m-sv">{{ sm.hit_bb|num_dash }}</span>
+                    <span class="m-stat-group-sep"></span>
+                    <span class="m-sl">SO</span><span class="m-sl">SB</span><span class="m-sl">CS</span>
+                    <span class="m-sv">{{ sm.h_so|num_dash }}</span><span class="m-sv">{{ sm.sb|num_dash }}</span><span class="m-sv">{{ sm.cs|num_dash }}</span>
                 </div>
                 {% endif %}
 
@@ -105,74 +77,49 @@
                         </div>
                         {% if is_pitcher %}
                         <div class="m-stat-featured-row">
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.era|floatformat(2) }}</span>
-                                <span class="m-sl">ERA</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span>
-                                <span class="m-sl">W-L</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.ip|floatformat(1) }}</span>
-                                <span class="m-sl">IP</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.so|num_dash }}</span>
-                                <span class="m-sl">SO</span>
-                            </div>
+                            <span class="m-sv">{{ stat.era|floatformat(2) }}</span>
+                            <span class="m-sv">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span>
+                            <span class="m-sv">{{ stat.ip|floatformat(1) }}</span>
+                            <span class="m-sv">{{ stat.so|num_dash }}</span>
+                            <span class="m-sl">ERA</span>
+                            <span class="m-sl">W-L</span>
+                            <span class="m-sl">IP</span>
+                            <span class="m-sl">SO</span>
                         </div>
                         <div class="m-stat-sec-grid">
-                            <div class="m-sc"><span class="m-sl">G</span><span class="m-sv">{{ stat.gp|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">GS</span><span class="m-sv">{{ stat.gs|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">BF</span><span class="m-sv">{{ stat.bf|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">SV</span><span class="m-sv">{{ stat.sv|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">HLD</span><span class="m-sv">{{ stat.hld|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">H</span><span class="m-sv">{{ stat.p_hits|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">ER</span><span class="m-sv">{{ stat.earned_runs|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">HR</span><span class="m-sv">{{ stat.p_hr|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">BB</span><span class="m-sv">{{ stat.bb|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">HBP</span><span class="m-sv">{{ stat.p_hbp|num_dash }}</span></div>
+                            <span class="m-sl">G</span><span class="m-sl">GS</span><span class="m-sl">BF</span><span class="m-sl">SV</span><span class="m-sl">HLD</span>
+                            <span class="m-sv">{{ stat.gp|num_dash }}</span><span class="m-sv">{{ stat.gs|num_dash }}</span><span class="m-sv">{{ stat.bf|num_dash }}</span><span class="m-sv">{{ stat.sv|num_dash }}</span><span class="m-sv">{{ stat.hld|num_dash }}</span>
+                            <span class="m-stat-group-sep"></span>
+                            <span class="m-sl">H</span><span class="m-sl">ER</span><span class="m-sl">HR</span><span class="m-sl">BB</span><span class="m-sl">HBP</span>
+                            <span class="m-sv">{{ stat.p_hits|num_dash }}</span><span class="m-sv">{{ stat.earned_runs|num_dash }}</span><span class="m-sv">{{ stat.p_hr|num_dash }}</span><span class="m-sv">{{ stat.bb|num_dash }}</span><span class="m-sv">{{ stat.p_hbp|num_dash }}</span>
                         </div>
                         {% else %}
                         <div class="m-stat-featured-row">
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.avg|floatformat(3) }}</span>
-                                <span class="m-sl">AVG</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.obp|floatformat(3) }}</span>
-                                <span class="m-sl">OBP</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.slg|floatformat(3) }}</span>
-                                <span class="m-sl">SLG</span>
-                            </div>
-                            <div class="m-stat-feat">
-                                <span class="m-sv">{{ stat.ops|floatformat(3) }}</span>
-                                <span class="m-sl">OPS</span>
-                            </div>
+                            <span class="m-sv">{{ stat.avg|floatformat(3) }}</span>
+                            <span class="m-sv">{{ stat.obp|floatformat(3) }}</span>
+                            <span class="m-sv">{{ stat.slg|floatformat(3) }}</span>
+                            <span class="m-sv">{{ stat.ops|floatformat(3) }}</span>
+                            <span class="m-sl">AVG</span>
+                            <span class="m-sl">OBP</span>
+                            <span class="m-sl">SLG</span>
+                            <span class="m-sl">OPS</span>
                         </div>
                         <div class="m-stat-sec-grid">
-                            <div class="m-sc"><span class="m-sl">G</span><span class="m-sv">{{ stat.gp|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">AB</span><span class="m-sv">{{ stat.ab|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">PA</span><span class="m-sv">{{ stat.pa|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">R</span><span class="m-sv">{{ stat.runs|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">H</span><span class="m-sv">{{ stat.hits|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">2B</span><span class="m-sv">{{ stat.doubles|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">3B</span><span class="m-sv">{{ stat.triples|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">HR</span><span class="m-sv">{{ stat.hr|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">RBI</span><span class="m-sv">{{ stat.rbi|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">BB</span><span class="m-sv">{{ stat.hit_bb|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">SO</span><span class="m-sv">{{ stat.h_so|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">SB</span><span class="m-sv">{{ stat.sb|num_dash }}</span></div>
-                            <div class="m-sc"><span class="m-sl">CS</span><span class="m-sv">{{ stat.cs|num_dash }}</span></div>
+                            <span class="m-sl">G</span><span class="m-sl">AB</span><span class="m-sl">PA</span><span class="m-sl">R</span><span class="m-sl">H</span>
+                            <span class="m-sv">{{ stat.gp|num_dash }}</span><span class="m-sv">{{ stat.ab|num_dash }}</span><span class="m-sv">{{ stat.pa|num_dash }}</span><span class="m-sv">{{ stat.runs|num_dash }}</span><span class="m-sv">{{ stat.hits|num_dash }}</span>
+                            <span class="m-stat-group-sep"></span>
+                            <span class="m-sl">2B</span><span class="m-sl">3B</span><span class="m-sl">HR</span><span class="m-sl">RBI</span><span class="m-sl">BB</span>
+                            <span class="m-sv">{{ stat.doubles|num_dash }}</span><span class="m-sv">{{ stat.triples|num_dash }}</span><span class="m-sv">{{ stat.hr|num_dash }}</span><span class="m-sv">{{ stat.rbi|num_dash }}</span><span class="m-sv">{{ stat.hit_bb|num_dash }}</span>
+                            <span class="m-stat-group-sep"></span>
+                            <span class="m-sl">SO</span><span class="m-sl">SB</span><span class="m-sl">CS</span>
+                            <span class="m-sv">{{ stat.h_so|num_dash }}</span><span class="m-sv">{{ stat.sb|num_dash }}</span><span class="m-sv">{{ stat.cs|num_dash }}</span>
                         </div>
                         {% endif %}
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
+
             </div>
             {% endfor %}
         </div>
