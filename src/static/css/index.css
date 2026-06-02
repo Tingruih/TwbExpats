@@ -189,6 +189,7 @@
     color: var(--text-2);           /* 灰色文字（未選中） */
     background: transparent;        /* 透明背景（未選中） */
     border: 1px solid var(--border); /* 細邊框 */
+    cursor: pointer;
     transition: var(--ease);        /* hover 動畫 */
 }
 
@@ -203,4 +204,10 @@
     color: var(--primary-fg);       /* 黑色文字（白底上用黑字） */
     background: var(--primary);     /* 白色背景（選中狀態最顯眼） */
     border-color: var(--primary);   /* 邊框也改為白色 */
+}
+
+/* 已選中的按鈕 hover 時維持選中樣式，不變色 */
+.sort-btn-active:hover {
+    color: var(--primary-fg);
+    background: var(--primary);
 }

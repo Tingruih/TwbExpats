@@ -4,8 +4,11 @@ __pycache__/
 *.pyc
 .ruff_cache/
 venv/
-
+.mcp.json
+.playwright-mcp
 .DS_Store
 
-/data_now.md
+CLAUDE.md
+chart-mvp.html
+data_now.md
 logs.md

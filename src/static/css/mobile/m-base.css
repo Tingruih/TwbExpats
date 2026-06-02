@@ -26,3 +26,12 @@
 .m-filter-bar .filter-select {
     min-height: 36px;
 }
+
+/* iOS `:focus` 在 picker 關閉後仍殘留，改用 JS 控制的 class 管理高亮 */
+.page-mobile .filter-select:focus {
+    border-color: var(--border);
+}
+.page-mobile .filter-select.is-picking {
+    border-color: var(--primary);
+}
+

@@ -52,7 +52,7 @@
 .filter-select:hover,
 .filter-select:focus {
     border-color: var(--primary);   /* hover/focus 時邊框變白色 */
-    outline: none;                  /* 移除 focus 預設藍色外框 */
+    outline: none;                         /* 移除 focus 預設藍色外框 */
 }
 
 /* 控制【逐場紀錄 Tab / 每年度逐場表格的外層容器】

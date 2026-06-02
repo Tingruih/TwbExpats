@@ -54,6 +54,21 @@
             });
         });
 
+        // iOS :focus 在 picker 關閉後仍殘留，改用自訂 class 控制高亮
+        document.querySelectorAll('.page-mobile .filter-select').forEach(function(sel) {
+            sel.addEventListener('focus',  function() { this.classList.add('is-picking'); });
+            sel.addEventListener('change', function() { this.classList.remove('is-picking'); });
+            sel.addEventListener('blur',   function() { this.classList.remove('is-picking'); });
+        });
+        // 點旁邊取消時 iOS 不一定觸發 blur，document touchstart 作為 fallback
+        document.addEventListener('touchstart', function(e) {
+            if (!e.target.classList.contains('filter-select')) {
+                document.querySelectorAll('.filter-select.is-picking').forEach(function(s) {
+                    s.classList.remove('is-picking');
+                });
+            }
+        }, { passive: true });
+
         var param = new URLSearchParams(window.location.search).get('tab');
         if (param && TABS.indexOf(param) !== -1) switchMobileTab(param, false);
     }
