@@ -49,14 +49,19 @@ def slice_prefix(value, n):
     return str(value)[:n]
 
 
+def _json_html_safe(s: str) -> str:
+    # Prevent </script> from closing the enclosing script tag.
+    return s.replace("</", "<\\/")
+
+
 def tojson_safe(value):
     """Serialize to JSON and mark safe for embedding in <script>."""
-    return Markup(json.dumps(value, ensure_ascii=False))
+    return Markup(_json_html_safe(json.dumps(value, ensure_ascii=False)))
 
 
 def jsonld(value):
     """Serialize compact JSON-LD and mark safe for embedding in <script>."""
-    return Markup(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+    return Markup(_json_html_safe(json.dumps(value, ensure_ascii=False, separators=(",", ":"))))
 
 
 def pct_fmt(value, digits=1):
