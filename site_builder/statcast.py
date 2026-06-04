@@ -815,21 +815,63 @@ def _aggregate_pitches(pitches: list[dict]) -> dict:
     Returns a dict with pre-filtered lists and counts shared by both
     pitcher and batter aggregation paths.
     """
-    swings = [p for p in pitches if _is_swing(p)]
-    whiffs = [p for p in pitches if _is_whiff(p)]
-    called = [p for p in pitches if _is_called_strike(p)]
-    in_zone = [p for p in pitches if _is_in_zone(p)]
-    out_zone = [p for p in pitches if _is_out_of_zone(p)]
-    in_zone_swings = [p for p in in_zone if _is_swing(p)]
-    out_zone_swings = [p for p in out_zone if _is_swing(p)]
-    in_zone_contact = [p for p in in_zone_swings if not _is_whiff(p)]
-    in_play = [p for p in pitches if p.get("is_in_play")]
-    bbe_ev = [p for p in in_play if p.get("ev") is not None]
-    pa_final = [p for p in pitches if p.get("is_pa_final")]
+    swings: list[dict] = []
+    whiffs: list[dict] = []
+    called: list[dict] = []
+    in_zone: list[dict] = []
+    out_zone: list[dict] = []
+    in_zone_swings: list[dict] = []
+    out_zone_swings: list[dict] = []
+    in_zone_contact: list[dict] = []
+    in_play: list[dict] = []
+    bbe_ev: list[dict] = []
+    pa_final: list[dict] = []
+    gb = fb = ld = pu = barrels = hard_hits = 0
 
-    trajectories = [p.get("trajectory", "") for p in in_play]
+    for p in pitches:
+        is_sw = _is_swing(p)
+        is_wh = _is_whiff(p)
+        in_z  = _is_in_zone(p)
+        out_z = _is_out_of_zone(p)
+
+        if is_sw:
+            swings.append(p)
+        if is_wh:
+            whiffs.append(p)
+        if _is_called_strike(p):
+            called.append(p)
+        if in_z:
+            in_zone.append(p)
+            if is_sw:
+                in_zone_swings.append(p)
+                if not is_wh:
+                    in_zone_contact.append(p)
+        if out_z:
+            out_zone.append(p)
+            if is_sw:
+                out_zone_swings.append(p)
+        if p.get("is_in_play"):
+            in_play.append(p)
+            ev = p.get("ev")
+            if ev is not None:
+                bbe_ev.append(p)
+                if ev >= 95:
+                    hard_hits += 1
+            if _is_barrel(ev, p.get("la")):
+                barrels += 1
+            traj = p.get("trajectory", "")
+            if traj in _GB_TRAJECTORIES:
+                gb += 1
+            elif traj in _LD_TRAJECTORIES:
+                ld += 1
+            elif traj in _FB_TRAJECTORIES:
+                fb += 1
+            elif traj in _PU_TRAJECTORIES:
+                pu += 1
+        if p.get("is_pa_final"):
+            pa_final.append(p)
+
     spray = _compute_spray(in_play)
-
     return {
         "total": len(pitches),
         "swings": swings,
@@ -843,17 +885,17 @@ def _aggregate_pitches(pitches: list[dict]) -> dict:
         "in_play": in_play,
         "bbe_ev": bbe_ev,
         "pa_final": pa_final,
-        "gb": sum(1 for t in trajectories if t in _GB_TRAJECTORIES),
-        "fb": sum(1 for t in trajectories if t in _FB_TRAJECTORIES),
-        "ld": sum(1 for t in trajectories if t in _LD_TRAJECTORIES),
-        "pu": sum(1 for t in trajectories if t in _PU_TRAJECTORIES),
+        "gb": gb,
+        "fb": fb,
+        "ld": ld,
+        "pu": pu,
         "pull": spray["pull"],
         "straight": spray["straight"],
         "oppo": spray["oppo"],
         "pull_air": spray["pull_air"],
         "spray_total": spray["spray_total"],
-        "barrels": sum(1 for p in in_play if _is_barrel(p.get("ev"), p.get("la"))),
-        "hard_hits": sum(1 for p in bbe_ev if p["ev"] >= 95),
+        "barrels": barrels,
+        "hard_hits": hard_hits,
     }
 
 
