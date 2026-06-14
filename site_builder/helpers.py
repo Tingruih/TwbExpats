@@ -32,6 +32,59 @@ class Obj(dict):
         self[key] = value
 
 
+# ── Roster status classification ──
+
+# `rosterEntries[0].status.code` values meaning the player is on an injured
+# list (or a rehab assignment from one) while that roster entry is still
+# active (isActive=true).
+ROSTER_INJURED_CODES = {"D7", "D10", "D15", "D60", "ILF", "RA"}
+
+# `rosterEntries[0].status.code` values meaning the player is on personal /
+# disciplinary leave while that roster entry is still active (isActive=true).
+# SU=Suspension, RES=Reserve List (Minors), BRV=Bereavement,
+# FME=Family Medical Emergency, RST=Restricted List, IN=Ineligible List,
+# PL=Paternity List, MIL=Military Leave, ADM=Administrative Leave,
+# TI=Temporary Inactive List.
+ROSTER_RESTRICTED_CODES = {
+    "SU", "RES", "BRV", "FME", "RST", "IN", "PL", "MIL", "ADM", "TI",
+}
+
+# `rosterEntries[0].status.code` values meaning the roster entry is a
+# transitional roster move (e.g. DFA limbo) while still active
+# (isActive=true), distinct from injury or leave.
+ROSTER_OTHER_CODES = {"DES"}
+
+# `rosterEntries[0].status.code` values meaning the player has left the
+# organization entirely, even though that roster entry's isActive is false.
+ROSTER_INACTIVE_CODES = {"RL", "RET", "VL"}
+
+
+def categorize_roster_status(code, is_active_entry, player_is_active):
+    """Map a player's most recent roster entry to a status-pill category.
+
+    `code` is `rosterEntries[0].status.code` (empty/None if the player has no
+    roster history). `is_active_entry` is `rosterEntries[0].isActive` -- True
+    means this roster relationship is still ongoing, False means it has ended
+    (e.g. Released). `player_is_active` is the top-level API `active` flag,
+    used only as a fallback when there is no roster history at all.
+
+    Returns one of: "active", "injured", "restricted", "inactive", "other".
+    """
+    if not code:
+        return "active" if player_is_active else "inactive"
+    if is_active_entry:
+        if code in ROSTER_INJURED_CODES:
+            return "injured"
+        if code in ROSTER_RESTRICTED_CODES:
+            return "restricted"
+        if code in ROSTER_OTHER_CODES:
+            return "other"
+        return "active"
+    if code in ROSTER_INACTIVE_CODES:
+        return "inactive"
+    return "other"
+
+
 # ── Counting stat fields summed in career / season-combined aggregations ──
 
 _COUNTING_FIELDS = [

@@ -15,6 +15,7 @@ from site_builder.helpers import (
     SPORT_LEVEL_ORDER,
     Obj,
     annotate_computed_stats,
+    categorize_roster_status,
     compute_career,
     compute_season_combined,
     compute_year_groups,
@@ -749,6 +750,11 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         )
     else:
         player.age = None
+
+    player.status_category = categorize_roster_status(
+        player.roster_status_code, bool(player.roster_is_active), bool(player.is_active)
+    )
+    player.status_display = player.roster_status or ("Active" if player.is_active else "Inactive")
 
     # Season stats
     cur.execute(

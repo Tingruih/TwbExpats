@@ -26,6 +26,7 @@ from site_builder.api import (
 )
 from site_builder.helpers import (
     SPORT_LEVEL_ORDER,
+    categorize_roster_status,
     dumps_json,
     loads_json,
     loads_json_dict,
@@ -68,6 +69,8 @@ def _init_db(conn: sqlite3.Connection):
             pitch_hand TEXT NOT NULL DEFAULT '',
             latest_transaction TEXT NOT NULL DEFAULT '',
             roster_status TEXT NOT NULL DEFAULT '',
+            roster_status_code TEXT NOT NULL DEFAULT '',
+            roster_is_active INTEGER NOT NULL DEFAULT 0,
             team_id INTEGER,
             transactions_json TEXT NOT NULL DEFAULT '[]',
             next_game_json TEXT NOT NULL DEFAULT '{}',
@@ -118,6 +121,16 @@ def _init_db(conn: sqlite3.Connection):
     # Forward-migration: add sport_level column to game_logs if it does not yet exist.
     try:
         conn.execute("ALTER TABLE game_logs ADD COLUMN sport_level TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    # Forward-migration: add roster_status_code/roster_is_active columns to players
+    # if they do not yet exist (needed for richer status-pill classification).
+    try:
+        conn.execute("ALTER TABLE players ADD COLUMN roster_status_code TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE players ADD COLUMN roster_is_active INTEGER NOT NULL DEFAULT 0")
     except sqlite3.OperationalError:
         pass  # column already exists
     conn.commit()
@@ -175,6 +188,23 @@ def _save_season_row(
             dumps_json(fielding_json),
         ),
     )
+
+
+def _players_with_existing_stats(conn: sqlite3.Connection) -> set[int]:
+    """Return mlb_ids that already have season_stats rows.
+
+    Used to detect players being synced for the first time, so their
+    history can be fully backfilled even during a fetch_all_years=False
+    (update/refresh) run.
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT player_mlb_id FROM season_stats")
+    return {row[0] for row in cur.fetchall()}
+
+
+def _is_first_sync(mlb_id: int, synced_ids: set[int]) -> bool:
+    """A player with no season_stats rows yet is being synced for the first time."""
+    return mlb_id not in synced_ids
 
 
 # ── Field mapping ──
@@ -343,6 +373,31 @@ def _fetch_player_data(
         logger.warning("No profile for %s (%s)", mlb_id, name_tw)
         return None
 
+    status_category = categorize_roster_status(
+        profile.get("roster_status_code", ""),
+        bool(profile.get("roster_is_active", False)),
+        bool(profile.get("is_active", True)),
+    )
+    if status_category == "inactive" and not fetch_all_years:
+        # Player has left the organization (Released/Retired/Voluntarily
+        # Retired) and has already been synced before (fetch_all_years=False
+        # means the caller already has season_stats for this player) --
+        # their historical stats won't change further. Refresh just the
+        # profile (so status/team info stays current) and skip the heavier
+        # stats/advanced-stats/game-log/next-game fetches. A first-time sync
+        # (fetch_all_years=True) always runs the full fetch below so newly
+        # added retired players get their history backfilled once.
+        return {
+            "pconf": pconf,
+            "profile": profile,
+            "status_category": status_category,
+            "stats_groups": [],
+            "adv_groups": [],
+            "log_groups": {},
+            "next_game": None,
+            "years_with_data": set(),
+        }
+
     # yearByYear stats
     stats_groups = []
     try:
@@ -388,11 +443,13 @@ def _fetch_player_data(
         except Exception as e:
             logger.warning("gameLog failed for %s/%s: %s", mlb_id, y, e)
 
-    # Next game
+    # Next game -- skip for inactive (retired/released) players even during
+    # a first-time backfill, since profile.team_id reflects their *last*
+    # team and would otherwise show that team's schedule as "next game".
     next_game = None
     try:
         team_id = profile.get("team_id")
-        if team_id:
+        if team_id and status_category != "inactive":
             next_game = get_next_game(team_id)
     except Exception as e:
         logger.warning("next-game failed for %s: %s", mlb_id, e)
@@ -400,6 +457,7 @@ def _fetch_player_data(
     return {
         "pconf": pconf,
         "profile": profile,
+        "status_category": status_category,
         "stats_groups": stats_groups,
         "adv_groups": adv_groups,
         "log_groups": log_groups,
@@ -422,9 +480,10 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
         "INSERT INTO players "
         "(mlb_id, name_en, name_tw, team, level, position, "
         " height, weight, birth_date, birth_city, birth_country, is_active, "
-        " bat_side, pitch_hand, latest_transaction, roster_status, team_id, "
+        " bat_side, pitch_hand, latest_transaction, roster_status, "
+        " roster_status_code, roster_is_active, team_id, "
         " transactions_json) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
         "ON CONFLICT(mlb_id) DO UPDATE SET "
         " name_en=excluded.name_en, name_tw=excluded.name_tw, "
         " position=excluded.position, "
@@ -433,7 +492,9 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
         " birth_country=excluded.birth_country, is_active=excluded.is_active, "
         " bat_side=excluded.bat_side, pitch_hand=excluded.pitch_hand, "
         " latest_transaction=excluded.latest_transaction, "
-        " roster_status=excluded.roster_status, team_id=excluded.team_id, "
+        " roster_status=excluded.roster_status, "
+        " roster_status_code=excluded.roster_status_code, "
+        " roster_is_active=excluded.roster_is_active, team_id=excluded.team_id, "
         " transactions_json=excluded.transactions_json",
         (
             profile.get("mlb_id"),
@@ -452,6 +513,8 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
             profile.get("pitch_hand", ""),
             profile.get("latest_transaction", ""),
             profile.get("roster_status", ""),
+            profile.get("roster_status_code", ""),
+            1 if profile.get("roster_is_active", False) else 0,
             profile.get("team_id"),
             dumps_json(profile.get("transactions_json", [])),
         ),
@@ -637,6 +700,12 @@ def _run_pipeline(
     if only_player is not None:
         players_config = [p for p in players_config if p.get("mlb_id") == only_player]
 
+    # Players with no season_stats rows yet have never been synced. Force a
+    # full historical fetch for them even on an update/refresh run, so
+    # newly added players (e.g. retired players added straight to the
+    # roster) get backfilled automatically on the next pipeline run.
+    synced_ids = _players_with_existing_stats(conn)
+
     total = len(players_config)
     print(
         f"{mode_label}: {total} players into {db_file} "
@@ -646,19 +715,29 @@ def _run_pipeline(
     # Phase 1: Fetch all data in parallel
     bundles = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_to_name = {
+        future_to_pconf = {
             executor.submit(
-                _fetch_player_data, pconf, year, fetch_all_years
-            ): pconf.get("name_tw", pconf["mlb_id"])
+                _fetch_player_data,
+                pconf,
+                year,
+                fetch_all_years or _is_first_sync(pconf["mlb_id"], synced_ids),
+            ): pconf
             for pconf in players_config
         }
-        for i, future in enumerate(as_completed(future_to_name), 1):
-            name = future_to_name[future]
+        for i, future in enumerate(as_completed(future_to_pconf), 1):
+            pconf = future_to_pconf[future]
+            name = pconf.get("name_tw", pconf["mlb_id"])
             try:
                 result = future.result()
                 if result:
                     bundles.append(result)
-                    print(f"  [{i}/{total}] fetched {name}")
+                    if result.get("status_category") == "inactive":
+                        if _is_first_sync(pconf["mlb_id"], synced_ids):
+                            print(f"  [{i}/{total}] fetched {name} (inactive: first-time backfill)")
+                        else:
+                            print(f"  [{i}/{total}] fetched {name} (inactive: status only)")
+                    else:
+                        print(f"  [{i}/{total}] fetched {name}")
                 else:
                     print(f"  [{i}/{total}] skipped {name} (no profile)")
             except Exception as e:

@@ -43,7 +43,10 @@ def get_player_profile(mlb_id: int) -> dict:
                 pitch_hand (投球慣用手)
                 latest_transaction (最新交易)
                 transactions_json (list of dicts with date, type, description)
-                roster_status (e.g. "Active Roster", "Injured List", etc.)
+                roster_status (rosterEntries[0] 的 status description，反映球員最新狀態，
+                                e.g. "Active", "Released", "Injured 60-Day" 等)
+                roster_status_code (rosterEntries[0] 的 status code，e.g. "A", "RL", "D60")
+                roster_is_active (rosterEntries[0].isActive：該筆名單關係目前是否仍在生效)
                 team_id (球隊 ID)
                 current_team_name (目前球隊名稱)
                 current_team_level (球隊等級，如 MLB, AAA, AA 等)
@@ -73,12 +76,19 @@ def get_player_profile(mlb_id: int) -> dict:
                 }
             )
 
-    # Active roster status
+    # Most recent roster status (rosterEntries[0] is the latest entry,
+    # regardless of whether it is still active -- e.g. "Released" entries
+    # have isActive=False but are still the player's current status).
     roster_status = ""
-    for entry in p.get("rosterEntries", []):
-        if entry.get("isActive", False):
-            roster_status = entry.get("status", {}).get("description", "")
-            break
+    roster_status_code = ""
+    roster_is_active = False
+    roster_entries = p.get("rosterEntries", [])
+    if roster_entries:
+        entry = roster_entries[0]
+        status = entry.get("status", {})
+        roster_status = status.get("description", "")
+        roster_status_code = status.get("code", "")
+        roster_is_active = bool(entry.get("isActive", False))
 
     # Team info and level
     current_team = p.get("currentTeam", {})
@@ -112,6 +122,8 @@ def get_player_profile(mlb_id: int) -> dict:
         "latest_transaction": latest_tx,
         "transactions_json": tx_list,
         "roster_status": roster_status,
+        "roster_status_code": roster_status_code,
+        "roster_is_active": roster_is_active,
         "team_id": team_id,
         "current_team_name": current_team_name,
         "current_team_level": current_team_level,
