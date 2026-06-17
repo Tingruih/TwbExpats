@@ -9,25 +9,11 @@
    · 無任何顏色區分當季
 ═══════════════════════════════════════════════ */
 
-/* ── 外框 ── */
-.m-stats-card {
-    padding: 1rem;
-}
-
-.m-stats-card > h3 {
-    color: var(--text-3);
-    font-size: 0.63rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    margin: 0 0 0.875rem;
-    text-transform: uppercase;
-}
-
 /* ── 卡片列表 ── */
 .m-stat-card-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1.1rem;
 }
 
 /* ── 單一年度卡片 ── */
@@ -46,10 +32,11 @@
 /* ── 卡片標題列 ── */
 .m-stat-card-hd {
     align-items: center;
+    background: rgba(255, 255, 255, 0.04);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
-    padding: 0.55rem 0.875rem;
+    padding: 0.6rem 0.875rem;
 }
 
 .m-stat-yr-meta {
@@ -63,8 +50,8 @@
 .m-stat-yr {
     color: var(--text-1);
     flex-shrink: 0;
-    font-size: 0.95rem;
-    font-weight: 800;
+    font-size: 0.96rem;
+    font-weight: 700;
     letter-spacing: -0.03em;
 }
 
@@ -74,8 +61,8 @@
 }
 
 .m-stat-team {
-    color: var(--text-3);
-    font-size: 0.67rem;
+    color: var(--text-2);
+    font-size: 0.78rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -136,9 +123,9 @@
     text-transform: uppercase;
 }
 
-/* value 行：比 featured 小但色調一致 */
+/* value 行：比 featured 小，色調與 featured 一致 */
 .m-stat-sec-grid .m-sv {
-    color: var(--text-2);
+    color: var(--text-1);
     font-feature-settings: 'tnum';
     font-size: 0.88rem;
     font-weight: 600;
@@ -189,10 +176,4 @@
 
 .m-stat-sub-card .m-stat-featured-row .m-sv {
     font-size: 0.92rem;
-}
-
-/* ── 空狀態 ── */
-.m-stats-card .m-empty-text {
-    padding: 0 0 0.875rem;
-    text-align: center;
 }

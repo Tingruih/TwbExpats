@@ -705,8 +705,34 @@ def _run_pipeline(
     # newly added players (e.g. retired players added straight to the
     # roster) get backfilled automatically on the next pipeline run.
     synced_ids = _players_with_existing_stats(conn)
+    cur = conn.cursor()
+    cur.execute("SELECT mlb_id, is_active FROM players")
+    cached_is_active = {row[0]: bool(row[1]) for row in cur.fetchall()}
 
-    total = len(players_config)
+    # Players cached as is_active=False (the API's "active" flag, set the
+    # last time their profile was fetched) have permanently left affiliated
+    # ball and won't come back, so skip them entirely on subsequent runs --
+    # no profile/status re-fetch, no further steps. Players cached as
+    # is_active=True keep going through _fetch_player_data, which refreshes
+    # the profile and -- based on the *new* status -- either continues with
+    # the full fetch (still active) or skips the heavier stats/log fetches
+    # (e.g. just released, possibly RET/RL/VL). A first-time sync (no
+    # season_stats yet) always runs the full fetch so newly added retired
+    # players get backfilled once, and --player always forces a fetch
+    # regardless of cached status.
+    players_to_fetch = []
+    for pconf in players_config:
+        mlb_id = pconf["mlb_id"]
+        if (
+            only_player is None
+            and cached_is_active.get(mlb_id) is False
+            and not _is_first_sync(mlb_id, synced_ids)
+        ):
+            print(f"  skipped {pconf.get('name_tw', mlb_id)} (inactive, status cached)")
+            continue
+        players_to_fetch.append(pconf)
+
+    total = len(players_to_fetch)
     print(
         f"{mode_label}: {total} players into {db_file} "
         f"(max {MAX_WORKERS} parallel, all_years={fetch_all_years})"
@@ -722,7 +748,7 @@ def _run_pipeline(
                 year,
                 fetch_all_years or _is_first_sync(pconf["mlb_id"], synced_ids),
             ): pconf
-            for pconf in players_config
+            for pconf in players_to_fetch
         }
         for i, future in enumerate(as_completed(future_to_pconf), 1):
             pconf = future_to_pconf[future]

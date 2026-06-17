@@ -1,5 +1,5 @@
 .m-bottom-nav {
-    background: rgba(9, 9, 11, 0.96);
+    background: var(--bg);
     border-top: 1px solid var(--border);
     bottom: 0;
     display: grid;
@@ -8,7 +8,13 @@
     padding: 0.42rem 0.35rem calc(0.42rem + env(safe-area-inset-bottom));
     position: fixed;
     right: 0;
+    transform: translateY(0);
+    transition: transform 0.25s ease-in-out;
     z-index: 30;
+}
+
+.m-bottom-nav--hidden {
+    transform: translateY(100%);
 }
 
 .m-bottom-nav-btn {

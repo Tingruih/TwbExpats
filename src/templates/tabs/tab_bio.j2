@@ -25,24 +25,7 @@
                 <dt>投球手</dt><dd>{{ player.pitch_hand }}</dd>
                 {% endif %}
                 <dt>狀態</dt>
-                <dd>
-                    {% if player.roster_status %}
-                        {% set s = player.roster_status %}
-                        {% if "Injured" in s or "IL" in s or "DL" in s %}
-                            <span class="status-pill injured">{{ s }}</span>
-                        {% elif "Restricted" in s or "Suspended" in s or "Bereavement" in s %}
-                            <span class="status-pill restricted">{{ s }}</span>
-                        {% elif "Active" in s %}
-                            <span class="status-pill active">{{ s }}</span>
-                        {% else %}
-                            <span class="status-pill other">{{ s }}</span>
-                        {% endif %}
-                    {% elif player.is_active %}
-                        <span class="status-pill active">Active</span>
-                    {% else %}
-                        <span class="status-pill inactive">Inactive</span>
-                    {% endif %}
-                </dd>
+                <dd><span class="status-pill {{ player.status_category }}">{{ player.status_display }}</span></dd>
             </dl>
         </div>
 

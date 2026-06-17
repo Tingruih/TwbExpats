@@ -1,0 +1,291 @@
+/* ═══════════════════════════════════════════════
+   手機版統一數據卡片系統（mc-*）
+   供 基礎數據 / 比賽紀錄 / 進階數據 / 守備數據 共用
+   ─────────────────────────────────────────────
+   設計語言：計分板極簡風
+   · 等寬數字（tabular-nums）
+   · 統一數值字級 0.92rem，標籤 0.56rem uppercase
+   · 極細髮絲線分隔取代表格框線，無橫向捲動
+   · 所有數據區塊統一視覺，不分主次
+═══════════════════════════════════════════════ */
+
+/* ── 章節外框（glass-panel 上的區塊卡）── */
+.m-data-sec {
+    padding: 1rem;
+}
+
+.m-data-sec > h3 {
+    color: var(--text-1);
+    font-size: 0.96rem;
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+}
+
+.m-data-sec .m-empty-text {
+    padding: 0.2rem 0 0.4rem;
+    text-align: center;
+}
+
+/* ── 卡片列表 ── */
+.mc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+/* ── 卡片本體 ── */
+.mc-card {
+    background: linear-gradient(180deg, #1b1b1f 0%, #141417 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ── 卡片標題列 ── */
+.mc-hd {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+}
+
+.mc-hd--tap {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mc-hd--tap:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mc-hd-meta {
+    align-items: center;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.mc-hd-aside {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.35rem;
+}
+
+.mc-yr {
+    color: var(--text-1);
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.mc-team {
+    color: var(--text-3);
+    font-size: 0.72rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 標題列右側的小型補充數據（如總球數、BBE） */
+.mc-meta {
+    color: var(--text-3);
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ── 數據格共用字級（hero 與 grid 統一） ── */
+
+/* value：數據值 */
+.mc-hero-cell span,
+.mc-cell span {
+    color: var(--text-1);
+    display: block;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* label：指標名稱 */
+.mc-hero-cell b,
+.mc-cell b {
+    color: rgba(255, 255, 255, 0.38);
+    display: block;
+    font-size: 0.56rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* ── 核心指標列（hero — label 下、value 上）── */
+.mc-hero {
+    background: rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-wrap: wrap;
+    text-align: center;
+}
+
+.mc-hero-cell {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 0 25%;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    padding: 0.55rem 0.2rem;
+}
+
+.mc-hero-cell b {
+    margin-top: 0.28rem;
+}
+
+.mc-hero-cell + .mc-hero-cell {
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── 明細格網（label 上 / value 下）── */
+.mc-grid {
+    background: rgba(0, 0, 0, 0.28);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.mc-cell {
+    box-sizing: border-box;
+    flex: 1 0 25%;
+    min-width: 0;
+    padding: 0.48rem 0.15rem;
+    text-align: center;
+}
+
+.mc-cell b {
+    margin-bottom: 0.24rem;
+}
+
+.mc-cell span {
+    margin-top: 0;
+}
+
+.mc-grid--3 .mc-cell {
+    flex-basis: 33.33%;
+}
+
+/* 水平髮絲線：每 4 格一排，第二排起畫上邊線 */
+.mc-grid:not(.mc-grid--3) > .mc-cell:nth-child(n+5) {
+    border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.mc-grid--3 > .mc-cell:nth-child(n+4) {
+    border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+/* 縱向髮絲線：每列第一格不畫 */
+.mc-grid:not(.mc-grid--3) > .mc-cell:not(:nth-child(4n+1)) {
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mc-grid--3 > .mc-cell:not(:nth-child(3n+1)) {
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── 卡片內子分組標題（如「對戰結果」）── */
+.mc-group-hd {
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-3);
+    display: flex;
+    font-size: 0.58rem;
+    font-weight: 600;
+    gap: 0.4rem;
+    letter-spacing: 0.1em;
+    padding: 0.6rem 0.9rem 0.55rem;
+    text-transform: uppercase;
+}
+
+.mc-group-hd + .mc-grid {
+    border-top: 0;
+}
+
+/* ── 多球隊年度的展開子卡片 ── */
+.mc-sub-list {
+    background: rgba(0, 0, 0, 0.22);
+    border-top: 1px solid var(--border);
+}
+
+.mc-sub-card {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mc-sub-card:last-child {
+    border-bottom: none;
+}
+
+.mc-sub-hd {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.6rem 0.9rem 0.1rem;
+}
+
+.mc-sub-card .mc-hero {
+    border-top: 0;
+    padding-top: 0.5rem;
+}
+
+.mc-sub-card .mc-hero-cell span {
+    font-size: 0.88rem;
+}
+
+/* ── 結果徽章（W / L / SV / HLD）── */
+.mc-badge {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-2);
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    padding: 0.22rem 0.45rem;
+}
+
+.mc-badge--w {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+}
+
+.mc-badge--l {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+.mc-badge--sv {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+}
+
+.mc-badge--hld {
+    background: rgba(20, 184, 166, 0.12);
+    border-color: rgba(20, 184, 166, 0.3);
+    color: #2dd4bf;
+}

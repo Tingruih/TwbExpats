@@ -186,13 +186,15 @@
 /* 控制【賽季數據 Tab / 多球隊年份的「合計」標籤（如「2 Teams」）】 */
 .multi-tag {
     display: inline-block;              /* 依內容收縮寬度 */
-    padding: .1rem .4rem;               /* 內邊距 */
+    padding: .15rem .52rem;             /* 與 level-tag 一致 */
     border-radius: 4px;                 /* 輕微圓角 */
-    font-size: .68rem;                  /* 很小文字 */
-    font-weight: 500;                   /* 中粗體 */
+    font-size: .7rem;                   /* 與 level-tag 一致 */
+    font-weight: 600;                   /* 與 level-tag 一致 */
+    letter-spacing: .5px;               /* 與 level-tag 一致 */
+    text-transform: uppercase;          /* 與 level-tag 一致 */
     border: 1px solid var(--border);    /* 細邊框 */
-    background: transparent;            /* 透明背景 */
-    color: var(--text-2);               /* 灰色文字 */
+    background: var(--secondary);       /* 與 level-tag 一致 */
+    color: var(--text-1);               /* 與 level-tag 一致 */
 }
 
 /* 控制【賽季數據 Tab / 展開後的年份明細列（各球隊分開的資料行）】 */

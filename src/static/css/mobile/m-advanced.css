@@ -1,18 +1,120 @@
-.page-mobile .adv-definitions {
-    padding: 1rem;
+/* ═══════════════════════════════════════════════
+   手機版進階數據 Tab（mc-* 卡片系統的球種分析特化）
+═══════════════════════════════════════════════ */
+
+/* ── 區塊內的篩選列（年度 / 層級 / 對戰打者）── */
+.m-filter-bar--inset {
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 0.8rem;
+    padding: 0.6rem 0.75rem;
 }
 
-.m-def-grid {
-    display: grid;
-    gap: 0.55rem;
-    grid-template-columns: 1fr;
+/* ── 球種卡標題右側的使用率 ── */
+.m-pitch-usepct {
+    align-items: baseline;
+    color: var(--text-1);
+    display: inline-flex;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    gap: 0.3rem;
 }
 
-.m-def-grid .def-item {
-    align-items: flex-start;
-    gap: 0.55rem;
+.m-pitch-usepct b {
+    color: var(--text-3);
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
 }
 
-.m-def-grid .def-text {
-    line-height: 1.45;
+/* ── 各球數配球比例：堆疊色條 ── */
+.m-usage-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.m-usage-legend {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.7rem 0.9rem 0;
+}
+
+.m-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.75rem 0.9rem 0.95rem;
+}
+
+.m-usage-row-hd {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.32rem;
+}
+
+.m-usage-label {
+    color: var(--text-2);
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+
+.m-usage-counts {
+    color: var(--text-3);
+    font-size: 0.6rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.m-usage-bar {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    display: flex;
+    height: 24px;
+    overflow: hidden;
+}
+
+.m-useg {
+    align-items: center;
+    background: rgba(100, 116, 139, 0.45); /* 無對應球種時的預設灰 */
+    color: rgba(255, 255, 255, 0.92);
+    display: flex;
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    justify-content: center;
+    letter-spacing: 0.02em;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.m-useg + .m-useg {
+    border-left: 1px solid rgba(9, 9, 11, 0.55);
+}
+
+/* 球種顏色（沿用 gamelogs.css pitch-tag 的色相，提高飽和度供色塊使用） */
+.m-useg.pitch-ff, .m-useg.pitch-fa { background: rgba(239, 68, 68, 0.55); }
+.m-useg.pitch-si                   { background: rgba(249, 115, 22, 0.55); }
+.m-useg.pitch-fc                   { background: rgba(234, 179, 8, 0.5); }
+.m-useg.pitch-sl                   { background: rgba(59, 130, 246, 0.55); }
+.m-useg.pitch-st                   { background: rgba(99, 102, 241, 0.55); }
+.m-useg.pitch-cu, .m-useg.pitch-cs,
+.m-useg.pitch-kc                   { background: rgba(139, 92, 246, 0.55); }
+.m-useg.pitch-ch, .m-useg.pitch-fs { background: rgba(34, 197, 94, 0.5); }
+.m-useg.pitch-kn                   { background: rgba(236, 72, 153, 0.55); }
+
+/* ── 無資料提示 ── */
+.page-mobile .pitch-analysis-empty {
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text-3);
+    font-size: 0.8rem;
+    padding: 1.1rem 0.9rem;
+    text-align: center;
 }

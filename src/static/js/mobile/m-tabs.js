@@ -28,26 +28,46 @@
 
     function toggleMobileYearGroup(tableId, yr) {
         var arrow = document.getElementById('m-arrow-' + tableId + '-' + yr);
-        // 卡片形式：切換子列表容器
+        // 多球隊年度卡片：切換子卡片列表容器
         var sublist = document.getElementById('m-subdetail-' + tableId + '-' + yr);
-        if (sublist) {
-            var open = sublist.style.display !== 'none';
-            sublist.style.display = open ? 'none' : '';
-            if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
-            return;
-        }
-        // 表格形式（進階數據等）：切換子列
-        var table = document.getElementById('m-stats-table-' + tableId);
-        if (!table) return;
-        var rows = table.querySelectorAll('tr[data-tbl="m-' + tableId + '"][data-grp="' + yr + '"]');
-        var open = rows.length > 0 && rows[0].style.display !== 'none';
-        rows.forEach(function(row) {
-            row.style.display = open ? 'none' : '';
-        });
+        if (!sublist) return;
+        var open = sublist.style.display !== 'none';
+        sublist.style.display = open ? 'none' : '';
         if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
     }
 
+    function initBottomNavAutoHide() {
+        var nav = document.querySelector('.m-bottom-nav');
+        if (!nav) return;
+
+        var lastY = window.scrollY;
+        var ticking = false;
+
+        function onScroll() {
+            var currentY = window.scrollY;
+            var delta = currentY - lastY;
+
+            if (currentY <= 0 || delta < 0) {
+                nav.classList.remove('m-bottom-nav--hidden');
+            } else if (delta > 0) {
+                nav.classList.add('m-bottom-nav--hidden');
+            }
+
+            lastY = currentY;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                window.requestAnimationFrame(onScroll);
+                ticking = true;
+            }
+        }, { passive: true });
+    }
+
     function init() {
+        initBottomNavAutoHide();
+
         document.querySelectorAll('[data-m-tab]').forEach(function(button) {
             button.addEventListener('click', function() {
                 switchMobileTab(button.dataset.mTab, true);

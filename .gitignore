@@ -12,3 +12,5 @@ CLAUDE.md
 chart-mvp.html
 data_now.md
 logs.md
+.claude/
+tests/

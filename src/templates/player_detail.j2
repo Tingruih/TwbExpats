@@ -29,7 +29,7 @@
             <span class="hero-name-en">{{ player.name_en }}</span>
         </h1>
         <div class="hero-meta">
-            <span class="badge badge-level">{{ player.level }}</span>
+            <span class="badge {{ 'badge-mlb' if player.level == 'MLB' else 'badge-level' }}">{{ player.level }}</span>
             <span class="hero-team">{{ player.team }}</span>
             <span class="hero-pos">{% if is_pitcher %}{{ (player.pitch_hand or "R") }}HP{% else %}{{ (player.bat_side or "?")[:1] }}{% endif %} · {{ player.position }}</span>
         </div>

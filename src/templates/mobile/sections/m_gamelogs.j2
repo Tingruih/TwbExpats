@@ -1,5 +1,10 @@
+{# ── 手機版 TAB：比賽紀錄（統一 mc-* 數據卡片系統）── #}
+{% macro mcell(label, value) -%}
+<div class="mc-cell"><b>{{ label }}</b><span>{{ value }}</span></div>
+{%- endmacro %}
+
 <section class="m-section-stack" aria-label="逐場紀錄">
-    <div class="m-filter-bar">
+    <div class="m-filter-bar glass-panel">
         <label class="filter-label" for="m-gamelog-year-select">年度</label>
         <select id="m-gamelog-year-select" class="filter-select">
             {% for y in available_log_years %}
@@ -17,37 +22,65 @@
     <div class="m-gamelog-year" id="m-gamelogs-{{ y }}" {% if not loop.first %}style="display:none;"{% endif %}>
         {% for log in year_logs %}
         {% set s = log.stats_json %}
-        <article class="m-gamelog-card glass-panel{% if log.pitch_data_url %} m-gamelog-card--expandable{% endif %}" data-level="{{ log.sport_level }}">
-            <div class="m-gamelog-head">
-                <div>
+        <article class="m-gamelog-card mc-card" data-level="{{ log.sport_level }}">
+
+            {# ── 標題列：日期 / 主客 / 對手 ↔ 結果徽章 / 層級 ── #}
+            <header class="mc-hd m-gamelog-hd">
+                <div class="m-gamelog-hd-main">
                     <time>{{ log.date }}</time>
-                    <div class="m-gamelog-opponent">
+                    <div class="m-gamelog-opp">
                         <span class="ha-tag {% if log.is_home %}ha-home{% else %}ha-away{% endif %}">{% if log.is_home %}主{% else %}客{% endif %}</span>
                         <strong>{{ log.opponent }}</strong>
                     </div>
                 </div>
-                <span class="level-tag level-{{ log.sport_level|lower }}">{{ log.sport_level }}</span>
+                <div class="mc-hd-aside">
+                    <span class="level-tag level-{{ log.sport_level|lower }}">{{ log.sport_level }}</span>
+                </div>
+            </header>
+
+            {# ── 核心指標 + 完整明細（涵蓋電腦版所有欄位）── #}
+            {% if is_pitcher %}
+            <div class="mc-hero">
+                <div class="mc-hero-cell"><span>{{ s.inningsPitched|num_dash }}</span><b>IP</b></div>
+                <div class="mc-hero-cell"><span>{{ s.earnedRuns|default_if_none("0") }}</span><b>ER</b></div>
+                <div class="mc-hero-cell"><span>{{ s.strikeOuts|default_if_none("0") }}</span><b>SO</b></div>
+                <div class="mc-hero-cell"><span>{{ s.era|num_dash }}</span><b>ERA</b></div>
             </div>
-            <div class="m-gamelog-summary">
-                {% if is_pitcher %}
-                <span>{{ s.inningsPitched|num_dash }} IP</span><span>{{ s.hits|default_if_none("0") }} H</span><span>{{ s.earnedRuns|default_if_none("0") }} ER</span><span>{{ s.strikeOuts|default_if_none("0") }} K</span>
-                {% else %}
-                <span>{{ s.atBats|default_if_none("0") }} AB</span><span>{{ s.hits|default_if_none("0") }} H</span><span>{{ s.homeRuns|default_if_none("0") }} HR</span><span>{{ s.rbi|default_if_none("0") }} RBI</span>
-                {% endif %}
+            <div class="mc-grid mc-grid--3">
+                {{ mcell('H', s.hits|default_if_none("0")) }}
+                {{ mcell('R', s.runs|default_if_none("0")) }}
+                {{ mcell('BB', s.baseOnBalls|default_if_none("0")) }}
+                {{ mcell('HR', s.homeRuns|default_if_none("0")) }}
+                {{ mcell('HB', s.hitByPitch|default_if_none("0")) }}
+                <div class="mc-cell"><b>結果</b><span>
+                    {% if s.wins %}<i class="mc-badge mc-badge--w">勝投</i>
+                    {%- elif s.losses %}<i class="mc-badge mc-badge--l">敗投</i>
+                    {%- elif s.saves %}<i class="mc-badge mc-badge--sv">救援</i>
+                    {%- elif s.holds %}<i class="mc-badge mc-badge--hld">中繼</i>
+                    {%- else %}—{% endif %}
+                </span></div>
             </div>
-            <div class="m-gamelog-stat-grid">
-                {% if is_pitcher %}
-                    <div><span>{{ s.baseOnBalls|default_if_none("0") }}</span><b>BB</b></div>
-                    <div><span>{{ s.homeRuns|default_if_none("0") }}</span><b>HR</b></div>
-                    <div><span>{{ s.era|num_dash }}</span><b>ERA</b></div>
-                    <div><span>{% if s.wins %}W{% elif s.losses %}L{% elif s.saves %}S{% elif s.holds %}H{% else %}-{% endif %}</span><b>結果</b></div>
-                {% else %}
-                    <div><span>{{ s.runs|default_if_none("0") }}</span><b>R</b></div>
-                    <div><span>{{ s.baseOnBalls|default_if_none("0") }}</span><b>BB</b></div>
-                    <div><span>{{ s.strikeOuts|default_if_none("0") }}</span><b>K</b></div>
-                    <div><span>{{ s.ops|num_dash }}</span><b>OPS</b></div>
-                {% endif %}
+            {% else %}
+            <div class="mc-hero">
+                <div class="mc-hero-cell"><span>{{ s.atBats|default_if_none("0") }}</span><b>AB</b></div>
+                <div class="mc-hero-cell"><span>{{ s.hits|default_if_none("0") }}</span><b>H</b></div>
+                <div class="mc-hero-cell"><span>{{ s.homeRuns|default_if_none("0") }}</span><b>HR</b></div>
+                <div class="mc-hero-cell"><span>{{ s.rbi|default_if_none("0") }}</span><b>RBI</b></div>
             </div>
+            <div class="mc-grid mc-grid--3">
+                {{ mcell('R', s.runs|default_if_none("0")) }}
+                {{ mcell('2B', s.doubles|default_if_none("0")) }}
+                {{ mcell('3B', s.triples|default_if_none("0")) }}
+                {{ mcell('BB', s.baseOnBalls|default_if_none("0")) }}
+                {{ mcell('K', s.strikeOuts|default_if_none("0")) }}
+                {{ mcell('SB', s.stolenBases|default_if_none("0")) }}
+                {{ mcell('CS', s.caughtStealing|default_if_none("0")) }}
+                {{ mcell('AVG', s.avg|num_dash) }}
+                {{ mcell('OPS', s.ops|num_dash) }}
+            </div>
+            {% endif %}
+
+            {# ── 逐球紀錄（保留原 JS 掛載結構）── #}
             {% if log.pitch_data_url %}
             <button type="button" class="m-pitch-log-toggle" onclick="toggleMobilePitchLog('m-pitchlog-{{ y }}-{{ loop.index }}')">
                 <span class="toggle-arrow" id="m-arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>
