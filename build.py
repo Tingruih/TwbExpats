@@ -57,6 +57,7 @@ def cmd_build(args):
         year=args.year,
         output_dir=args.output,
         base_url=args.base_url,
+        roster_file=args.roster,
     )
 
 
@@ -94,10 +95,22 @@ def cmd_refresh(args):
         year=args.year,
         output_dir=args.output,
         base_url=args.base_url,
+        roster_file=args.roster,
     )
 
 
 def cmd_all(args):
+    if args.player is not None:
+        print(
+            f"Warning: 'all --player {args.player}' only syncs one player.\n"
+            "  sync and statcast will be restricted to that player, but build\n"
+            "  renders all roster players. On a fresh database this means all\n"
+            "  other player pages will be empty.\n"
+            "  For a full first-time setup run: python build.py all (no --player).\n"
+            "  For a single-player backfill run: python build.py sync --player <id>\n"
+            "    then: python build.py statcast --player <id>\n"
+            "    then: python build.py build"
+        )
     cmd_sync(args)
     cmd_statcast(args)
     cmd_build(args)
@@ -167,6 +180,9 @@ def main():
         "build",
         parents=[common],
         help="Generate static HTML site from existing database",
+    )
+    sp_build.add_argument(
+        "--roster", default="src/data/roster.json", help="Roster JSON path"
     )
     sp_build.add_argument("--output", default="dist", help="Output directory")
     sp_build.add_argument("--base-url", default="/", help="Site base URL (e.g. /repo/)")

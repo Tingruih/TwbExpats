@@ -202,6 +202,39 @@ def _players_with_existing_stats(conn: sqlite3.Connection) -> set[int]:
     return {row[0] for row in cur.fetchall()}
 
 
+def _warn_orphaned_players(conn: sqlite3.Connection, roster_ids: set[int]):
+    """Print a warning for any players in the DB that are not in the current roster.
+
+    These orphans accumulate when a player's MLB ID is corrected in roster.json
+    or when a player is removed from the roster without cleaning the database.
+    They won't appear on the built site (the builder filters by roster) but they
+    do occupy space in the database and can cause confusion.
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT mlb_id, name_en, name_tw FROM players ORDER BY mlb_id")
+    orphans = [
+        (mlb_id, name_en, name_tw)
+        for mlb_id, name_en, name_tw in cur.fetchall()
+        if mlb_id not in roster_ids
+    ]
+    if not orphans:
+        return
+    print(f"  WARNING: {len(orphans)} DB player(s) not in current roster (won't appear on site):")
+    for mlb_id, name_en, name_tw in orphans:
+        label = f"{name_tw} / {name_en}" if name_tw else name_en
+        print(f"    {mlb_id}  {label}")
+    print(
+        "  To remove orphans, run:\n"
+        "    sqlite3 data/tracker.sqlite3 "
+        "\"DELETE FROM game_logs WHERE player_mlb_id NOT IN "
+        f"({','.join(str(i) for i in roster_ids)}); "
+        "DELETE FROM season_stats WHERE player_mlb_id NOT IN "
+        f"({','.join(str(i) for i in roster_ids)}); "
+        "DELETE FROM players WHERE mlb_id NOT IN "
+        f"({','.join(str(i) for i in roster_ids)});\""
+    )
+
+
 def _is_first_sync(mlb_id: int, synced_ids: set[int]) -> bool:
     """A player with no season_stats rows yet is being synced for the first time."""
     return mlb_id not in synced_ids
@@ -760,8 +793,10 @@ def _run_pipeline(
                     if result.get("status_category") == "inactive":
                         if _is_first_sync(pconf["mlb_id"], synced_ids):
                             print(f"  [{i}/{total}] fetched {name} (inactive: first-time backfill)")
+                        elif fetch_all_years:
+                            print(f"  [{i}/{total}] fetched {name} (inactive: full re-sync)")
                         else:
-                            print(f"  [{i}/{total}] fetched {name} (inactive: status only)")
+                            print(f"  [{i}/{total}] fetched {name} (inactive: profile only)")
                     else:
                         print(f"  [{i}/{total}] fetched {name}")
                 else:
@@ -779,6 +814,12 @@ def _run_pipeline(
         except Exception as e:
             print(f"  DB write error for {name}: {e}")
             logger.exception("DB write failed for %s", name)
+
+    # After a full sync (not a single-player run), check for orphaned DB entries
+    # that are no longer referenced by the current roster.
+    if only_player is None:
+        roster_ids = {p["mlb_id"] for p in parse_roster_from_file(roster_file)}
+        _warn_orphaned_players(conn, roster_ids)
 
     conn.close()
     print(f"{mode_label} complete")

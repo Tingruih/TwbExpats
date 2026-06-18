@@ -822,8 +822,28 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
     return player, stats, logs
 
 
-def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = "/"):
-    """Build the complete static site from SQLite data."""
+def build_static_site(
+    db_path: str,
+    year: int,
+    output_dir: str,
+    base_url: str = "/",
+    roster_file: str | None = None,
+):
+    """Build the complete static site from SQLite data.
+
+    Only renders players whose MLB IDs appear in ``roster_file``.  If
+    ``roster_file`` is None the default roster path is used so stale DB
+    entries left over from ID changes are never published to the site.
+    """
+    from site_builder.api import parse_roster_from_file
+
+    if roster_file is None:
+        roster_file = str(_PROJECT_ROOT / "src" / "data" / "roster.json")
+
+    roster_ids: set[int] = {
+        p["mlb_id"] for p in parse_roster_from_file(roster_file)
+    }
+
     out_dir = Path(output_dir).resolve()
     if out_dir.exists():
         shutil.rmtree(out_dir)
@@ -855,7 +875,14 @@ def build_static_site(db_path: str, year: int, output_dir: str, base_url: str = 
             "Run 'python build.py sync' first."
         )
 
-    cur.execute("SELECT * FROM players ORDER BY name_en")
+    if roster_ids:
+        placeholders = ",".join("?" * len(roster_ids))
+        cur.execute(
+            f"SELECT * FROM players WHERE mlb_id IN ({placeholders}) ORDER BY name_en",
+            list(roster_ids),
+        )
+    else:
+        cur.execute("SELECT * FROM players ORDER BY name_en")
     rows = cur.fetchall()
 
     bundles = [_load_player_bundle(cur, row) for row in rows]
