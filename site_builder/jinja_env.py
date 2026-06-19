@@ -91,10 +91,13 @@ def _make_url_helpers(base_url: str):
     def player_url(mlb_id):
         return f"{base}/player/{mlb_id}/"
 
+    def retired_player_url(mlb_id):
+        return f"{base}/retired/player/{mlb_id}/"
+
     def static_url(path):
         return f"{base}/static/{path}"
 
-    return player_url, static_url
+    return player_url, retired_player_url, static_url
 
 
 def _make_absolute_url(site_origin: str, base_url: str):
@@ -122,7 +125,7 @@ def create_jinja_env(
     if not base_url.endswith("/"):
         base_url = base_url + "/"
 
-    player_url, static_url = _make_url_helpers(base_url)
+    player_url, retired_player_url, static_url = _make_url_helpers(base_url)
     site_url, absolute_url = _make_absolute_url(site_origin, base_url)
 
     env = Environment(
@@ -141,6 +144,7 @@ def create_jinja_env(
     env.filters["pct_fmt"] = pct_fmt
 
     env.globals["player_url"] = player_url
+    env.globals["retired_player_url"] = retired_player_url
     env.globals["static_url"] = static_url
     env.globals["absolute_url"] = absolute_url
     env.globals["base_url"] = base_url

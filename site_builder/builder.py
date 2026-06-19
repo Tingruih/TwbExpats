@@ -21,6 +21,9 @@ from site_builder.helpers import (
     compute_year_groups,
     has_appearance,
     height_to_cm,
+    highest_level,
+    is_active_player,
+    level_rank,
     dumps_json,
     lbs_to_kg,
     loads_json_dict,
@@ -626,7 +629,9 @@ def _player_display_name(player) -> str:
     return player.name_en
 
 
-def _player_canonical_path(player) -> str:
+def _player_canonical_path(player, is_retired: bool = False) -> str:
+    if is_retired:
+        return f"retired/player/{player.mlb_id}/"
     return f"player/{player.mlb_id}/"
 
 
@@ -673,8 +678,29 @@ def _index_structured_data(absolute_url, player_data):
     ]
 
 
-def _player_structured_data(absolute_url, player):
-    canonical_url = absolute_url(_player_canonical_path(player))
+def _player_structured_data(absolute_url, player, is_retired: bool = False):
+    canonical_url = absolute_url(_player_canonical_path(player, is_retired))
+    breadcrumb_items = [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "TwbExpats",
+            "item": absolute_url(""),
+        },
+    ]
+    if is_retired:
+        breadcrumb_items.append({
+            "@type": "ListItem",
+            "position": 2,
+            "name": "已離美職體系球員 / Retired Players",
+            "item": absolute_url("retired/"),
+        })
+    breadcrumb_items.append({
+        "@type": "ListItem",
+        "position": len(breadcrumb_items) + 1,
+        "name": _player_display_name(player),
+        "item": canonical_url,
+    })
     return [
         {
             "@context": "https://schema.org",
@@ -690,20 +716,7 @@ def _player_structured_data(absolute_url, player):
         {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
-            "itemListElement": [
-                {
-                    "@type": "ListItem",
-                    "position": 1,
-                    "name": "TwbExpats",
-                    "item": absolute_url(""),
-                },
-                {
-                    "@type": "ListItem",
-                    "position": 2,
-                    "name": _player_display_name(player),
-                    "item": canonical_url,
-                },
-            ],
+            "itemListElement": breadcrumb_items,
         },
     ]
 
@@ -773,7 +786,7 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         stat_json = loads_json_dict(row[4])
         data.update(stat_json)
         data.fielding_json = loads_json_list(row[5])
-        data.level_order = SPORT_LEVEL_ORDER.get(data.sport_level, 50)
+        data.level_order = level_rank(data.sport_level)
         slg = safe_float(data.get("slg"))
         avg = safe_float(data.get("avg"))
         data.iso = (slg - avg) if (slg is not None and avg is not None) else None
@@ -885,6 +898,19 @@ def build_static_site(
         cur.execute("SELECT * FROM players ORDER BY name_en")
     rows = cur.fetchall()
 
+    if roster_ids:
+        cur.execute("SELECT mlb_id, name_en, name_tw FROM players ORDER BY mlb_id")
+        orphans = [
+            (mlb_id, name_en, name_tw)
+            for mlb_id, name_en, name_tw in cur.fetchall()
+            if mlb_id not in roster_ids
+        ]
+        if orphans:
+            print(f"  WARNING: {len(orphans)} DB player(s) not in roster (skipped):")
+            for mlb_id, name_en, name_tw in orphans:
+                label = f"{name_tw} / {name_en}" if name_tw else name_en
+                print(f"    {mlb_id}  {label}")
+
     bundles = [_load_player_bundle(cur, row) for row in rows]
 
     # ── Prefetch / cache player headshots for local serving ──
@@ -896,10 +922,22 @@ def build_static_site(
         headshot_dest,
     )
 
-    # ── Index page ──
+    # ── Split active vs. retired ──
+    # Active = has a season_stats row for `year` OR a transaction dated this
+    # year. Everyone else is rendered on the dedicated /retired page.
+    active_bundles = []
+    retired_bundles = []
+    for bundle in bundles:
+        player, stats, _logs = bundle
+        if is_active_player(player, stats, year):
+            active_bundles.append(bundle)
+        else:
+            retired_bundles.append(bundle)
+
+    # ── Index page (active players only) ──
     index_template = env.get_template("index.j2")
     player_data = []
-    for player, stats, logs in bundles:
+    for player, stats, logs in active_bundles:
         stats_current = [s for s in stats if s.year == year and has_appearance(s)]
         stats_current.sort(key=lambda x: x.level_order)
         # Find the most recent game date for sorting
@@ -921,6 +959,7 @@ def build_static_site(
         player_data=player_data,
         current_sort="level",
         default_season_year=year,
+        nav_active="index",
         seo_title=_SITE_TITLE,
         seo_description=_SITE_DESCRIPTION,
         canonical_url=absolute_url(""),
@@ -929,9 +968,57 @@ def build_static_site(
     )
     (out_dir / "index.html").write_text(index_html, encoding="utf-8")
 
+    # ── Retired page ──
+    # Cards default to all-years/all-levels combined career stats, and the
+    # level badge shows the highest level the player ever reached.
+    retired_template = env.get_template("retired.j2")
+    retired_data = []
+    for player, stats, logs in retired_bundles:
+        career = compute_career(stats, level_filter=None)
+        badge_level = highest_level(stats)
+        last_game_date = next((log.date for log in logs if log.date), None)
+        retired_data.append(
+            {
+                "player": player,
+                "stat": career,
+                "badge_level": badge_level,
+                "last_game_date": last_game_date,
+            }
+        )
+    # Highest level first; ties broken by most recent appearance.
+    retired_data.sort(
+        key=lambda x: (
+            level_rank(x["badge_level"]),
+            -(x["last_game_date"].toordinal() if x["last_game_date"] else 0),
+        )
+    )
+
+    retired_seo_title = "已離美職體系球員 / Retired Players | TwbExpats"
+    retired_seo_description = (
+        "TwbExpats 追蹤已結束旅美生涯的台灣棒球員 / Taiwanese baseball players "
+        "who have left the MLB/MiLB system, with their career-combined stats "
+        "and the highest level each player reached."
+    )
+    retired_html = retired_template.render(
+        player_data=retired_data,
+        nav_active="retired",
+        seo_title=retired_seo_title,
+        seo_description=retired_seo_description,
+        canonical_url=absolute_url("retired/"),
+        og_type="website",
+    )
+    # Write as retired/index.html (not retired.html) so the extension-less
+    # /retired URL resolves on both GitHub Pages and a plain http.server
+    # (which redirects /retired → /retired/ → index.html).
+    retired_dir = out_dir / "retired"
+    retired_dir.mkdir(parents=True, exist_ok=True)
+    (retired_dir / "index.html").write_text(retired_html, encoding="utf-8")
+
     # ── Player detail pages ──
     player_template = env.get_template("player_detail.j2")
+    retired_ids = {p.mlb_id for p, _, _ in retired_bundles}
     for player, all_stats, all_logs in bundles:
+        is_retired = player.mlb_id in retired_ids
         selected_year = year
 
         logs_by_year = {}
@@ -1117,13 +1204,17 @@ def build_static_site(
             "available_statcast_years": available_statcast_years,
             "seo_title": f"{_player_display_name(player)} 數據 | TwbExpats",
             "seo_description": _player_description(player),
-            "canonical_url": absolute_url(_player_canonical_path(player)),
+            "canonical_url": absolute_url(_player_canonical_path(player, is_retired)),
             "og_type": "profile",
-            "structured_data": _player_structured_data(absolute_url, player),
+            "structured_data": _player_structured_data(absolute_url, player, is_retired),
+            "nav_active": "retired" if is_retired else "index",
         }
 
         html = player_template.render(**context)
-        player_dir = out_dir / "player" / str(player.mlb_id)
+        if is_retired:
+            player_dir = out_dir / "retired" / "player" / str(player.mlb_id)
+        else:
+            player_dir = out_dir / "player" / str(player.mlb_id)
         player_dir.mkdir(parents=True, exist_ok=True)
         (player_dir / "index.html").write_text(html, encoding="utf-8")
 
@@ -1136,13 +1227,17 @@ def build_static_site(
         {
             "loc": absolute_url(""),
             "lastmod": now_utc8.date().isoformat(),
-        }
+        },
+        {
+            "loc": absolute_url("retired/"),
+            "lastmod": now_utc8.date().isoformat(),
+        },
     ]
     for player, _, logs in bundles:
         last_game_date = next((log.date for log in logs if log.date), None)
         sitemap_urls.append(
             {
-                "loc": absolute_url(_player_canonical_path(player)),
+                "loc": absolute_url(_player_canonical_path(player, player.mlb_id in retired_ids)),
                 "lastmod": (last_game_date or now_utc8.date()).isoformat(),
             }
         )

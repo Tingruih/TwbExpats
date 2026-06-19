@@ -25,19 +25,31 @@
 
     header,
     header.glass-panel {
-        align-items: center;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.4rem;
         margin-bottom: 0.75rem;
-        padding: 1rem;
+        padding: 0.75rem 0;
         background: transparent;
         border: none;
         border-radius: 0;
         box-shadow: none;
     }
 
-    .brand-logo {
+    /* 手機版 header-left：漢堡靠左，logo 置中 */
+    .header-left {
+        position: relative;
         width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-left .menu-toggle {
+        position: absolute;
+        left: 0;
+    }
+
+    .brand-logo {
         justify-content: center;
     }
 

@@ -31,14 +31,50 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <div class="container">
-        <header class="glass-panel">
-            <a href="{{ base_url }}" class="brand-logo">
-                <img class="brand-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats 台灣旅美棒球員 / Taiwanese baseball players stats tracker">
-                <div class="brand-copy">
-                    <h1 class="brand-text">TwbExpats</h1>
+
+    {# ─── Site Navigation Drawer ─── #}
+    <div class="site-nav" id="site-nav" role="dialog" aria-modal="true" aria-label="主選單">
+        <div class="site-nav-backdrop" id="site-nav-backdrop"></div>
+        <div class="site-nav-drawer">
+            <div class="site-nav-top">
+                <div class="site-nav-brand">
+                    <img class="site-nav-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats">
+                    <span class="site-nav-brand-name">TwbExpats</span>
                 </div>
-            </a>
+            </div>
+            <div class="site-nav-body">
+                <a href="{{ base_url }}" class="site-nav-link{% if nav_active == 'index' %} site-nav-link--active{% endif %}">
+                    <span class="site-nav-link-label">現役球員</span>
+                    <span class="site-nav-link-desc">MLB / MiLB 在籍名單</span>
+                </a>
+                <a href="{{ base_url }}retired/" class="site-nav-link{% if nav_active == 'retired' %} site-nav-link--active{% endif %}">
+                    <span class="site-nav-link-label">已離美職體系</span>
+                    <span class="site-nav-link-desc">旅美生涯已結束的球員</span>
+                </a>
+            </div>
+            <div class="site-nav-footer">
+                <span>TwbExpats · 台灣旅美棒球員追蹤</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <button class="menu-toggle" aria-label="開啟選單" aria-expanded="false">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <a href="{{ base_url }}" class="brand-logo">
+                    <img class="brand-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats 台灣旅美棒球員 / Taiwanese baseball players stats tracker">
+                    <span class="brand-divider" aria-hidden="true"></span>
+                    <div class="brand-copy">
+                        <h1 class="brand-text">TwbExpats</h1>
+                        <p class="brand-subtitle">臺灣旅美球員數據網站</p>
+                    </div>
+                </a>
+            </div>
             <div class="header-time-badge">
                 <span>更新：{{ build_time }} (UTC+8)</span>
             </div>
@@ -65,6 +101,7 @@
     </div>
     {% block extra_scripts %}{% endblock %}
 
+<script defer src="{{ static_url('js/nav.js') }}"></script>
 <script defer src="{{ static_url('js/table-align.js') }}"></script>
 
 {# Shared image fallback handler — tries CDN URL first, then shows initials #}

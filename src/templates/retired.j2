@@ -1,0 +1,93 @@
+{% extends 'base.j2' %}
+
+{% block content %}
+
+<div class="index-intro glass-panel">
+    <h2 class="index-intro-title">已離美職體系球員</h2>
+    <p class="index-intro-desc">
+        旅美生涯已結束的球員。卡片數據為生涯合計（所有年份、所有層級），
+        層級徽章顯示該球員生涯達到的最高層級。
+    </p>
+</div>
+
+<div class="dashboard-grid" id="player-grid">
+    {% for item in player_data %}
+    {% set player = item.player %}
+    {% set stat = item.stat %}
+    {% set player_name = player.name_tw ~ ' ' ~ player.name_en if player.name_tw else player.name_en %}
+    <a href="{{ retired_player_url(player.mlb_id) }}" class="player-card glass-panel"
+       data-level="{{ item.badge_level }}">
+        <div class="player-header">
+            <div class="avatar">
+                <img
+                    src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
+                    data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
+                    alt="{{ player_name }}"
+                    loading="lazy"
+                    class="avatar-img"
+                >
+                <div class="avatar-initials avatar-fallback" aria-hidden="true">{{ player.name_en[:1] }}</div>
+            </div>
+            <div class="player-info">
+                <h2>{{ player.name_tw or player.name_en }}
+                    {% if item.badge_level %}
+                    <span class="level-tag level-{{ item.badge_level|lower }}">{{ item.badge_level }}</span>
+                    {% endif %}
+                </h2>
+                <div class="level">
+                    {{ player.position }}{% if stat and stat.years_range %} · {{ stat.years_range }}{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if stat %}
+        <div class="stats-row">
+            {% if player.is_pitcher %}
+                <div class="stat-box">
+                    <span class="stat-label">ERA</span>
+                    <span class="stat-value">{{ stat.era|floatformat(2) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">WHIP</span>
+                    <span class="stat-value">{{ stat.whip|floatformat(2) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">K</span>
+                    <span class="stat-value">{{ stat.so|num_dash }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">W-L</span>
+                    <span class="stat-value">{{ stat.wins|num_dash }}-{{ stat.losses|num_dash }}</span>
+                </div>
+            {% else %}
+                <div class="stat-box">
+                    <span class="stat-label">AVG</span>
+                    <span class="stat-value">{{ stat.avg|floatformat(3) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">HR</span>
+                    <span class="stat-value">{{ stat.hr|num_dash }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">OPS</span>
+                    <span class="stat-value">{{ stat.ops|floatformat(3) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">SB</span>
+                    <span class="stat-value">{{ stat.sb|num_dash }}</span>
+                </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="stats-row stats-row-empty">
+            <div class="stat-box stat-box-full">
+                <span class="stat-label">無生涯紀錄</span>
+            </div>
+        </div>
+        {% endif %}
+    </a>
+    {% else %}
+    <p class="empty-msg">目前沒有已離隊球員。</p>
+    {% endfor %}
+</div>
+{% endblock %}

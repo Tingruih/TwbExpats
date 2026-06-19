@@ -23,6 +23,25 @@
     font-size: 1rem;        /* 副標題文字大小 */
 }
 
+/* 控制【離隊頁 / 頁首說明區塊（retired.j2）】
+   說明卡片數據為生涯合計、徽章為最高層級 */
+.index-intro {
+    padding: 1.1rem 1.35rem;    /* 內距 */
+    margin-bottom: 1.25rem;     /* 與下方球員卡片 Grid 的距離 */
+}
+
+.index-intro-title {
+    font-size: 1.25rem;         /* 區塊標題大小 */
+    margin: 0 0 0.35rem;        /* 與下方說明文字的距離 */
+}
+
+.index-intro-desc {
+    color: var(--text-2);       /* 灰色說明文字 */
+    font-size: 0.92rem;         /* 說明文字大小 */
+    line-height: 1.55;          /* 行高 */
+    margin: 0;
+}
+
 /* 控制【首頁 / 球員卡片 Grid 排版】
    所有球員卡片的外層 Grid 容器，自動決定每行幾張卡片 */
 .dashboard-grid {

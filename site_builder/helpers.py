@@ -8,6 +8,9 @@ import os
 import re
 from typing import Any, Optional
 
+# Canonical level hierarchy (lower number = higher level). Keys are the
+# *canonical* abbreviations only; historical / API-variant spellings are mapped
+# onto these via LEVEL_ALIASES before lookup (use level_rank / canonical_level).
 SPORT_LEVEL_ORDER = {
     "MLB": 0,
     "AAA": 1,
@@ -18,6 +21,45 @@ SPORT_LEVEL_ORDER = {
     "ROK": 6,
     "Minors": 99,
 }
+
+# Historical / API-variant sport_level strings → canonical abbreviation.
+#
+# season_stats stores the raw ``sport.abbreviation`` returned by the MLB Stats
+# API, which changed spelling across the 2021 MiLB reorganization:
+#
+#   pre-2021 (full-season Class A system)   2021+ (reorganized)   canonical
+#   ────────────────────────────────────   ───────────────────   ─────────
+#   "A(Adv)" / "A (Adv)"  (Class A-Adv)     "A+"  (High-A)         A+   (rank 3)
+#   "A(Full)" / "A (Full)" (Class A)        "A"   (Single/Low-A)   A    (rank 4)
+#   "A(Short)" / "A (Short)" (Short Season) (tier eliminated)      A-   (rank 5)
+#   "ROA" (Rookie-Advanced) / "Rk"          "ROK" (Rookie/complex) ROK  (rank 6)
+#
+# The *level hierarchy itself* never changed — only the names/spellings did —
+# so collapsing the variants onto canonical codes makes cross-era comparison
+# (e.g. "is this player's 2018 'A(Adv)' season higher than their 2022 'A'
+# season?") correct: A+ (3) outranks A (4).
+LEVEL_ALIASES = {
+    "A(Adv)": "A+", "A (Adv)": "A+",
+    "A(Full)": "A", "A (Full)": "A",
+    "A(Short)": "A-", "A (Short)": "A-",
+    "ROA": "ROK", "Rk": "ROK", "Rookie": "ROK",
+}
+
+
+def canonical_level(sport_level: Optional[str]) -> Optional[str]:
+    """Normalize any historical sport_level spelling to its canonical code."""
+    if not sport_level:
+        return sport_level
+    return LEVEL_ALIASES.get(sport_level, sport_level)
+
+
+def level_rank(sport_level: Optional[str]) -> int:
+    """Return the hierarchy rank of *sport_level* (lower = higher level).
+
+    Handles every historical/variant spelling via :func:`canonical_level`.
+    Unknown levels fall back to 50 (below every real level, above "Minors").
+    """
+    return SPORT_LEVEL_ORDER.get(canonical_level(sport_level), 50)
 
 DEFAULT_SEASON_YEAR = int(os.environ.get("DEFAULT_SEASON_YEAR", "2026"))
 
@@ -211,6 +253,64 @@ def calc_obp(hits, bb, hbp, ab, sac_flies):
     if denom == 0:
         return None
     return round((h + b + hp) / denom, 3)
+
+
+def highest_level(stats) -> Optional[str]:
+    """Return the highest level abbreviation a player ever reached.
+
+    Hierarchy (highest → lowest), encoded in ``SPORT_LEVEL_ORDER``::
+
+        MLB > AAA > AA > A+ > A > A- > ROK
+
+    Ranking goes through :func:`level_rank`, which first normalizes every
+    historical sport_level spelling (e.g. the pre-2021 "A(Adv)" / "A(Full)" /
+    "A(Short)" variants) onto canonical codes — see ``LEVEL_ALIASES`` — so the
+    comparison is correct across the 2021/2022 MiLB reorganization.  The
+    returned value is the *canonical* code (e.g. a pre-2021 "A(Adv)" peak is
+    reported as "A+").
+
+    Rows with real appearances are preferred; if none have appearances we fall
+    back to the highest level among all rows.  Returns ``None`` for empty input.
+    """
+    if not stats:
+        return None
+    appeared = [s for s in stats if has_appearance(s)]
+    pool = appeared or list(stats)
+    best = min(pool, key=lambda s: level_rank(s.sport_level))
+    return canonical_level(best.sport_level) or None
+
+
+# Transactions whose description contains this keyword are national-team
+# call-ups (e.g. the WBC) that MLB records in its transaction feed even for
+# players who have left the affiliated MLB/MiLB system.  They must NOT count
+# as affiliated activity when deciding whether a player is still active.
+_NATIONAL_TEAM_KEYWORD = "chinese taipei"
+
+
+def _is_national_team_tx(tx) -> bool:
+    """True if *tx* is a national-team (Chinese Taipei) call-up, not real
+    affiliated-system activity."""
+    return _NATIONAL_TEAM_KEYWORD in str(tx.get("description", "")).lower()
+
+
+def is_active_player(player, stats, year: int) -> bool:
+    """Decide whether *player* still counts as active for *year*.
+
+    Active ⇔ the player has at least one ``season_stats`` row for *year*
+    **OR** has a *qualifying* transaction dated within *year*.  National-team
+    call-ups (see :func:`_is_national_team_tx`) are NOT qualifying: a player
+    whose only *year* transactions are Chinese Taipei selections — and who has
+    no *year* season_stats — has left the affiliated system and is surfaced on
+    the ``/retired`` page.  (A real season_stats row always keeps them active,
+    so genuine MiLB players who were also called up stay on the index.)
+    """
+    if any(s.year == year for s in stats):
+        return True
+    for tx in (player.transactions_json or []):
+        tx_date = parse_date(tx.get("date"))
+        if tx_date and tx_date.year == year and not _is_national_team_tx(tx):
+            return True
+    return False
 
 
 def has_appearance(stat) -> bool:
