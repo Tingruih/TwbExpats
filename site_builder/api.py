@@ -9,21 +9,12 @@ from typing import Optional
 
 import requests
 
+from .levels import sport_id_to_code, sport_name_to_code
+
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://statsapi.mlb.com/api/v1"
 TIMEOUT = 15
-
-_SPORT_ID_MAP = {
-    1: "MLB",
-    11: "AAA",
-    12: "AA",
-    13: "A+",
-    14: "A",
-    15: "A-",
-    16: "ROK",
-    17: "ROK",
-}
 
 
 def get_player_profile(mlb_id: int) -> dict:
@@ -103,7 +94,7 @@ def get_player_profile(mlb_id: int) -> dict:
                 t_data = t_resp.json().get("teams", [])
                 if t_data:
                     sport_id = t_data[0].get("sport", {}).get("id")
-                    current_team_level = _SPORT_ID_MAP.get(sport_id, "")
+                    current_team_level = sport_id_to_code(sport_id)
         except Exception as e:
             logger.warning("Failed to fetch team level for team_id=%s: %s", team_id, e)
 
@@ -315,26 +306,18 @@ def get_game_play_by_play(game_pk: int) -> dict:
         return {}
 
 
-_SPORT_NAME_TO_ABBR: dict[str, str] = {
-    "Major League Baseball": "MLB",
-    "Triple-A": "AAA",
-    "Double-A": "AA",
-    "High-A": "A+",
-    "Single-A": "A",
-    "Low-A": "A",
-    "Rookie": "ROK",
-    "Rookie Advanced": "ROK",
-}
-
-
 def sport_obj_to_abbr(sport: dict) -> str:
-    """Convert an MLB Stats API sport object to an abbreviation string."""
+    """Convert an MLB Stats API sport object to an abbreviation string.
+
+    Prefers sportId; falls back to the sport name. Both lookups go through the
+    single level registry in ``site_builder.levels``.
+    """
     if not sport:
         return ""
-    abbr = _SPORT_ID_MAP.get(sport.get("id", 0))
+    abbr = sport_id_to_code(sport.get("id", 0))
     if abbr:
         return abbr
-    return _SPORT_NAME_TO_ABBR.get(sport.get("name", ""), "")
+    return sport_name_to_code(sport.get("name", ""))
 
 
 def get_game_sport_level(game_pk: int) -> str:

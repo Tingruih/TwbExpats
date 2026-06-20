@@ -28,8 +28,8 @@
             {% set _level = _e.sport_level %}
             {% set _plinko = sc.pitch_plinko if sc and sc.pitch_plinko else {} %}
             <div class="pitch-plinko-level-container"
-                 data-level="{{ _level }}"
-                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
+                 data-level="{{ _level | level_display(yr) }}"
+                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level | level_display(yr) }}{% endif %}"
                  {% if not loop.first %}style="display: none;"{% endif %}>
                 {% if is_pitcher %}
                 {% set _splits = sc.pitcher_bat_side_splits if sc and sc.pitcher_bat_side_splits else {} %}

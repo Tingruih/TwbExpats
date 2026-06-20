@@ -13,7 +13,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ f.year }}</span>
-                        <span class="level-tag level-{{ f.sport_level|lower }}">{{ f.sport_level }}</span>
+                        <span class="level-tag">{{ f.sport_level | level_display(f.year) }}</span>
                         <span class="mc-team">{{ f.team_name }}</span>
                     </div>
                     <div class="mc-hd-aside">

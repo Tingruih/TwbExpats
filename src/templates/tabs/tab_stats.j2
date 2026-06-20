@@ -31,7 +31,7 @@
                             {% if grp.multi %}<span class="toggle-arrow" id="arrow-basic-{{ yr }}"></span>{% endif %}
                         </td>
                         <td><strong>{{ yr }}</strong></td>
-                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>{% endif %}</td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>{% endif %}</td>
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         <td class="num">{{ sm.gp|num_dash }}</td>
                         {% if is_pitcher %}
@@ -73,7 +73,7 @@
                     <tr class="year-detail-row" data-tbl="basic" data-grp="{{ yr }}" style="display:none;">
                         <td></td>
                         <td></td>
-                        <td><span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span></td>
+                        <td><span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span></td>
                         <td>{{ stat.team_name }}</td>
                         <td class="num">{{ stat.gp|num_dash }}</td>
                         {% if is_pitcher %}

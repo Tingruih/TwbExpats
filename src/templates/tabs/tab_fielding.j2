@@ -19,7 +19,7 @@
                     {% for f in all_fielding %}
                     <tr class="{% if f.year == selected_year %}highlight-row{% endif %}">
                         <td>{{ f.year }}</td>
-                        <td><span class="level-tag level-{{ f.sport_level|lower }}">{{ f.sport_level }}</span></td>
+                        <td><span class="level-tag">{{ f.sport_level | level_display(f.year) }}</span></td>
                         <td>{{ f.team_name }}</td>
                         <td><span class="pos-tag">{{ f.position }}</span></td>
                         <td class="num">{{ f.gp|num_dash }}</td>

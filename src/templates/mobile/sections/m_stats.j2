@@ -16,7 +16,7 @@
                         {% if grp.multi %}
                         <span class="multi-tag">{{ grp.rows|length }}隊</span>
                         {% else %}
-                        <span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>
+                        <span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>
                         <span class="m-stat-team">{{ grp.rows[0].team_name }}</span>
                         {% endif %}
                     </div>
@@ -72,7 +72,7 @@
                     {% for stat in grp.rows %}
                     <div class="m-stat-sub-card">
                         <div class="m-stat-sub-hd">
-                            <span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span>
+                            <span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span>
                             <span class="m-sub-team">{{ stat.team_name }}</span>
                         </div>
                         {% if is_pitcher %}

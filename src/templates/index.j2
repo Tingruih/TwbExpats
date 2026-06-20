@@ -17,7 +17,7 @@
     {% set stat = item.stat %}
     {% set player_name = player.name_tw ~ ' ' ~ player.name_en if player.name_tw else player.name_en %}
     <a href="{{ player_url(player.mlb_id) }}" class="player-card glass-panel"
-       data-level="{{ player.level }}"
+       data-level="{{ player.level | level_display(item.level_year) }}"
        data-level-order="{{ loop.index }}"
        data-last-game="{{ item.last_game_date.isoformat() if item.last_game_date else '0000-00-00' }}">
         <div class="player-header">
@@ -33,7 +33,7 @@
             </div>
             <div class="player-info">
                 <h2>{{ player.name_tw or player.name_en }}
-                    <span class="level-tag level-{{ player.level|lower }}">{{ player.level }}</span>
+                    <span class="level-tag">{{ player.level | level_display(item.level_year) }}</span>
                 </h2>
                 <div class="level">{{ player.position }}</div>
             </div>

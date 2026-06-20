@@ -16,7 +16,7 @@
     {% set stat = item.stat %}
     {% set player_name = player.name_tw ~ ' ' ~ player.name_en if player.name_tw else player.name_en %}
     <a href="{{ retired_player_url(player.mlb_id) }}" class="player-card glass-panel"
-       data-level="{{ item.badge_level }}">
+       data-level="{{ item.badge_level | level_display(item.badge_year) }}">
         <div class="player-header">
             <div class="avatar">
                 <img
@@ -31,7 +31,7 @@
             <div class="player-info">
                 <h2>{{ player.name_tw or player.name_en }}
                     {% if item.badge_level %}
-                    <span class="level-tag level-{{ item.badge_level|lower }}">{{ item.badge_level }}</span>
+                    <span class="level-tag">{{ item.badge_level | level_display(item.badge_year) }}</span>
                     {% endif %}
                 </h2>
                 <div class="level">

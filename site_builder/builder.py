@@ -12,7 +12,6 @@ from xml.sax.saxutils import escape
 import requests as _requests
 
 from site_builder.helpers import (
-    SPORT_LEVEL_ORDER,
     Obj,
     annotate_computed_stats,
     categorize_roster_status,
@@ -21,7 +20,7 @@ from site_builder.helpers import (
     compute_year_groups,
     has_appearance,
     height_to_cm,
-    highest_level,
+    highest_level_row,
     is_active_player,
     level_rank,
     dumps_json,
@@ -946,14 +945,19 @@ def build_static_site(
             if log.date:
                 last_game_date = log.date
                 break  # logs are already sorted descending
+        # Year that `player.level` (the badge) corresponds to: the most recent
+        # season row (stats are sorted -year, level_order). Drives era-aware
+        # display so e.g. a 2026 High-A badge reads "A+".
+        level_year = stats[0].year if stats else year
         player_data.append(
             {
                 "player": player,
                 "stat": _pick_display_stat(stats_current, player),
+                "level_year": level_year,
                 "last_game_date": last_game_date,
             }
         )
-    player_data.sort(key=lambda x: SPORT_LEVEL_ORDER.get(x["player"].level, 50))
+    player_data.sort(key=lambda x: level_rank(x["player"].level))
 
     index_html = index_template.render(
         player_data=player_data,
@@ -975,13 +979,19 @@ def build_static_site(
     retired_data = []
     for player, stats, logs in retired_bundles:
         career = compute_career(stats, level_filter=None)
-        badge_level = highest_level(stats)
+        # Badge shows the highest level ever reached, displayed with the
+        # period-accurate name for the year it was reached (e.g. a 2018 High-A
+        # peak reads "A(Adv)", not "A+").
+        best = highest_level_row(stats)
+        badge_level = best.sport_level if best else None
+        badge_year = best.year if best else None
         last_game_date = next((log.date for log in logs if log.date), None)
         retired_data.append(
             {
                 "player": player,
                 "stat": career,
                 "badge_level": badge_level,
+                "badge_year": badge_year,
                 "last_game_date": last_game_date,
             }
         )

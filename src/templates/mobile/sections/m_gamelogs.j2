@@ -22,7 +22,7 @@
     <div class="m-gamelog-year" id="m-gamelogs-{{ y }}" {% if not loop.first %}style="display:none;"{% endif %}>
         {% for log in year_logs %}
         {% set s = log.stats_json %}
-        <article class="m-gamelog-card mc-card" data-level="{{ log.sport_level }}">
+        <article class="m-gamelog-card mc-card" data-level="{{ log.sport_level | level_display(y) }}">
 
             {# ── 標題列：日期 / 主客 / 對手 ↔ 結果徽章 / 層級 ── #}
             <header class="mc-hd m-gamelog-hd">
@@ -34,7 +34,7 @@
                     </div>
                 </div>
                 <div class="mc-hd-aside">
-                    <span class="level-tag level-{{ log.sport_level|lower }}">{{ log.sport_level }}</span>
+                    <span class="level-tag">{{ log.sport_level | level_display(y) }}</span>
                 </div>
             </header>
 

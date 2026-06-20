@@ -13,6 +13,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
+from .levels import level_display, is_mlb
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TEMPLATE_DIR = os.path.join(_PROJECT_ROOT, "src", "templates")
 
@@ -142,7 +144,9 @@ def create_jinja_env(
     env.filters["tojson_safe"] = tojson_safe
     env.filters["jsonld"] = jsonld
     env.filters["pct_fmt"] = pct_fmt
+    env.filters["level_display"] = level_display
 
+    env.globals["is_mlb"] = is_mlb
     env.globals["player_url"] = player_url
     env.globals["retired_player_url"] = retired_player_url
     env.globals["static_url"] = static_url

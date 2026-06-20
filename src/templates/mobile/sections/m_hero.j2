@@ -17,7 +17,7 @@
         <h1>{{ player.name_tw or player.name_en }}</h1>
         <span class="m-hero-name-en">{{ player.name_en }}</span>
         <div class="m-hero-meta">
-            <span class="badge {{ 'badge-mlb' if player.level == 'MLB' else 'badge-level' }}">{{ player.level }}</span>
+            <span class="badge {{ 'badge-mlb' if is_mlb(player.level) else 'badge-level' }}">{{ player.level | level_display(player.latest_stat.year if player.latest_stat else none) }}</span>
             <span>{{ player.team }}</span>
             <span>{% if is_pitcher %}{{ (player.pitch_hand or "R") }}HP{% else %}{{ (player.bat_side or "?")[:1] }}{% endif %} · {{ player.position }}</span>
         </div>

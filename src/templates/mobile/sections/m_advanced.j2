@@ -69,7 +69,7 @@
                         {% if grp.multi %}
                         <span class="multi-tag">{{ grp.rows|length }} 隊合計</span>
                         {% else %}
-                        <span class="level-tag level-{{ grp.rows[0].sport_level|lower }}">{{ grp.rows[0].sport_level }}</span>
+                        <span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>
                         <span class="mc-team">{{ grp.rows[0].team_name }}</span>
                         {% endif %}
                     </div>
@@ -85,7 +85,7 @@
                     {% for stat in grp.rows %}
                     <div class="mc-sub-card">
                         <div class="mc-sub-hd">
-                            <span class="level-tag level-{{ stat.sport_level|lower }}">{{ stat.sport_level }}</span>
+                            <span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span>
                             <span class="mc-team">{{ stat.team_name }}</span>
                         </div>
                         {{ adv_body(stat) }}
@@ -117,7 +117,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span>
+                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
                     </div>
                 </header>
                 {% if is_pitcher %}
@@ -173,7 +173,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span>
+                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
                     </div>
                     <div class="mc-hd-aside">
                         <span class="mc-meta">{{ sc.total_pitches|num_dash }} Pitches</span>
@@ -212,7 +212,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag level-{{ entry.sport_level|lower }}">{{ entry.sport_level }}</span>
+                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
                     </div>
                     <div class="mc-hd-aside">
                         <span class="mc-meta">{{ sc.bbe|num_dash }} BBE</span>
@@ -268,8 +268,8 @@
             {% set sc = _e.sc %}
             {% set _level = _e.sport_level %}
             <div class="arsenal-level-container" id="m-arsenal-{{ yr }}-{{ _level }}"
-                 data-level="{{ _level }}"
-                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level }}{% endif %}"
+                 data-level="{{ _level | level_display(yr) }}"
+                 data-level-label="{% if _level == '_combined' %}All Levels{% else %}{{ _level | level_display(yr) }}{% endif %}"
                  {% if not loop.first %}style="display: none;"{% endif %}>
 
                 {% if is_pitcher %}

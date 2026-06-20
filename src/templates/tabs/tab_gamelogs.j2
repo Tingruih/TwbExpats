@@ -34,7 +34,7 @@
                 <tbody>
                     {% for log in year_logs %}
                     <tr class="gamelog-data-row{% if log.pitch_data_url %} game-row-expandable{% endif %}"
-                        data-level="{{ log.sport_level }}"
+                        data-level="{{ log.sport_level | level_display(y) }}"
                         {% if log.pitch_data_url %}onclick="togglePitchLog('pitchlog-{{ y }}-{{ loop.index }}')" style="cursor:pointer;"{% endif %}>
                         <td>
                             {% if log.pitch_data_url %}<span class="toggle-arrow pitch-arrow" id="arrow-pitchlog-{{ y }}-{{ loop.index }}"></span>{% endif %}
@@ -74,7 +74,7 @@
                     </tr>
                     {% if log.pitch_data_url %}
                     {# Pitch log: placeholder row; JSON is fetched on first expand. #}
-                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" data-level="{{ log.sport_level }}" style="display:none;">
+                    <tr class="pitch-log-row" id="pitchlog-{{ y }}-{{ loop.index }}" data-src="{{ log.pitch_data_url }}" data-level="{{ log.sport_level | level_display(y) }}" style="display:none;">
                         <td colspan="{% if is_pitcher %}13{% else %}16{% endif %}" class="pitch-log-cell">
                             <div class="pitch-log-scroll" id="pitchlog-content-{{ y }}-{{ loop.index }}"></div>
                         </td>

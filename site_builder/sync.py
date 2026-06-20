@@ -24,8 +24,8 @@ from site_builder.api import (
     parse_roster_from_file,
     sport_obj_to_abbr,
 )
+from site_builder.levels import TIERS
 from site_builder.helpers import (
-    SPORT_LEVEL_ORDER,
     categorize_roster_status,
     dumps_json,
     loads_json,
@@ -638,8 +638,13 @@ def _write_player_to_db(conn: sqlite3.Connection, bundle: dict, year: int):
 
     # Update level/team
     if not profile.get("current_team_level") or not profile.get("current_team_name"):
+        # Rank every raw sport_level spelling (incl. historical ones like
+        # "A(Adv)" / "A(Short)") via the single level registry, so the "latest
+        # level" pick orders pre-2021 rows correctly too.
         level_order_sql = " ".join(
-            f"WHEN '{k}' THEN {v}" for k, v in SPORT_LEVEL_ORDER.items()
+            f"WHEN '{alias}' THEN {t.rank}"
+            for t in TIERS
+            for alias in t.aliases
         )
         cur.execute(
             f"SELECT sport_level, team_name FROM season_stats "
