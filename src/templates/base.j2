@@ -32,40 +32,30 @@
 </head>
 <body>
 
-    {# ─── Site Navigation Drawer ─── #}
-    <div class="site-nav" id="site-nav" role="dialog" aria-modal="true" aria-label="主選單">
-        <div class="site-nav-backdrop" id="site-nav-backdrop"></div>
-        <div class="site-nav-drawer">
-            <div class="site-nav-top">
-                <div class="site-nav-brand">
-                    <img class="site-nav-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats">
-                    <span class="site-nav-brand-name">TwbExpats</span>
-                </div>
-            </div>
-            <div class="site-nav-body">
-                <a href="{{ base_url }}" class="site-nav-link{% if nav_active == 'index' %} site-nav-link--active{% endif %}">
-                    <span class="site-nav-link-label">現役球員</span>
-                    <span class="site-nav-link-desc">MLB / MiLB 在籍名單</span>
-                </a>
-                <a href="{{ base_url }}retired/" class="site-nav-link{% if nav_active == 'retired' %} site-nav-link--active{% endif %}">
-                    <span class="site-nav-link-label">已離美職體系</span>
-                    <span class="site-nav-link-desc">旅美生涯已結束的球員</span>
-                </a>
-            </div>
-            <div class="site-nav-footer">
-                <span>TwbExpats · 台灣旅美棒球員追蹤</span>
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <header>
             <div class="header-left">
-                <button class="menu-toggle" aria-label="開啟選單" aria-expanded="false">
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                </button>
+                {# ─── 選單：錨定在按鈕正下方的下拉面板（不需滿版，任何視窗寬度都不會錯位）─── #}
+                <div class="menu" id="menu">
+                    <button class="menu-toggle" id="menu-toggle" aria-label="開啟選單"
+                            aria-haspopup="true" aria-expanded="false" aria-controls="menu-dropdown">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                    <div class="menu-dropdown" id="menu-dropdown" role="menu" aria-label="主選單">
+                        <a href="{{ base_url }}" role="menuitem"
+                           class="menu-item{% if nav_active == 'index' %} menu-item--active{% endif %}">
+                            <span class="menu-item-label">現役球員</span>
+                            <span class="menu-item-desc">MLB / MiLB 在籍名單</span>
+                        </a>
+                        <a href="{{ base_url }}retired/" role="menuitem"
+                           class="menu-item{% if nav_active == 'retired' %} menu-item--active{% endif %}">
+                            <span class="menu-item-label">已離美職體系</span>
+                            <span class="menu-item-desc">旅美生涯已結束的球員</span>
+                        </a>
+                    </div>
+                </div>
                 <a href="{{ base_url }}" class="brand-logo">
                     <img class="brand-icon" src="{{ static_url('logo.svg') }}" alt="TwbExpats 台灣旅美棒球員 / Taiwanese baseball players stats tracker">
                     <span class="brand-divider" aria-hidden="true"></span>

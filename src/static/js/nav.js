@@ -1,31 +1,40 @@
 (function () {
-    var nav = document.getElementById('site-nav');
-    var toggleBtn = document.querySelector('.menu-toggle');
-    var backdrop = document.getElementById('site-nav-backdrop');
+    var menu = document.getElementById('menu');
+    var toggleBtn = document.getElementById('menu-toggle');
 
-    if (!nav || !toggleBtn) return;
+    if (!menu || !toggleBtn) return;
 
-    function openNav() {
-        nav.classList.add('site-nav--open');
+    function isOpen() {
+        return menu.classList.contains('menu--open');
+    }
+
+    function openMenu() {
+        menu.classList.add('menu--open');
         toggleBtn.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
     }
 
-    function closeNav() {
-        nav.classList.remove('site-nav--open');
+    function closeMenu() {
+        menu.classList.remove('menu--open');
         toggleBtn.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
     }
 
-    toggleBtn.addEventListener('click', function () {
-        if (nav.classList.contains('site-nav--open')) closeNav();
-        else openNav();
+    toggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (isOpen()) closeMenu();
+        else openMenu();
     });
 
-    if (backdrop) backdrop.addEventListener('click', closeNav);
+    // 點選單以外的任何地方就關閉
+    document.addEventListener('click', function (e) {
+        if (isOpen() && !menu.contains(e.target)) closeMenu();
+    });
 
+    // Esc 關閉並把焦點移回按鈕
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && nav.classList.contains('site-nav--open')) closeNav();
+        if (e.key === 'Escape' && isOpen()) {
+            closeMenu();
+            toggleBtn.focus();
+        }
     });
 
 })();
