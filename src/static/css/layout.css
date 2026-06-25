@@ -254,7 +254,7 @@ header nav a:hover {
 }
 
 .menu-item--active:hover::before {
-    background: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.915);
 }
 
 .menu-item--active:hover {

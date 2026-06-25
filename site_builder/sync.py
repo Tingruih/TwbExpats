@@ -133,6 +133,15 @@ def _init_db(conn: sqlite3.Connection):
         conn.execute("ALTER TABLE players ADD COLUMN roster_is_active INTEGER NOT NULL DEFAULT 0")
     except sqlite3.OperationalError:
         pass  # column already exists
+    # Forward-migration: track whether hit_coord backfill has been attempted for this
+    # player-game row. Prevents re-fetching games where the API genuinely has no
+    # hit coordinates (pre-2019 MLB, low-level MiLB).
+    try:
+        conn.execute(
+            "ALTER TABLE game_logs ADD COLUMN hit_coord_checked INTEGER NOT NULL DEFAULT 0"
+        )
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
 
 
@@ -1274,31 +1283,23 @@ def sync_statcast(
     game_to_players: dict[int, list[tuple[int, str]]] = {}
     target_count = 0  # count of player-game rows needing pitch data
 
-    # Get already-processed set
-    cur.execute("SELECT game_pk FROM playbyplay_processed")
-    processed = {r[0] for r in cur.fetchall()}
-
     for mlb_id in roster_map:
         cur.execute(
-            "SELECT game_id, pitches_json FROM game_logs WHERE player_mlb_id = ?",
+            "SELECT game_id, pitches_json, hit_coord_checked FROM game_logs "
+            "WHERE player_mlb_id = ?",
             (mlb_id,),
         )
-        for gpk, pitches_json in cur.fetchall():
+        for gpk, pitches_json, hit_coord_checked in cur.fetchall():
             if gpk is None:
                 continue
             needs_fetch = pitches_json in (None, "[]")
-            if not needs_fetch:
+            if not needs_fetch and not hit_coord_checked:
                 needs_fetch = _pitches_need_hit_coord_backfill(
                     loads_json_list(pitches_json)
                 )
             if not needs_fetch:
                 continue
             target_count += 1
-            if gpk in processed:
-                # game was fetched before but this player row was never updated
-                # (e.g. added to roster later) or its cached pitch dicts predate
-                # hit-coordinate storage; re-extract this player from the feed.
-                pass
             game_to_players.setdefault(gpk, []).append((mlb_id, positions.get(mlb_id, "")))
 
     total_games = len(game_to_players)
@@ -1361,13 +1362,13 @@ def sync_statcast(
         # feed; otherwise preserve whatever the main sync already stored.
         if lvl:
             cur.execute(
-                "UPDATE game_logs SET pitches_json = ?, sport_level = ? "
+                "UPDATE game_logs SET pitches_json = ?, sport_level = ?, hit_coord_checked = 1 "
                 "WHERE player_mlb_id = ? AND game_id = ?",
                 (stored_pitches, lvl, mlb_id, gpk),
             )
         else:
             cur.execute(
-                "UPDATE game_logs SET pitches_json = ? "
+                "UPDATE game_logs SET pitches_json = ?, hit_coord_checked = 1 "
                 "WHERE player_mlb_id = ? AND game_id = ?",
                 (stored_pitches, mlb_id, gpk),
             )
