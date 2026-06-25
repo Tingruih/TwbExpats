@@ -30,7 +30,7 @@ from site_builder.helpers import (
     parse_date,
     safe_float,
 )
-from site_builder.jinja_env import create_jinja_env
+from site_builder.jinja_env import HEADSHOT_CDN_TEMPLATE, create_jinja_env
 from site_builder.statcast import (
     compute_pitch_movement_chart,
     summarize_pitch_for_display,
@@ -573,10 +573,7 @@ def _prefetch_headshots(mlb_ids: list, cache_dir: Path, dest_dir: Path):
     to_fetch = [mid for mid in mlb_ids if not (cache_dir / f"{mid}.jpg").exists()]
 
     def _fetch_one(mlb_id):
-        url = (
-            f"https://img.mlbstatic.com/mlb-photos/image/upload/"
-            f"w_180,q_auto:best/v1/people/{mlb_id}/headshot/milb/current"
-        )
+        url = HEADSHOT_CDN_TEMPLATE.format(mlb_id=mlb_id)
         try:
             r = _requests.get(url, timeout=10)
             if r.status_code == 200 and r.content:

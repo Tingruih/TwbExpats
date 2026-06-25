@@ -1,4 +1,5 @@
 {% extends 'base.j2' %}
+{% import 'macros/avatar.j2' as avatar %}
 
 {% block content %}
 
@@ -11,16 +12,7 @@
 <div class="profile-hero glass-panel" id="player-hero-{{ player.mlb_id }}">
     <div class="hero-photo-wrap">
         <div class="hero-avatar" id="avatar-{{ player.mlb_id }}">
-            <img
-                src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
-                data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
-                alt="{{ player_name }}"
-                id="headshot-{{ player.mlb_id }}"
-                class="avatar-img"
-            >
-            <div class="avatar-initials avatar-fallback" id="initials-{{ player.mlb_id }}" aria-hidden="true">
-                {{ player.name_en[:1] }}
-            </div>
+            {{ avatar.avatar_img(player, player_name, with_ids=True) }}
         </div>
     </div>
 

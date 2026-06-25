@@ -1,0 +1,12 @@
+{# 球員頭像：本地快取 img → data-cdn-src 備援 → 文字縮寫 fallback（見 avatar-fallback.js） #}
+{% macro avatar_img(player, player_name, lazy=False, with_ids=False) -%}
+<img
+    src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
+    data-cdn-src="{{ headshot_cdn_url(player.mlb_id) }}"
+    alt="{{ player_name }}"
+    {%- if lazy %} loading="lazy"{% endif %}
+    {%- if with_ids %} id="headshot-{{ player.mlb_id }}"{% endif %}
+    class="avatar-img"
+>
+<div class="avatar-initials avatar-fallback"{% if with_ids %} id="initials-{{ player.mlb_id }}"{% endif %} aria-hidden="true">{{ player.name_en[:1] }}</div>
+{%- endmacro %}
