@@ -1,15 +1,8 @@
+{% import 'macros/avatar.j2' as avatar %}
 <section class="m-hero glass-panel" aria-label="球員摘要">
     <div class="m-hero-photo">
         <div class="m-hero-avatar">
-            <img
-                src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
-                data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
-                alt="{{ player_name }}"
-                class="avatar-img"
-            >
-            <div class="avatar-initials avatar-fallback" aria-hidden="true">
-                {{ player.name_en[:1] }}
-            </div>
+            {{ avatar.avatar_img(player, player_name) }}
         </div>
     </div>
 

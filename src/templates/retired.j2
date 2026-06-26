@@ -1,4 +1,5 @@
 {% extends 'base.j2' %}
+{% import 'macros/avatar.j2' as avatar %}
 
 {% block content %}
 
@@ -19,14 +20,7 @@
        data-level="{{ item.badge_level | level_display(item.badge_year) }}">
         <div class="player-header">
             <div class="avatar">
-                <img
-                    src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
-                    data-cdn-src="https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{{ player.mlb_id }}/headshot/milb/current"
-                    alt="{{ player_name }}"
-                    loading="lazy"
-                    class="avatar-img"
-                >
-                <div class="avatar-initials avatar-fallback" aria-hidden="true">{{ player.name_en[:1] }}</div>
+                {{ avatar.avatar_img(player, player_name, lazy=True) }}
             </div>
             <div class="player-info">
                 <h2>{{ player.name_tw or player.name_en }}

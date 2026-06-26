@@ -86,6 +86,18 @@ def pct_fmt(value, digits=1):
 
 # ── URL Factories ──
 
+# Single source of truth for the MLB headshot CDN URL, shared by the build-time
+# prefetch in site_builder.builder and the `data-cdn-src` fallback rendered into
+# every avatar template.
+HEADSHOT_CDN_TEMPLATE = (
+    "https://img.mlbstatic.com/mlb-photos/image/upload/"
+    "w_180,q_auto:best/v1/people/{mlb_id}/headshot/milb/current"
+)
+
+
+def headshot_cdn_url(mlb_id):
+    return HEADSHOT_CDN_TEMPLATE.format(mlb_id=mlb_id)
+
 
 def _make_url_helpers(base_url: str):
     base = base_url.rstrip("/")
@@ -150,6 +162,7 @@ def create_jinja_env(
     env.globals["player_url"] = player_url
     env.globals["retired_player_url"] = retired_player_url
     env.globals["static_url"] = static_url
+    env.globals["headshot_cdn_url"] = headshot_cdn_url
     env.globals["absolute_url"] = absolute_url
     env.globals["base_url"] = base_url
     env.globals["site_url"] = site_url
