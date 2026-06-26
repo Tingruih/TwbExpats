@@ -337,9 +337,12 @@ def _compute_rate_stats(agg):
     if _ip_actual > 0:
         er = agg.get("earned_runs") or 0
         agg["era"] = round(er / _ip_actual * 9, 2)
+        # WHIP needs BOTH hits and walks. Guarding only on p_hits and then
+        # treating a None bb as 0 would silently undercount WHIP, so require
+        # both components to be present.
         agg["whip"] = (
-            round(((agg.get("p_hits") or 0) + (agg.get("bb") or 0)) / _ip_actual, 2)
-            if agg.get("p_hits") is not None
+            round((agg["p_hits"] + agg["bb"]) / _ip_actual, 2)
+            if agg.get("p_hits") is not None and agg.get("bb") is not None
             else None
         )
     else:
@@ -549,19 +552,20 @@ def _compute_advanced_stats(s):
         if so is not None and bb is not None and bb > 0:
             s["k_bb_ratio"] = round(so / bb, 2)
 
-    # Pitcher K% = SO / BF
-    if s.get("k_pct") is None:
+    # Pitcher K% = SO / BF — namespaced with a p_ prefix so a two-way player's
+    # batting K% (SO/PA, keyed k_pct) can't clobber it (or vice versa).
+    if s.get("p_k_pct") is None:
         so = s.get("so")
         bf = s.get("bf")
         if so is not None and bf and bf > 0:
-            s["k_pct"] = round(so / bf, 3)
+            s["p_k_pct"] = round(so / bf, 3)
 
     # Pitcher BB% = BB / BF
-    if s.get("bb_pct") is None:
+    if s.get("p_bb_pct") is None:
         bb = s.get("bb")
         bf = s.get("bf")
         if bb is not None and bf and bf > 0:
-            s["bb_pct"] = round(bb / bf, 3)
+            s["p_bb_pct"] = round(bb / bf, 3)
 
     # Strike% = strikes / pitches
     if s.get("strike_pct") is None:
@@ -570,15 +574,18 @@ def _compute_advanced_stats(s):
         if strikes is not None and pitches and pitches > 0:
             s["strike_pct"] = _fmt_avg(strikes / pitches)
 
-    # Pitcher BABIP = (H - HR) / (BF - SO - HR - BB)
+    # Pitcher BABIP = (H - HR) / (AB - SO - HR + SF), symmetric with the batter
+    # formula above. Using opponent AB (p_ab) correctly excludes BB/HBP/SH from
+    # the denominator; the old BF-SO-HR-BB form left HBP and sac bunts in,
+    # inflating the denominator and understating p_babip.
     if s.get("p_babip") is None:
         p_hits = s.get("p_hits")
         p_hr   = s.get("p_hr")
-        bf     = s.get("bf")
+        p_ab   = s.get("p_ab")
         so     = s.get("so")
-        bb     = s.get("bb")
-        if all(v is not None for v in [p_hits, p_hr, bf, so, bb]):
-            denom = bf - so - p_hr - bb
+        p_sf   = s.get("p_sac_flies") or 0
+        if all(v is not None for v in [p_hits, p_hr, p_ab, so]):
+            denom = p_ab - so - p_hr + p_sf
             if denom > 0:
                 s["p_babip"] = round((p_hits - p_hr) / denom, 3)
 
