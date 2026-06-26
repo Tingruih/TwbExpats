@@ -237,6 +237,10 @@ header nav a:hover {
     background: var(--secondary);
 }
 
+.menu-item:hover .menu-item-desc {
+    color: var(--text-1);
+}
+
 .menu-item--active {
     color: var(--text-1);
     background: rgba(255, 255, 255, 0.06);
@@ -249,12 +253,8 @@ header nav a:hover {
     top: 0;
     bottom: 0;
     width: 2px;
-    background: rgba(255, 255, 255, 0.45);
-    border-radius: 0;
-}
-
-.menu-item--active:hover::before {
     background: rgba(255, 255, 255, 0.915);
+    border-radius: 0;
 }
 
 .menu-item--active:hover {
@@ -274,7 +274,7 @@ header nav a:hover {
 }
 
 .menu-item--active .menu-item-desc {
-    color: var(--text-2);
+    color: var(--text-1);
 }
 
 .site-footer {

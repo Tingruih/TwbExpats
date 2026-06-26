@@ -1,10 +1,13 @@
 # site_builder 重構計畫 v2
 
-> 狀態：**規劃中（尚未執行）**
+> 狀態：**執行中**（最後更新：2026-06-27）
 > 依據：`docs/CODE_REVIEW_REPORT.md`（2026-06-25 六檔 code review）
 > 黃金標準：`site_builder/levels.py` —— 單一職責、領域知識集中於一處、純函式、無 I/O、檔頭講清楚「為什麼」。
 > 目標：把目前肥大、職責混雜的 6 個檔案，重組成一組「每個檔案都像 `levels.py` 一樣乾淨」的模組／subpackage；
 > 同時用「純搬移 + re-export shim + 逐階段驗證」把重構風險壓到最低。
+>
+> **已完成的 Phase**：Phase 4（`levels.py` 主體）已在 commit `6ef00b0` 完成，詳見 §12。
+> **計畫外異動**：headshot 架構已在 commit `c306b17`/`2368bff` 徹底改寫，`_prefetch_headshots` 已刪除，CDN URL 邏輯移至 `jinja_env.py`；Phase 9 的 `headshots.py` 計畫需調整（見 §7.10 更新說明）。
 
 ---
 
@@ -31,17 +34,17 @@
 
 ## 1. 現況診斷（為什麼要重構）
 
-目前 `site_builder/` 共 7 個檔（不含 `__init__.py`），總計約 5,500 行，分工不均且職責混雜：
+目前 `site_builder/` 共 8 個檔（不含 `__init__.py`），總計約 5,505 行，分工不均且職責混雜：
 
 | 檔案 | 行數 | 問題 |
 |------|------|------|
-| `levels.py` | 149 | ✅ 乾淨範本（單一職責、領域集中） |
-| `api.py` | 419 | 尚可，但常數散落（v1.1 URL、timeout、sportId） |
-| `jinja_env.py` | 158 | 格式化邏輯與環境建構混在一起 |
-| `helpers.py` | 687 | ❌ **雜物箱**：型別轉換 + JSON + 單位換算 + 棒球統計 + roster 狀態 + level 橋接，5 種互不相關的職責 |
-| `builder.py` | 1,261 | ❌ **巨檔**：DB 載入 + 跨等級聚合 + headshot I/O + SEO/JSON-LD + sitemap/robots + 渲染主流程 |
+| `levels.py` | 149 | ✅ 乾淨範本（單一職責、領域集中）✅ **已建立並整合**（commit `6ef00b0`） |
+| `api.py` | 419 | 尚可，但常數散落（v1.1 URL、timeout）；sportId 已整合至 levels ✅ |
+| `jinja_env.py` | 189 | 格式化邏輯與環境建構混在一起；已新增 headshot CDN 邏輯（計畫外） |
+| `helpers.py` | 687 | ❌ **雜物箱**：型別轉換 + JSON + 單位換算 + 棒球統計 + roster 狀態；level 橋接已移至 levels ✅ |
+| `builder.py` | 1,220 | ❌ **巨檔**：DB 載入 + 跨等級聚合 + SEO/JSON-LD + sitemap/robots + 渲染主流程；headshot I/O 已移除 ✅ |
 | `statcast.py` | 1,415 | ❌ **巨檔**：萃取 + 分類 + 聚合 + 圖表 + 公式 + 顯示，全擠一檔 |
-| `sync.py` | 1,425 | ❌ **巨檔**：schema/migration + 欄位對應 + 球員 pipeline + statcast pipeline |
+| `sync.py` | 1,426 | ❌ **巨檔**：schema/migration + 欄位對應 + 球員 pipeline + statcast pipeline |
 
 三個 >1,200 行的巨檔，加上 `helpers.py` 雜物箱，是維護痛點的根源。code review 也直接點出由「分工差」衍生的問題：
 
@@ -279,8 +282,17 @@ L8  builder
 > `calc_obp`、`has_appearance` **不進 util**（含棒球語意）→ 進 `stats/`。
 
 ### 7.4 `levels.py` — 微調
+
+> **✅ 主體已完成**（commit `6ef00b0`，2026-06-20）：
+> - `levels.py` 已建立（149 行），包含 `Tier` dataclass、`TIERS` 常數表、`resolve_tier`、`level_rank`、`level_display`、`is_mlb`、`sport_id_to_code`、`sport_name_to_code`、`tier_keys_ordered`。
+> - `api.py` 已移除 `_SPORT_ID_MAP`/`_SPORT_NAME_TO_ABBR`，改用 `levels.sport_id_to_code`/`sport_name_to_code`。
+> - `helpers.py` 已移除 `SPORT_LEVEL_ORDER`/`LEVEL_ALIASES`/`canonical_level()`，改為 re-export levels 符號（back-compat shim）。
+> - `sync.py` SQL CASE 排序已改用 `levels.TIERS`（涵蓋歷史拼法，修正舊版 A(Adv) 掉到 ELSE 50 的隱性 bug）。
+> - `jinja_env.py` 已註冊 `level_display` filter 與 `is_mlb` global。
+
+**待完成**：
 - 新增純函式 `level_case_sql(column: str) -> str`：產生 sync 目前手拼的 `CASE ... END` 字串（含 `ELSE _UNKNOWN_RANK`），把 alias→rank 的對應與 `_UNKNOWN_RANK` 集中在 levels（唯一知道 level 的地方）。**輸出與現狀字串等價**（純搬移；安全修正留後續）。
-- 刪 `helpers.py` 對 levels 的冗餘 re-export（見 §10）。
+- 刪 `helpers.py` 對 levels 的冗餘 re-export（見 §10）——目前 re-export 仍在，作為過渡 shim 保留。
 
 ### 7.5 `stats/` — 棒球統計
 | 新位置 | 來源（原符號） |
@@ -324,15 +336,24 @@ L8  builder
 > `sync/statcast_pipeline.py` 內 `from site_builder.statcast import compute_fip, ...` 不會與檔名衝突（絕對路徑為 `site_builder.sync.statcast_pipeline`，與 `site_builder.statcast` 不同）。
 
 ### 7.10 渲染層
+
+> **計畫外改動（headshot 架構已大幅改寫）**：
+> - commits `d8ee1ab`、`c306b17`、`2368bff`（2026-06-25/26）已將 headshot 架構從「build-time 下載 → 本地快取 → 複製到 dist」改為「直接指向 CDN URL」。
+> - `builder.py` 的 `_prefetch_headshots()` 已**完全刪除**（含 `HEADSHOT_URL_TEMPLATE`/`HEADSHOT_TIMEOUT` 常數）。
+> - CDN URL 邏輯現已在 `jinja_env.py`：新增 `HEADSHOT_CDN_TEMPLATE_MLB`、`HEADSHOT_CDN_TEMPLATE_MILB` 常數與 `headshot_cdn_urls()` 函式。
+> - `jinja_env.py` 同步新增 `retired_player_url` URL helper、`headshot_cdn_urls` / `site_origin` globals。
+> - **原計畫的 `headshots.py` 已無需建立**（下載/快取層不復存在）；`config.py` 裡的 `HEADSHOT_URL_TEMPLATE`/`HEADSHOT_TIMEOUT` 也不再需要抽出。
+
 | 新位置 | 來源（原符號） | 備註 |
 |--------|----------------|------|
 | `urls.py` `make_url_helpers`/`make_absolute_url` | jinja_env `_make_url_helpers`/`_make_absolute_url` | jinja_env import 後註冊為 global |
-| `headshots.py` `prefetch_headshots` + 頭像常數 | builder `_prefetch_headshots` | URL/timeout 用 config |
+| ~~`headshots.py`~~ | ~~builder `_prefetch_headshots`~~ | **已廢棄**：下載/快取層已移除；CDN URL 留在 `jinja_env.py` |
 | `player_bundle.py` `load_player_bundle` / `player_display_name` | builder `_load_player_bundle` / `_player_display_name` | |
 | `seo.py` `player_canonical_path`/`player_description`/`index_structured_data`/`player_structured_data`/`write_robots`/`write_sitemap` | builder 同名 | site metadata 改 import config |
 | `jinja_env.py` `create_jinja_env` | jinja_env（瘦身） | 只建 env + 註冊；filter 名稱**完全不變** |
-| ~~`slice_prefix`~~ / ~~`site_origin` global~~ | jinja_env | ★刪 deadcode（template 0 次使用） |
-| `builder.py` `build_static_site` / `_pick_display_stat` | builder（剩餘主流程） | 從 ~1,261 行縮到 ~300 行 |
+| ~~`slice_prefix`~~ | jinja_env | ★待刪 deadcode（template 0 次使用，仍存在） |
+| ~~`site_origin` global~~ | jinja_env | 仍存在作為 global 露出（`site_origin.rstrip("/")`），屬實際需要，**不刪** |
+| `builder.py` `build_static_site` / `_pick_display_stat` | builder（剩餘主流程） | 從 ~1,261 行縮到 ~1,220 行（headshot 移除後） |
 | `builder.py` `_combine_*` | → **`statcast/combine.py`** | ★整批搬移，順帶消除 builder/statcast 的 `_ratio`/`_is_unknown`/`_PLINKO_*` 重複 |
 
 ---
@@ -468,19 +489,24 @@ env.filters["jsonld"]          = textfmt.jsonld
 
 風險由低到高；每個 Phase 都獨立可驗證、獨立可 ship、獨立可回滾。
 
-| Phase | 內容 | 風險 | 驗證重點 |
-|-------|------|------|----------|
-| **0** | 建立安全網：golden `dist_golden`、import smoke script、純函式 characterization tests（先鎖住現狀行為） | — | 基準建立 |
-| **1** | 建 `config.py` + `season_constants.py`，搬入散落常數（值不變）；api/sync/statcast/builder/jinja_env 改 import；helpers shim 保 `DEFAULT_SEASON_YEAR` | 低 | smoke + golden diff |
-| **2** | 建 `util/`（obj/coerce/jsonio/numeric/units/textfmt）；搬入純工具；helpers 改 shim；jinja_env 改用 textfmt | 低 | golden diff（含 template filter 輸出） |
-| **3** | 消除 §8 重複：`_ratio`→`util.numeric`、`_float_or_none`→`coerce`、`_count_label`→`textfmt`（呼叫端帶參數） | 低 | golden diff |
-| **4** | `levels.py` 加 `level_case_sql()`（輸出等價）；sync 改用 | 低 | golden diff（build 不觸發，但驗證 import） |
-| **5** | helpers 拆出 `stats/`（rates+aggregate）+ `roster.py`；刪 `highest_level` deadcode；helpers 改 shim | 中 | golden diff + characterization(stats) |
-| **6** | `statcast.py` → `statcast/` 套件（constants/classify/extract/formulas/charts/aggregate/display）；`__init__` re-export；刪永不成立分支；合併 `{"EP","FA"}` | 中高 | golden diff + characterization(statcast) |
-| **7** | builder 的 `_combine_*` → `statcast/combine.py`；消除 builder/statcast 常數與 `_ratio`/`_is_unknown` 重複 | 中高 | golden diff |
-| **8** | `sync.py` → `sync/` 套件（db/mappers/common/pipeline/statcast_pipeline）；`__init__` re-export 三入口；抽 `EMPTY_PITCHES`/表名/`DB_TIMEOUT` | 中高 | smoke + （可選）對單一球員跑一次 statcast 於**複本 DB** 比對 |
-| **9** | builder 拆出 `urls`/`headshots`/`player_bundle`/`seo`；jinja_env 瘦身；刪 `slice_prefix`/`site_origin` deadcode | 中 | golden diff（SEO/sitemap/robots/JSON-LD 逐字元比對） |
-| **10** | 收尾：移除過渡 shim（或極簡化 helpers）、更新 `CLAUDE.md`、補測試、清 `dist_golden`/`dist_check` | 低 | 全套 smoke + golden + pytest |
+| Phase | 內容 | 狀態 | 風險 | 驗證重點 |
+|-------|------|------|------|----------|
+| **0** | 建立安全網：golden `dist_golden`、import smoke script、純函式 characterization tests | — | — | 基準建立 |
+| **1** | 建 `config.py` + `season_constants.py`，搬入散落常數；api/sync/statcast/builder/jinja_env 改 import | ⬜ 待執行 | 低 | smoke + golden diff |
+| **2** | 建 `util/`（obj/coerce/jsonio/numeric/units/textfmt）；搬入純工具；helpers 改 shim；jinja_env 改用 textfmt | ⬜ 待執行 | 低 | golden diff（含 template filter 輸出） |
+| **3** | 消除 §8 重複：`_ratio`→`util.numeric`、`_float_or_none`→`coerce`、`_count_label`→`textfmt` | ⬜ 待執行 | 低 | golden diff |
+| **4** | `levels.py` 主體整合；sync 改用 TIERS；加 `level_case_sql()` | 🟡 部分完成（主體已完成，`level_case_sql()` 待加） | 低 | golden diff（build 不觸發，但驗證 import） |
+| **5** | helpers 拆出 `stats/`（rates+aggregate）+ `roster.py`；刪 `highest_level` deadcode；helpers 改 shim | ⬜ 待執行 | 中 | golden diff + characterization(stats) |
+| **6** | `statcast.py` → `statcast/` 套件（constants/classify/extract/formulas/charts/aggregate/display）；`__init__` re-export；刪永不成立分支；合併 `{"EP","FA"}` | ⬜ 待執行 | 中高 | golden diff + characterization(statcast) |
+| **7** | builder 的 `_combine_*` → `statcast/combine.py`；消除 builder/statcast 常數與 `_ratio`/`_is_unknown` 重複 | ⬜ 待執行 | 中高 | golden diff |
+| **8** | `sync.py` → `sync/` 套件（db/mappers/common/pipeline/statcast_pipeline）；`__init__` re-export 三入口；抽 `EMPTY_PITCHES`/表名/`DB_TIMEOUT` | ⬜ 待執行 | 中高 | smoke + （可選）對單一球員跑一次 statcast 於**複本 DB** 比對 |
+| **9** | builder 拆出 `urls`/`player_bundle`/`seo`；jinja_env 瘦身；刪 `slice_prefix` deadcode；**`headshots.py` 已廢棄（見 §7.10）** | ⬜ 待執行 | 中 | golden diff（SEO/sitemap/robots/JSON-LD 逐字元比對） |
+| **10** | 收尾：移除過渡 shim（或極簡化 helpers）、更新 `CLAUDE.md`、補測試、清 `dist_golden`/`dist_check` | ⬜ 待執行 | 低 | 全套 smoke + golden + pytest |
+
+**計畫外已完成**：
+- `_prefetch_headshots()` 已刪除，headshot 架構改為 CDN 直連（`jinja_env.headshot_cdn_urls()`）。
+- commit `6ef00b0`（2026-06-20）：levels.py Phase 4 主體；
+  commit `d8ee1ab`/`c306b17`/`2368bff`（2026-06-25/26）：headshot 架構改寫。
 
 > Phase 8 的 sync 因牽涉 DB 寫入，golden diff（只跑 build）無法覆蓋寫入路徑；
 > 建議額外在**複製出的測試 DB** 上對單一球員跑 `statcast --player <id>`，比對 `season_stats` 該列 JSON 是否與重構前一致，再 ship。

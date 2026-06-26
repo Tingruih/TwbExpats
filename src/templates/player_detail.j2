@@ -1,5 +1,4 @@
 {% extends 'base.j2' %}
-{% import 'macros/avatar.j2' as avatar %}
 
 {% block content %}
 
@@ -12,7 +11,10 @@
 <div class="profile-hero glass-panel" id="player-hero-{{ player.mlb_id }}">
     <div class="hero-photo-wrap">
         <div class="hero-avatar" id="avatar-{{ player.mlb_id }}">
-            {{ avatar.avatar_img(player, player_name, with_ids=True) }}
+            {# 頭像：先試 CDN primary，fallback 至 secondary，最後顯示文字縮寫（見 avatar-fallback.js）#}
+            {% set cdn_primary, cdn_secondary = headshot_cdn_urls(player.mlb_id, player.latest_level_is_mlb) %}
+            <img src="{{ cdn_primary }}" data-cdn-src="{{ cdn_secondary }}" alt="{{ player_name }}" id="headshot-{{ player.mlb_id }}" class="avatar-img">
+            <div class="avatar-initials avatar-fallback" id="initials-{{ player.mlb_id }}" aria-hidden="true">{{ player.name_en[:1] }}</div>
         </div>
     </div>
 

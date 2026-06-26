@@ -44,7 +44,7 @@
         justify-content: center;
     }
 
-    .header-left .menu-toggle {
+    .header-left .menu {
         position: absolute;
         left: 0;
     }
