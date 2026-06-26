@@ -12,6 +12,8 @@ from __future__ import annotations
 import math
 from typing import Optional
 
+from site_builder.helpers import ip_to_outs
+
 # ── Pitch result-code classifications ──────────────────────────────────────
 # Source: MLB Stats API ``details.code`` values.
 
@@ -434,6 +436,26 @@ def _ratio(num, den, digits=3):
     if not den:
         return None
     return round(num / den, digits)
+
+
+def _percentile(sorted_values: list, q: float) -> Optional[float]:
+    """Linear-interpolated percentile of an already-ascending-sorted list.
+
+    Uses the same linear interpolation as numpy's default ("linear" method)
+    so that small samples agree with Baseball Savant / TJStats rather than the
+    old nearest-rank approximation, which collapsed onto max_ev for n≈10.
+    Returns None for an empty list.
+    """
+    if not sorted_values:
+        return None
+    if len(sorted_values) == 1:
+        return float(sorted_values[0])
+    pos = q * (len(sorted_values) - 1)
+    lo = int(pos)
+    frac = pos - lo
+    if lo + 1 >= len(sorted_values):
+        return float(sorted_values[-1])
+    return sorted_values[lo] + (sorted_values[lo + 1] - sorted_values[lo]) * frac
 
 
 def _mean(values):
@@ -934,33 +956,46 @@ def _discipline_metrics(agg: dict) -> dict:
 
 
 def _batted_ball_metrics(agg: dict, sport_level: str = "") -> dict:
-    """Build batted-ball metrics dict from _aggregate_pitches output."""
+    """Build batted-ball metrics dict from _aggregate_pitches output.
+
+    Denominators are chosen to match Baseball Savant rather than using "all
+    in-play" for everything (MiLB has lots of unmeasured batted balls, which
+    would systematically deflate the rates):
+
+      - barrel_pct / hard_hit_pct / avg_ev → BBE with a measured EV (n_ev).
+        Barrel and hard-hit are EV-derived, so an unmeasured ball can be
+        neither; counting it in the denominator only would understate them.
+      - gb/ld/fb/pu/air → batted balls with a classified trajectory.
+      - pull/straight/oppo/pull_air → batted balls with a resolvable
+        direction (spray_total).
+    """
     n_ip = len(agg["in_play"])
     n_ev = len(agg["bbe_ev"])
-    spray_available = (agg.get("spray_total") or 0) > 0
+    classified = agg["gb"] + agg["ld"] + agg["fb"] + agg["pu"]
+    spray_total = agg.get("spray_total") or 0
     metrics = {
         "bbe": n_ip,
-        "gb_pct": _ratio(agg["gb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-        "ld_pct": _ratio(agg["ld"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-        "fb_pct": _ratio(agg["fb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-        "pu_pct": _ratio(agg["pu"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+        "gb_pct": _ratio(agg["gb"], classified, digits=_BATTED_BALL_RATE_DIGITS),
+        "ld_pct": _ratio(agg["ld"], classified, digits=_BATTED_BALL_RATE_DIGITS),
+        "fb_pct": _ratio(agg["fb"], classified, digits=_BATTED_BALL_RATE_DIGITS),
+        "pu_pct": _ratio(agg["pu"], classified, digits=_BATTED_BALL_RATE_DIGITS),
         "air_pct": _ratio(
-            agg["ld"] + agg["fb"], n_ip, digits=_BATTED_BALL_RATE_DIGITS
+            agg["ld"] + agg["fb"], classified, digits=_BATTED_BALL_RATE_DIGITS
         ),
         "pull_pct": None,
         "straight_pct": None,
         "oppo_pct": None,
         "pull_air_pct": None,
-        "barrel_pct": _ratio(agg["barrels"], n_ip),
+        "barrel_pct": _ratio(agg["barrels"], n_ev),
         "hard_hit_pct": _ratio(agg["hard_hits"], n_ev),
         "avg_ev": _mean_round([p["ev"] for p in agg["bbe_ev"]], 1),
     }
-    if spray_available:
+    if spray_total:
         metrics.update({
-            "pull_pct": _ratio(agg["pull"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-            "straight_pct": _ratio(agg["straight"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-            "oppo_pct": _ratio(agg["oppo"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
-            "pull_air_pct": _ratio(agg["pull_air"], n_ip, digits=_BATTED_BALL_RATE_DIGITS),
+            "pull_pct": _ratio(agg["pull"], spray_total, digits=_BATTED_BALL_RATE_DIGITS),
+            "straight_pct": _ratio(agg["straight"], spray_total, digits=_BATTED_BALL_RATE_DIGITS),
+            "oppo_pct": _ratio(agg["oppo"], spray_total, digits=_BATTED_BALL_RATE_DIGITS),
+            "pull_air_pct": _ratio(agg["pull_air"], spray_total, digits=_BATTED_BALL_RATE_DIGITS),
         })
     return metrics
 
@@ -1122,7 +1157,7 @@ def _compute_pitch_outcomes_pitcher(pitches: list[dict], year: Optional[int] = N
             "two_strike_count": len(two_strike),
             "avg": _ratio(hits, ab),
             "woba": _ratio(woba_num, woba_den),
-            "barrel_pct": _ratio(agg["barrels"], len(agg["in_play"])),
+            "barrel_pct": _ratio(agg["barrels"], len(agg["bbe_ev"])),
             "hard_hit_pct": _ratio(agg["hard_hits"], len(agg["bbe_ev"])),
         })
     out.sort(key=lambda r: r.get("count", 0), reverse=True)
@@ -1226,13 +1261,10 @@ def compute_batter_statcast(
     agg = _aggregate_pitches(pitches)
     woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
 
-    # 此部分若ev_values數據量小於10 則算出數據與tjstats不符
     ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])  # ascending for percentile
-    ev90 = None
-    if ev_values:
-        # 90th percentile: the single value below which 90% of BBEs fall
-        idx = min(int(len(ev_values) * 0.9), len(ev_values) - 1)
-        ev90 = round(ev_values[idx], 1)
+    ev90 = _percentile(ev_values, 0.9)
+    if ev90 is not None:
+        ev90 = round(ev90, 1)
 
     la_values = [p["la"] for p in agg["bbe_ev"] if p.get("la") is not None]
     sweet_spots = sum(1 for p in agg["in_play"] if _is_sweet_spot(p.get("la")))
@@ -1338,7 +1370,7 @@ def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = No
             "two_strike_count": len(two_strike),
             "avg": _ratio(hits, ab),
             "woba": _ratio(woba_num, woba_den),
-            "barrel_pct": _ratio(agg["barrels"], len(agg["in_play"])),
+            "barrel_pct": _ratio(agg["barrels"], len(agg["bbe_ev"])),
             "hard_hit_pct": _ratio(agg["hard_hits"], len(agg["bbe_ev"])),
         })
     out.sort(key=lambda r: r.get("count", 0), reverse=True)
@@ -1352,8 +1384,17 @@ def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = No
 
 def compute_fip(hr, bb, hbp, k, ip, sport_level: str, year: int,
                 c_fip: Optional[float] = None) -> Optional[float]:
-    """MiLB FIP using known or supplied constant."""
-    if ip is None or ip <= 0:
+    """MiLB FIP using known or supplied constant.
+
+    ``ip`` is in baseball notation (7.2 = 7⅔ innings); it is converted to real
+    fractional innings via ``ip_to_outs`` before being used as the denominator,
+    matching the ERA/WHIP path in helpers._compute_rate_stats. Passing the raw
+    decimal would slightly inflate the denominator (e.g. 10.1 ⇒ 10⅓, not 10.1).
+    """
+    if ip is None:
+        return None
+    ip_actual = ip_to_outs(ip) / 3.0
+    if ip_actual <= 0:
         return None
     if c_fip is None:
         c_fip = FIP_CONSTANTS.get((sport_level, year))
@@ -1371,7 +1412,7 @@ def compute_fip(hr, bb, hbp, k, ip, sport_level: str, year: int,
     hbp = hbp or 0
     k = k or 0
     try:
-        fip = (13 * hr + 3 * (bb + hbp) - 2 * k) / ip + c_fip
+        fip = (13 * hr + 3 * (bb + hbp) - 2 * k) / ip_actual + c_fip
         return round(fip, 2)
     except (TypeError, ZeroDivisionError):
         return None
