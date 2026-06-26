@@ -5,11 +5,8 @@ Static site builder: reads SQLite data and renders Jinja2 templates to HTML.
 import datetime
 import shutil
 import sqlite3
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from xml.sax.saxutils import escape
-
-import requests as _requests
 
 from site_builder.helpers import (
     Obj,
@@ -30,7 +27,7 @@ from site_builder.helpers import (
     parse_date,
     safe_float,
 )
-from site_builder.jinja_env import HEADSHOT_CDN_TEMPLATE, create_jinja_env
+from site_builder.jinja_env import headshot_cdn_urls, create_jinja_env
 from site_builder.statcast import (
     compute_pitch_movement_chart,
     summarize_pitch_for_display,
@@ -560,38 +557,6 @@ def _combine_statcast_dicts(entries: list[dict]) -> dict:
     return combined
 
 
-def _prefetch_headshots(mlb_ids: list, cache_dir: Path, dest_dir: Path):
-    """Download player headshots to a local cache and copy to the dist directory.
-
-    Uses a persistent cache under ``data/headshots/`` so images are only
-    re-downloaded when the cached file is missing.  All HTTP errors are
-    silently ignored — the template falls back to the MLB CDN via JS.
-    """
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    dest_dir.mkdir(parents=True, exist_ok=True)
-
-    to_fetch = [mid for mid in mlb_ids if not (cache_dir / f"{mid}.jpg").exists()]
-
-    def _fetch_one(mlb_id):
-        url = HEADSHOT_CDN_TEMPLATE.format(mlb_id=mlb_id)
-        try:
-            r = _requests.get(url, timeout=10)
-            if r.status_code == 200 and r.content:
-                (cache_dir / f"{mlb_id}.jpg").write_bytes(r.content)
-        except Exception:
-            pass
-
-    if to_fetch:
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            list(ex.map(_fetch_one, to_fetch))
-
-    # Copy every cached headshot to dist regardless of whether it was just fetched
-    for mlb_id in mlb_ids:
-        src = cache_dir / f"{mlb_id}.jpg"
-        if src.exists():
-            shutil.copy2(src, dest_dir / f"{mlb_id}.jpg")
-
-
 def _pick_display_stat(stats_current, player):
     """Pick the stat row to show on the player card / detail hero strip.
 
@@ -704,7 +669,7 @@ def _player_structured_data(absolute_url, player, is_retired: bool = False):
             "name": player.name_tw or player.name_en,
             "alternateName": player.name_en,
             "url": canonical_url,
-            "image": absolute_url(f"img/players/{player.mlb_id}.jpg"),
+            "image": headshot_cdn_urls(player.mlb_id, player.has_reached_mlb)[0],
             "jobTitle": "棒球員 / Baseball player",
             "affiliation": player.team if player.team and player.team != "N/A" else None,
             "sameAs": [f"https://www.mlb.com/player/{player.mlb_id}"],
@@ -791,6 +756,9 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
     stats.sort(key=lambda s: (-s.year, s.level_order))
     player.latest_stat = stats[0] if stats else None
     player.available_years = sorted({s.year for s in stats}, reverse=True)
+    # Drives headshot CDN tier selection: MLB-tier photos only exist for
+    # players who've appeared in an MLB game at some point in their career.
+    player.has_reached_mlb = any(s.level_order == 0 for s in stats)
 
     # Game logs — pitches_json may not exist on older DBs (before Statcast support)
     has_pitches_col = False
@@ -908,15 +876,6 @@ def build_static_site(
                 print(f"    {mlb_id}  {label}")
 
     bundles = [_load_player_bundle(cur, row) for row in rows]
-
-    # ── Prefetch / cache player headshots for local serving ──
-    headshot_cache = _PROJECT_ROOT / "data" / "headshots"
-    headshot_dest = out_dir / "img" / "players"
-    _prefetch_headshots(
-        [player.mlb_id for player, _, _ in bundles],
-        headshot_cache,
-        headshot_dest,
-    )
 
     # ── Split active vs. retired ──
     # Active = has a season_stats row for `year` OR a transaction dated this

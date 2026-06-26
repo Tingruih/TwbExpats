@@ -1,8 +1,9 @@
-{# 球員頭像：本地快取 img → data-cdn-src 備援 → 文字縮寫 fallback（見 avatar-fallback.js） #}
+{# 球員頭像：直連 MLB CDN（依是否曾上過大聯盟決定優先 tier）→ 另一 tier 備援 → 文字縮寫 fallback（見 avatar-fallback.js） #}
 {% macro avatar_img(player, player_name, lazy=False, with_ids=False) -%}
+{% set cdn_primary, cdn_secondary = headshot_cdn_urls(player.mlb_id, player.has_reached_mlb) %}
 <img
-    src="{{ base_url }}img/players/{{ player.mlb_id }}.jpg"
-    data-cdn-src="{{ headshot_cdn_url(player.mlb_id) }}"
+    src="{{ cdn_primary }}"
+    data-cdn-src="{{ cdn_secondary }}"
     alt="{{ player_name }}"
     {%- if lazy %} loading="lazy"{% endif %}
     {%- if with_ids %} id="headshot-{{ player.mlb_id }}"{% endif %}

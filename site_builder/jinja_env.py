@@ -86,17 +86,33 @@ def pct_fmt(value, digits=1):
 
 # ── URL Factories ──
 
-# Single source of truth for the MLB headshot CDN URL, shared by the build-time
-# prefetch in site_builder.builder and the `data-cdn-src` fallback rendered into
-# every avatar template.
-HEADSHOT_CDN_TEMPLATE = (
+# MLB Photos (Cloudinary-backed) headshot CDN. Photos are split into two
+# asset families that don't overlap: "67" is the MLB-roster headshot (set the
+# day a player gets an official MLB photo day), "milb" is the MiLB-roster
+# headshot (set via MiLB's own media pipeline). A player only ever has one of
+# the two until they cross levels for the first time, so callers must try
+# both — see `headshot_cdn_urls`.
+HEADSHOT_CDN_TEMPLATE_MLB = (
+    "https://img.mlbstatic.com/mlb-photos/image/upload/"
+    "w_180,q_auto:best/v1/people/{mlb_id}/headshot/67/current"
+)
+HEADSHOT_CDN_TEMPLATE_MILB = (
     "https://img.mlbstatic.com/mlb-photos/image/upload/"
     "w_180,q_auto:best/v1/people/{mlb_id}/headshot/milb/current"
 )
 
 
-def headshot_cdn_url(mlb_id):
-    return HEADSHOT_CDN_TEMPLATE.format(mlb_id=mlb_id)
+def headshot_cdn_urls(mlb_id, has_reached_mlb):
+    """Return (primary, secondary) headshot CDN URLs, ordered by which tier
+    is more likely to exist for this player.
+
+    A player who has ever appeared in an MLB game has an MLB-tier photo;
+    everyone else only has a MiLB-tier photo. Trying the likely tier first
+    means the common case resolves on the first request.
+    """
+    mlb_url = HEADSHOT_CDN_TEMPLATE_MLB.format(mlb_id=mlb_id)
+    milb_url = HEADSHOT_CDN_TEMPLATE_MILB.format(mlb_id=mlb_id)
+    return (mlb_url, milb_url) if has_reached_mlb else (milb_url, mlb_url)
 
 
 def _make_url_helpers(base_url: str):
@@ -162,7 +178,7 @@ def create_jinja_env(
     env.globals["player_url"] = player_url
     env.globals["retired_player_url"] = retired_player_url
     env.globals["static_url"] = static_url
-    env.globals["headshot_cdn_url"] = headshot_cdn_url
+    env.globals["headshot_cdn_urls"] = headshot_cdn_urls
     env.globals["absolute_url"] = absolute_url
     env.globals["base_url"] = base_url
     env.globals["site_url"] = site_url
