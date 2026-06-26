@@ -1,11 +1,12 @@
-{# 球員頭像：直連 MLB CDN（依最後出賽年度的最高層級決定優先 tier）→ 另一 tier 備援 → 文字縮寫 fallback（見 avatar-fallback.js） #}
+{# 球員頭像：直連 MLB CDN（依最後出賽年度的最高層級決定優先 tier）→ 另一 tier 備援 → 文字縮寫 fallback（見 avatar-fallback.js）。
+   lazy=True 時不立刻設定 src，改放 data-src，交給 avatar-fallback.js 分批載入：
+   先載入目前畫面內可見的頭像，全部完成後才繼續載入畫面外其他球員的頭像。 #}
 {% macro avatar_img(player, player_name, lazy=False, with_ids=False) -%}
 {% set cdn_primary, cdn_secondary = headshot_cdn_urls(player.mlb_id, player.latest_level_is_mlb) %}
 <img
-    src="{{ cdn_primary }}"
+    {% if lazy %}data-src="{{ cdn_primary }}"{% else %}src="{{ cdn_primary }}"{% endif %}
     data-cdn-src="{{ cdn_secondary }}"
     alt="{{ player_name }}"
-    {%- if lazy %} loading="lazy"{% endif %}
     {%- if with_ids %} id="headshot-{{ player.mlb_id }}"{% endif %}
     class="avatar-img"
 >
