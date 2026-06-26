@@ -669,7 +669,7 @@ def _player_structured_data(absolute_url, player, is_retired: bool = False):
             "name": player.name_tw or player.name_en,
             "alternateName": player.name_en,
             "url": canonical_url,
-            "image": headshot_cdn_urls(player.mlb_id, player.has_reached_mlb)[0],
+            "image": headshot_cdn_urls(player.mlb_id, player.latest_level_is_mlb)[0],
             "jobTitle": "棒球員 / Baseball player",
             "affiliation": player.team if player.team and player.team != "N/A" else None,
             "sameAs": [f"https://www.mlb.com/player/{player.mlb_id}"],
@@ -756,9 +756,12 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
     stats.sort(key=lambda s: (-s.year, s.level_order))
     player.latest_stat = stats[0] if stats else None
     player.available_years = sorted({s.year for s in stats}, reverse=True)
-    # Drives headshot CDN tier selection: MLB-tier photos only exist for
-    # players who've appeared in an MLB game at some point in their career.
-    player.has_reached_mlb = any(s.level_order == 0 for s in stats)
+    # Drives headshot CDN tier selection: pick the level the player actually
+    # appeared in during their most recent season with game action (not just
+    # any level they've ever reached), so the tier tried first is the one
+    # MLB most recently had a reason to update.
+    latest_played = next((s for s in stats if has_appearance(s)), None)
+    player.latest_level_is_mlb = bool(latest_played and latest_played.level_order == 0)
 
     # Game logs — pitches_json may not exist on older DBs (before Statcast support)
     has_pitches_col = False

@@ -102,17 +102,19 @@ HEADSHOT_CDN_TEMPLATE_MILB = (
 )
 
 
-def headshot_cdn_urls(mlb_id, has_reached_mlb):
+def headshot_cdn_urls(mlb_id, latest_level_is_mlb):
     """Return (primary, secondary) headshot CDN URLs, ordered by which tier
-    is more likely to exist for this player.
+    holds the most recently updated photo for this player.
 
-    A player who has ever appeared in an MLB game has an MLB-tier photo;
-    everyone else only has a MiLB-tier photo. Trying the likely tier first
-    means the common case resolves on the first request.
+    ``latest_level_is_mlb`` should reflect the highest level the player
+    actually appeared in during their most recent season with game action —
+    not just "ever reached MLB" — since that's the tier MLB most recently had
+    a reason to refresh. A player demoted back to MiLB, for example, should
+    try the MiLB tier first even though they have an old MLB-tier photo too.
     """
     mlb_url = HEADSHOT_CDN_TEMPLATE_MLB.format(mlb_id=mlb_id)
     milb_url = HEADSHOT_CDN_TEMPLATE_MILB.format(mlb_id=mlb_id)
-    return (mlb_url, milb_url) if has_reached_mlb else (milb_url, mlb_url)
+    return (mlb_url, milb_url) if latest_level_is_mlb else (milb_url, mlb_url)
 
 
 def _make_url_helpers(base_url: str):
