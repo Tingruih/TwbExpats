@@ -15,8 +15,8 @@
     <div class="mc-grid">
         {{ mcell('H/9', s.h_per_9|floatformat(1)) }}
         {{ mcell('HR/9', s.hr_per_9|floatformat(2)) }}
-        {{ mcell('K%', s.k_pct|pct_fmt) }}
-        {{ mcell('BB%', s.bb_pct|pct_fmt) }}
+        {{ mcell('K%', s.p_k_pct|pct_fmt) }}
+        {{ mcell('BB%', s.p_bb_pct|pct_fmt) }}
         {{ mcell('Strike%', s.strike_pct|num_dash) }}
         {{ mcell('AVG', s.p_avg|num_dash) }}
         {{ mcell('OBP', s.p_obp|num_dash) }}
