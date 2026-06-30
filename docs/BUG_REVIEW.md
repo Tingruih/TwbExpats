@@ -19,17 +19,13 @@
 ## 目錄
 - A. 會顯示錯誤數字的 bug（最優先）
   - A1. WAR / FIP / xWPCT 的 `0.0` 被當成「無資料」
-  - A2. 甜蜜點% (`swsp_pct`) 分子分母母體不一致，可超過 100%
-  - A3. `get_woba_weights` 對未來年份退回最舊年（2019）
 - B. 多層級「合計」聚合 bug
   - B1. 合計列的「All Counts」配球桶恆為空
   - B2. 合計列用 BBE 數加權 `ev90` / `hr_fb_pct`（百分位/比率不可加權平均）
-  - B3. `pitch_movement` 跨表查級別時拼法不一致
 - C. 健壯性 / 例外處理
   - C1. `get_player_stats` 的 MiLB 段沒有 try，失敗會丟掉整批
   - C2. 空字串 `""` 讓 rate-stat 的衍生重算被跳過
   - C3. `ci`（捕手妨礙）寫入卻不在 `_COUNTING_FIELDS`，生涯漏算
-- D. 死碼
 - E. 重複與耦合（改一處要改多處）
 - F. 前端效能
 - G. 前端正確性 / 可及性
@@ -99,117 +95,7 @@ Jinja2 模板的 `{% if x %}` 沿用同一套規則。所以：
 
 ---
 
-## A2. 甜蜜點% (`swsp_pct`) 分子分母母體不一致，可超過 100%
-**位置**：`site_builder/statcast.py:1237-1250`（`compute_batter_statcast`）
-**嚴重度**：P3（公式確實錯，但實際資料影響小）　**信心**：已確認
 
-### 從最底層講起：百分比的「母體一致性」
-任何「比率 = 分子 / 分母」要有意義，分子計數的那群個體**必須是分母那群的子集**。一旦分子來自一個集合、分母來自另一個（兩者不是子集關係），比值就失去意義，甚至可能 > 1（>100%）。
-
-### 程式現況
-```python
-ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])                    # bbe_ev：界內球「且有 exit velocity」
-la_values = [p["la"] for p in agg["bbe_ev"] if p.get("la") is not None] # 同樣源自 bbe_ev（需有 ev）
-sweet_spots = sum(1 for p in agg["in_play"] if _is_sweet_spot(p.get("la")))  # ← 來自 in_play：所有界內球
-...
-"swsp_pct": _ratio(sweet_spots, len(la_values)),
-```
-
-- `agg["bbe_ev"]` 的定義（同檔 `_aggregate_pitches`）：`is_in_play` 且 `ev is not None`。
-- `agg["in_play"]`：所有 `is_in_play` 的球（**不要求有 ev**）。
-
-所以**分子** `sweet_spots` 是從「所有界內球」算（只要該球有 launch angle 落在 8–32° 就計入）；**分母** `len(la_values)` 卻只算「有 exit velocity 的界內球」。
-
-### 為什麼是 bug
-當一顆界內球**有 launch angle 但缺 exit velocity**（MiLB 或感測缺漏時很常見），它會：
-- 進入分子（因為 `in_play` 不要求 ev，且它有 la）；
-- 不進入分母（因為 `la_values` 要求源自 `bbe_ev`，即需要 ev）。
-
-分子有、分母無 → 比值被灌高，甚至 `swsp_pct > 1.0`（顯示 >100%）。
-
-### 驗證
-- 構造 4 顆界內球（3 顆有 ev+la、1 顆只有 la、無 ev），跑 `compute_batter_statcast` → `swsp_pct = 1.333`（133%），確認可破表。
-- 查現有 DB：界內球中「有 la 無 ev」確實存在（量小）。
-
-### 解法與修改後程式碼
-讓分子、分母用**同一個母體**。Statcast 的 Sweet-Spot% 定義是「落在甜蜜點的擊球 / 有量測到 launch angle 的擊球」，所以兩者都應以「界內球且有 launch angle」為母體：
-
-```python
-# 修改前
-ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])
-ev90 = None
-if ev_values:
-    idx = min(int(len(ev_values) * 0.9), len(ev_values) - 1)
-    ev90 = round(ev_values[idx], 1)
-
-la_values = [p["la"] for p in agg["bbe_ev"] if p.get("la") is not None]
-sweet_spots = sum(1 for p in agg["in_play"] if _is_sweet_spot(p.get("la")))
-
-# 修改後
-ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])
-ev90 = None
-if ev_values:
-    idx = min(int(len(ev_values) * 0.9), len(ev_values) - 1)
-    ev90 = round(ev_values[idx], 1)
-
-# 甜蜜點%：分子、分母都以「界內球且有 launch angle」為同一母體
-la_in_play = [p for p in agg["in_play"] if p.get("la") is not None]
-la_values = [p["la"] for p in la_in_play]
-sweet_spots = sum(1 for p in la_in_play if _is_sweet_spot(p.get("la")))
-```
-
-`"swsp_pct": _ratio(sweet_spots, len(la_values))` 與 `"avg_la": _mean_round(la_values, 1)` 這兩行維持不變，因為 `la_values` 現在已經是「界內球且有 la」的正確母體。
-
-### 為什麼這樣能修正
-修改後分子 `sweet_spots` 與分母 `len(la_values)` 都從**同一個 `la_in_play` 清單**衍生，分子必為分母的子集，比值恆 ≤ 1。同時 `avg_la` 的母體也從「有 ev 的球」修正為「有 la 的球」，更貼近「平均擊球仰角」的語意（仰角不該被是否有測到初速所篩選）。
-
----
-
-## A3. `get_woba_weights` 對未來年份退回最舊年（2019）
-**位置**：`site_builder/statcast.py:45-49`
-**嚴重度**：P3（目前 2026 在表內，屬跨年潛伏）　**信心**：高
-
-### 從最底層講起：`dict.get(key, default)` 的「單一預設值」陷阱
-`d.get(k, default)` 的行為是：key 在就回值、不在就回那個**固定的** default。它**不分方向**——不管你查的 key 比所有現有 key 大還是小，缺了就一律回同一個 default。
-
-### 程式現況
-```python
-_WOBA_FALLBACK = _W[2019]   # 表中最舊的一年
-
-def get_woba_weights(year=None):
-    if year is None:
-        return _W.get(max(_W), _WOBA_FALLBACK)   # year=None → 取最新年（max key），正確
-    return _W.get(year, _WOBA_FALLBACK)           # 任何不在表中的年份 → 一律回 2019
-```
-
-`_W` 是 2019–2026 的 FanGraphs wOBA 權重表。
-
-### 為什麼是 bug
-wOBA 權重每年由聯盟得分環境校正，會逐年漂移（例：walk 2019=0.690、2026=0.711）。當程式進入一個**表還沒更新的新賽季**（例如 2027 賽季開打、但還沒有人把 2027 權重加進 `_W`），`get_woba_weights(2027)` 會退回 **2019** 的權重——那是**離 2027 最遠**的一年，方向完全相反，會系統性壓低新賽季所有 wOBA 數字。正確的退路應該是「最接近的已知年」，也就是最新年。
-
-### 驗證
-`get_woba_weights(2027)` 回傳 `walk=0.69`（2019 值），而最新的 2026 是 `0.711`。
-
-### 解法與修改後程式碼
-```python
-# 修改前
-def get_woba_weights(year: Optional[int] = None) -> dict:
-    if year is None:
-        return _W.get(max(_W), _WOBA_FALLBACK)
-    return _W.get(year, _WOBA_FALLBACK)
-
-# 修改後
-def get_woba_weights(year: Optional[int] = None) -> dict:
-    """回傳該年的 FanGraphs wOBA 權重；表外年份退回『最接近的已知年』。"""
-    if year is None or year > max(_W):
-        return _W[max(_W)]   # 未指定或未來年 → 最新年
-    if year < min(_W):
-        return _W[min(_W)]   # 早於表 → 最舊年
-    return _W.get(year, _W[max(_W)])  # 表內缺漏的中間年 → 退最新年（保守）
-```
-
-### 為什麼這樣能修正
-把「單一固定 default」換成「依方向夾到最近端點」：未來年用最新年、過去年才用最舊年。如此跨年時即使忘了更新權重表，也會用**最接近**的一組權重，誤差最小。同時 `_WOBA_FALLBACK` 這個常數變成多餘，可一併移除（減少誤用機會）。
 
 ---
 
@@ -341,61 +227,6 @@ combined["ev90"] = None
 
 ---
 
-## B3. `pitch_movement` 跨表查級別時拼法不一致
-**位置**：`site_builder/builder.py:1106` 與 `1120`
-**嚴重度**：P3（被 fallback 掩蓋，實務影響近乎零）　**信心**：高
-
-### 從最底層講起：同一個「概念」在不同資料來源可能有不同字串表示
-這個專案有兩種層級字串：
-- `game_logs.sport_level`：逐場資料，存**現代代碼**（`A+`、`A`、`ROK`…）。
-- `season_stats.sport_level`：賽季資料，存**時代名**（`A(Adv)`、`A(Full)`、`ROA`…，因為 2021 年小聯盟改制前後名稱不同）。
-
-`levels.py` 正是為了統一這件事而存在（`resolve_tier()` 把任何拼法收斂到同一 tier key）。
-
-### 程式現況
-```python
-# 建表時用 game_logs 的拼法當 key（現代碼）
-movement_pitches_by_year_level.setdefault((y_key, level), []).extend(...)
-...
-# 查表時用 season_stats 的拼法（時代名）
-movement = movement_by_year_level.get((s.year, s.sport_level))
-```
-
-key 用 `A+` 存、用 `A(Adv)` 查 → 對任何 MiLB 且兩表拼法不同的列，`.get()` 永遠 miss。
-
-### 為什麼影響小（但仍該修）
-miss 之後會走 fallback `raw_sc.get("pitch_movement")`，而 pitch movement 圖只有近年 **MLB** 有逐球資料，MLB 在兩表的拼法都是 `MLB`（一致、不會 miss）；MiLB 老資料根本沒有逐球資料，fallback 拿到的也是空/相同值。所以實際 blast radius 近乎零——但這是「靠運氣不出錯」，一旦 MiLB 開始有逐球資料就會壞。
-
-### 驗證
-查 DB：`season_stats.sport_level` 含 `A (Adv)/A(Adv)/A (Full)/ROA`，`game_logs.sport_level` 只有 `A+/A/A-/ROK`，兩集合在 MiLB 不重疊。
-
-### 解法與修改後程式碼
-查表前把兩邊都正規化到同一 tier key。
-
-```python
-# builder.py 頂部已有 from site_builder.helpers import level_rank
-# 建議改為 import resolve_tier（來自 levels），或用既有 level_rank 當 key 也可
-
-# 修改前（建表）
-movement_pitches_by_year_level.setdefault((y_key, level), []).extend(log.pitches_json)
-# 修改前（查表）
-movement = movement_by_year_level.get((s.year, s.sport_level))
-
-# 修改後：兩端都用 tier key 正規化
-from site_builder.levels import resolve_tier
-
-def _tier_key(raw):
-    t = resolve_tier(raw)
-    return t.key if t else (raw or "")
-
-# 建表
-movement_pitches_by_year_level.setdefault((y_key, _tier_key(level)), []).extend(log.pitches_json)
-# 查表
-movement = movement_by_year_level.get((s.year, _tier_key(s.sport_level)))
-```
-
-### 為什麼這樣能修正
-`resolve_tier("A+")` 與 `resolve_tier("A(Adv)")` 都回傳同一個 tier（key=`"A+"`），所以無論資料來源怎麼拼，存與查都落在同一個 key 上，`.get()` 命中，不再依賴 fallback 掩蓋。
 
 ---
 
@@ -562,61 +393,6 @@ def _sum_counting(stats, result):
 
 ---
 
-# D. 死碼（移除可降噪、減少誤解，零行為風險）
-
-## D1. `slice_prefix` Jinja filter 已註冊但無人使用
-**位置**：`site_builder/jinja_env.py:47-51`（定義）、`:173`（註冊）　**P1（潔癖）/已確認**
-
-`grep -rn "slice_prefix" src/templates` 零結果；模板改用原生切片 `player.name_en[:1]`。對照其他 filter（`num_dash` 用 14 檔、`floatformat` 10 檔）都有用，唯它零引用。
-
-**修法**：刪掉 `floatformat`/`def slice_prefix(...)` 函式與 `env.filters["slice_prefix"] = slice_prefix` 那行。
-**為什麼安全**：沒有任何模板呼叫它，移除不影響輸出。
-
-## D2. `m-stats.js` 是空殼，卻在全站每頁載入
-**位置**：檔案 `src/static/js/mobile/m-stats.js`（函式體只有註解）、載入於 `base.j2:102`　**P1/已確認**
-
-檔案內容：
-```js
-(function () { 'use strict';
-    // 基礎數據表格的多球隊展開由 m-tabs.js 的 toggleMobileYearGroup 處理
-})();
-```
-什麼都沒做，但 `base.j2` 在**每一頁**（含首頁、退役頁、404）都載它。
-
-**修法**：刪除 `m-stats.js`，並移除 `base.j2:102` 的 `<script ... m-stats.js>`。
-**為什麼安全**：它是 no-op，刪掉不改變任何行為，還少一支 HTTP 請求。
-
-## D3. `_PULL_AIR_TRAJECTORIES` 別名與 `count_set is None` 死分支
-**位置**：`site_builder/statcast.py:172`、`:1157`　**P3/已確認**
-
-- `_PULL_AIR_TRAJECTORIES = _AIR_TRAJECTORIES` 只是別名，可直接用 `_AIR_TRAJECTORIES`。
-- `_compute_pitch_usage_by_count_pitcher` 內 `if count_set is None: bucket_pitches = pitches`——但 statcast 的 `_COUNT_USAGE_BUCKETS` 每個 bucket 的 `counts` 都是非 None 的 set，這分支永不執行。
-
-**修法**：把 `_PULL_AIR_TRAJECTORIES` 的使用處換成 `_AIR_TRAJECTORIES` 並刪除別名；刪掉 `count_set is None` 分支，直接 `bucket_pitches = [p for p in pitches if _pre_count_tuple(p) in count_set]`。
-**為什麼安全**：別名等值替換；死分支永不觸發，刪除不改變行為。
-
-## D4. ISO 在兩處重複計算
-**位置**：`site_builder/builder.py:751-753`（`_load_player_bundle`）與 `site_builder/helpers.py:452-456`（`_compute_advanced_stats`）　**P3/已確認**
-
-### 底層原因
-同一條公式 `ISO = SLG − AVG` 寫了兩遍，且兩處行為微妙不同：
-- builder 版：`data.iso = slg - avg`（**未四捨五入**），且**無條件覆寫**（連 API 給的 iso 也蓋掉）。
-- helpers 版：`if s.get("iso") is None: s["iso"] = round(slg - avg, 3)`（**有四捨五入**，但因 builder 先設了值，對個別 row 不會生效，只對 summary 列生效）。
-
-顯示端用 `|floatformat(3)` 兜底，所以未四捨五入不致看到爆長小數——但這是「靠下游補救」，且屬「改一處要改多處」風險。
-
-### 修法
-移除 builder 的重複計算，統一交給 `helpers._compute_advanced_stats`（它有四捨五入、且有 `is None` 守門不會蓋掉 API 值）：
-```python
-# builder.py  _load_player_bundle  修改前
-slg = safe_float(data.get("slg"))
-avg = safe_float(data.get("avg"))
-data.iso = (slg - avg) if (slg is not None and avg is not None) else None
-
-# 修改後：刪除上面三行，改由 annotate_computed_stats() 統一計算
-# （球員詳細頁已在 builder.py:1018 呼叫 annotate_computed_stats(all_stats)）
-```
-**為什麼安全**：詳細頁渲染前會跑 `annotate_computed_stats` → `_compute_advanced_stats` 補上（rounded）iso；首頁/退役頁本就不顯示 iso（`grep` 確認 iso 只出現在 `tab_advanced.j2` / `m_advanced.j2`）。移除後行為一致且少一份重複邏輯。
 
 ---
 
@@ -711,36 +487,6 @@ player_data.append({
 
 ### 為什麼這樣能修正
 去除重複 DOM 與重複 JSON 後，HTML 體積與解析成本下降（進階頁尤其明顯），首屏與互動都更快。
-
-## F2. 球員頁 11 支 `<script>` 缺 `defer`（含外部 chart.js）
-**位置**：`src/templates/player_detail.j2:78-95`　**P1（影響中）/已確認**
-
-### 底層原因
-`<script src>` 不加 `defer`/`async` 時是**同步腳本**：瀏覽器遇到它會停下解析、下載、執行完才繼續。即使放在 `</body>` 前不擋首屏，這些腳本仍會**序列化執行、延後 `DOMContentLoaded`**；其中外部 `chart.js`（jsdelivr）要等網路抓取完才往下走。對照 `base.j2:94-103` 的全站腳本全部正確加了 `defer`，球員頁卻沒有，明顯不一致。
-
-### 修法
-給本地腳本加 `defer`（它們本就靠 DOMContentLoaded/自訂事件驅動，順序由事件決定；而 `defer` 會**保留腳本相對執行順序**，安全）：
-```jinja
-<script defer src="{{ static_url('js/stats-table.js') }}"></script>
-... 其餘本地腳本同樣加 defer ...
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script defer src="{{ static_url('js/charts.js') }}"></script>  {# chart.js 之後，defer 保序，charts.js 仍能用到 Chart #}
-```
-
-### 為什麼這樣能修正
-`defer` 讓腳本在背景並行下載、延到 HTML 解析完才依序執行，不再阻塞解析與 `DOMContentLoaded`，且保序確保 `charts.js` 仍在 `chart.js` 之後執行。
-
-## F3. 4 支手機版 player-detail JS 在「所有頁面」載入
-**位置**：`src/templates/base.j2:99-102`（`m-tabs.js`/`m-accordion.js`/`m-bio.js`/`m-stats.js`）　**P2/已確認**
-
-### 底層原因
-這 4 支只在球員詳細頁的手機 DOM 才有作用，但 `base.j2` 在每一頁都載。首頁、退役頁、404 頁沒有 `data-m-panel`/`data-m-tab`/`data-m-timeline` 這些節點，它們下載＋解析後**完全無事可做**（其中 `m-stats.js` 還是空殼，見 D2）。
-
-### 修法
-把這 4 支從 `base.j2` 移到 `player_detail.j2` 的 `{% block extra_scripts %}`（與其他 mobile 腳本同處），首頁等不再載入。
-
-### 為什麼這樣能修正
-腳本只在真正需要它們 DOM 的頁面載入，其他頁少 4 支 HTTP 請求與解析成本。
 
 ## F4. 巢狀 `@import` 瀑布 + 每頁載入全站 CSS
 **位置**：`src/static/css/style.css:18-30`、`src/static/css/mobile/mobile.css:1-10`　**P2/已確認**
@@ -907,9 +653,9 @@ box-shadow: 0 0 0 2px rgba(var(--teal-rgb), .2);
 
 # 建議修復順序（風險由低到高）
 
-1. **純清理（零行為風險）**：D1 `slice_prefix`、D2 `m-stats.js`、D3 statcast 死碼、D4 ISO 去重、F3 mobile JS 移位、H4 docstring。
-2. **明確小修正**：A1 WAR/FIP/xWPCT `is not none`、A2 甜蜜點%母體、A3 wOBA 退年、C1 MiLB try、C3 `ci` 白名單、B1 `all` 桶、F2 加 `defer`。
-3. **聚合與耦合**：B2 ev90 留白、B3 級別正規化、C2 空字串守門、E1 常數抽共用、E3 排序鍵。
+1. **純清理（零行為風險）**：H4 docstring。
+2. **明確小修正**：A1 WAR/FIP/xWPCT `is not none`、C1 MiLB try、C3 `ci` 白名單、B1 `all` 桶。
+3. **聚合與耦合**：B2 ev90 留白、C2 空字串守門、E1 常數抽共用、E3 排序鍵。
 4. **可及性**：G1 Tab ARIA + 鍵盤。
 5. **較大重構（先設計）**：E2/F1 桌機手機雙模板收斂、F4 `@import` 改 bundle、H1 `!important`、H2 色變數、F5 CLS、G2 selector。
 

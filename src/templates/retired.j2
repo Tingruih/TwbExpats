@@ -1,4 +1,5 @@
 {% extends 'base.j2' %}
+{% import "macros/tags.j2" as tags %}
 
 {% block content %}
 
@@ -27,7 +28,7 @@
             <div class="player-info">
                 <h2>{{ player.name_tw or player.name_en }}
                     {% if item.badge_level %}
-                    <span class="level-tag">{{ item.badge_level | level_display(item.badge_year) }}</span>
+                    {{ tags.level_tag(item.badge_level, item.badge_year) }}
                     {% endif %}
                 </h2>
                 <div class="level">

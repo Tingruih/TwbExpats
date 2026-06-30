@@ -23,7 +23,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
-    <link rel="icon" href="{{ static_url('favicon.ico') }}" sizes="32x32">
+    <link rel="icon" href="{{ static_url('favicon.png') }}" type="image/png">
     <link rel="icon" href="{{ static_url('logo.svg') }}" type="image/svg+xml">
     {% if structured_data %}
     <script type="application/ld+json">{{ structured_data|jsonld }}</script>
@@ -47,7 +47,7 @@
                         <a href="{{ base_url }}" role="menuitem"
                            class="menu-item{% if nav_active == 'index' %} menu-item--active{% endif %}">
                             <span class="menu-item-label">現役球員</span>
-                            <span class="menu-item-desc">MLB / MiLB 在籍名單</span>
+                            <span class="menu-item-desc">今年曾在 MLB/MiLB 隊伍上</span>
                         </a>
                         <a href="{{ base_url }}retired/" role="menuitem"
                            class="menu-item{% if nav_active == 'retired' %} menu-item--active{% endif %}">
@@ -61,7 +61,7 @@
                     <span class="brand-divider" aria-hidden="true"></span>
                     <div class="brand-copy">
                         <h1 class="brand-text">TwbExpats</h1>
-                        <p class="brand-subtitle">臺灣旅美球員數據網站</p>
+                        <p class="brand-subtitle">臺灣旅美棒球員數據網站</p>
                     </div>
                 </a>
             </div>
@@ -96,10 +96,7 @@
 
 {# Shared image fallback handler — tries CDN URL first, then shows initials #}
 <script defer src="{{ static_url('js/avatar-fallback.js') }}"></script>
-<script defer src="{{ static_url('js/mobile/m-tabs.js') }}"></script>
-<script defer src="{{ static_url('js/mobile/m-accordion.js') }}"></script>
-<script defer src="{{ static_url('js/mobile/m-bio.js') }}"></script>
-<script defer src="{{ static_url('js/mobile/m-stats.js') }}"></script>
+
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "82c9ad15d468431086cbda577cc808a0"}'></script>
 </body>
 </html> 

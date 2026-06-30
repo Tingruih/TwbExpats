@@ -1,4 +1,6 @@
 {# ── TAB 5: FIELDING STATS ── #}
+{% import "macros/table.j2" as macros %}
+{% import "macros/tags.j2" as tags %}
 <div class="tab-panel" id="panel-fielding">
 
     {% if all_fielding %}
@@ -8,18 +10,18 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>年度</th><th>層級</th><th>球隊</th><th data-tooltip="守備位置">POS</th>
-                        <th data-tooltip="出賽數">GP</th><th data-tooltip="先發場次">GS</th><th data-tooltip="守備局數">INN</th>
-                        <th data-tooltip="守備機會：PO+A+E">TC</th><th data-tooltip="刺殺數">PO</th><th data-tooltip="助殺數">A</th><th data-tooltip="失誤數">E</th>
-                        <th data-tooltip="守備率：(PO+A) ÷ TC">FLD%</th><th data-tooltip="雙殺數">DP</th><th data-tooltip="三殺數">TP</th>
-                        <th data-tooltip="每場守備範圍因子">RF/G</th><th data-tooltip="每9局守備範圍因子">RF/9</th><th data-tooltip="傳球失誤數">TE</th>
+                        <th>年度</th><th>層級</th><th>球隊</th>{{ macros.th('POS', '守備位置') }}
+                        {{ macros.th('GP', '出賽數') }}{{ macros.th('GS', '先發場次') }}{{ macros.th('INN', '守備局數') }}
+                        {{ macros.th('TC', '守備機會：PO+A+E') }}{{ macros.th('PO', '刺殺數') }}{{ macros.th('A', '助殺數') }}{{ macros.th('E', '失誤數') }}
+                        {{ macros.th('FLD%', '守備率：(PO+A) ÷ TC') }}{{ macros.th('DP', '雙殺數') }}{{ macros.th('TP', '三殺數') }}
+                        {{ macros.th('RF/G', '每場守備範圍因子') }}{{ macros.th('RF/9', '每9局守備範圍因子') }}{{ macros.th('TE', '傳球失誤數') }}
                     </tr>
                 </thead>
                 <tbody>
                     {% for f in all_fielding %}
                     <tr class="{% if f.year == selected_year %}highlight-row{% endif %}">
                         <td>{{ f.year }}</td>
-                        <td><span class="level-tag">{{ f.sport_level | level_display(f.year) }}</span></td>
+                        <td>{{ tags.level_tag(f.sport_level, f.year) }}</td>
                         <td>{{ f.team_name }}</td>
                         <td><span class="pos-tag">{{ f.position }}</span></td>
                         <td class="num">{{ f.gp|num_dash }}</td>

@@ -44,12 +44,6 @@ def num_dash(value):
     return value
 
 
-def slice_prefix(value, n):
-    """Return the first *n* characters of a string."""
-    if not value:
-        return ""
-    return str(value)[:n]
-
 
 def _json_html_safe(s: str) -> str:
     # Prevent </script> from closing the enclosing script tag.
@@ -170,7 +164,7 @@ def create_jinja_env(
     env.filters["floatformat"] = floatformat
     env.filters["default_if_none"] = default_if_none
     env.filters["num_dash"] = num_dash
-    env.filters["slice_prefix"] = slice_prefix
+
     env.filters["tojson_safe"] = tojson_safe
     env.filters["jsonld"] = jsonld
     env.filters["pct_fmt"] = pct_fmt

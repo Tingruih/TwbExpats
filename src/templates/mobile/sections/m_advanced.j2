@@ -1,4 +1,5 @@
 {# ── 手機版 TAB：進階數據（統一 mc-* 數據卡片系統）── #}
+{% import "macros/tags.j2" as tags %}
 {% macro mcell(label, value) -%}
 <div class="mc-cell"><b>{{ label }}</b><span>{{ value }}</span></div>
 {%- endmacro %}
@@ -69,7 +70,7 @@
                         {% if grp.multi %}
                         <span class="multi-tag">{{ grp.rows|length }} 隊合計</span>
                         {% else %}
-                        <span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>
+                        {{ tags.level_tag(grp.rows[0].sport_level, grp.rows[0].year) }}
                         <span class="mc-team">{{ grp.rows[0].team_name }}</span>
                         {% endif %}
                     </div>
@@ -85,7 +86,7 @@
                     {% for stat in grp.rows %}
                     <div class="mc-sub-card">
                         <div class="mc-sub-hd">
-                            <span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span>
+                            {{ tags.level_tag(stat.sport_level, stat.year) }}
                             <span class="mc-team">{{ stat.team_name }}</span>
                         </div>
                         {{ adv_body(stat) }}
@@ -117,7 +118,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
+                        {{ tags.level_tag(entry.sport_level, yr) }}
                     </div>
                 </header>
                 {% if is_pitcher %}
@@ -140,7 +141,7 @@
                 <div class="mc-hero">
                     <div class="mc-hero-cell"><span>{{ sc.woba|floatformat(3) }}</span><b>wOBA</b></div>
                     <div class="mc-hero-cell"><span>{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</span><b>xwOBA</b></div>
-                    <div class="mc-hero-cell"><span>{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</span><b>wRC+</b></div>
+                    <div class="mc-hero-cell"><span>{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% elif ss_row and ss_row.wrc_plus_calc is not none %}{{ ss_row.wrc_plus_calc }}{% else %}—{% endif %}</span><b>wRC+</b></div>
                     <div class="mc-hero-cell"><span>{% if ss_row and ss_row.war %}{{ ss_row.war|floatformat(1) }}{% else %}—{% endif %}</span><b>WAR</b></div>
                 </div>
                 <div class="mc-grid">
@@ -173,7 +174,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
+                        {{ tags.level_tag(entry.sport_level, yr) }}
                     </div>
                     <div class="mc-hd-aside">
                         <span class="mc-meta">{{ sc.total_pitches|num_dash }} Pitches</span>
@@ -212,7 +213,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ yr }}</span>
-                        <span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span>
+                        {{ tags.level_tag(entry.sport_level, yr) }}
                     </div>
                     <div class="mc-hd-aside">
                         <span class="mc-meta">{{ sc.bbe|num_dash }} BBE</span>
@@ -302,7 +303,7 @@
                         <article class="mc-card">
                             <header class="mc-hd">
                                 <div class="mc-hd-meta">
-                                    <span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span>
+                                    {{ tags.pitch_tag(pt.type, pt.name) }}
                                     {% if o %}<span class="mc-meta">{{ o.count|num_dash }} 球</span>{% endif %}
                                 </div>
                                 <div class="mc-hd-aside">
@@ -352,7 +353,7 @@
                             </header>
                             <div class="m-usage-legend">
                                 {% for pitch in usage_types %}
-                                <span class="pitch-tag pitch-{{ pitch.type|lower }}">{{ pitch.name or pitch.type }}</span>
+                                {{ tags.pitch_tag(pitch.type, pitch.name) }}
                                 {% endfor %}
                             </div>
                             <div class="m-usage">
@@ -399,7 +400,7 @@
                     <article class="mc-card">
                         <header class="mc-hd">
                             <div class="mc-hd-meta">
-                                <span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span>
+                                {{ tags.pitch_tag(pt.type, pt.name) }}
                             </div>
                             <div class="mc-hd-aside">
                                 <span class="mc-meta">{{ pt.count|num_dash }} 球</span>

@@ -1038,6 +1038,12 @@ def _merge_statcast_into_season(
 
     is_pitcher = position == "P"
 
+    # wRC+ 與 WAR 是整個賽季的合計數值，並非隸屬於某支球隊。
+    # 當球員在賽季中途轉隊時，資料庫同一年度會存在多筆 MLB 記錄（每支球隊各一筆）。
+    # 若將相同的合計數值寫入每一筆記錄，畫面上會出現重複的欄位，導致資料顯示錯誤。
+    # 因此使用旗標追蹤是否已寫入過，確保 wRC+ 與 WAR 只寫入該年度第一筆 MLB 記錄。
+    saber_written = False
+
     for row in rows:
         team_name = row[0]
         league_name = row[1]
@@ -1094,11 +1100,16 @@ def _merge_statcast_into_season(
                 stat_doc["war"] = safe_float(sabermetrics.get("war"))
                 stat_doc["xwpct"] = compute_xwpct(fip_val, "MLB")
         elif not is_pitcher and row_sport_level == "MLB" and sabermetrics:
-            # Batter sabermetrics — extract WAR and wRC+ to top-level fields
-            stat_doc["war"] = safe_float(sabermetrics.get("war"))
-            wrc_plus_val = safe_int(sabermetrics.get("wRcPlus"))
-            if wrc_plus_val is not None:
-                stat_doc["wrc_plus"] = wrc_plus_val
+            if not saber_written:
+                # API 回傳的 sabermetrics 是整季合計，與球隊無關。
+                # 只將 WAR 與 wRC+ 寫入該年度遇到的第一筆 MLB 記錄，
+                # 避免轉隊球員的每支球隊記錄都出現相同數值。
+                # 寫入完畢後將旗標設為 True，後續同年度的 MLB 記錄不再寫入。
+                stat_doc["war"] = safe_float(sabermetrics.get("war"))
+                wrc_plus_val = safe_int(sabermetrics.get("wRcPlus"))
+                if wrc_plus_val is not None:
+                    stat_doc["wrc_plus"] = wrc_plus_val
+                saber_written = True
 
         _save_season_row(
             cur, mlb_id, year, team_name,

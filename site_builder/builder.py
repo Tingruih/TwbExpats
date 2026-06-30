@@ -29,9 +29,9 @@ from site_builder.helpers import (
 )
 from site_builder.jinja_env import headshot_cdn_urls, create_jinja_env
 from site_builder.statcast import (
-    compute_pitch_movement_chart,
     summarize_pitch_for_display,
 )
+from site_builder.wrc_plus import MIN_WRC_YEAR, WRC_LEVELS, annotate_wrc_plus
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -748,9 +748,6 @@ def _load_player_bundle(cur, player_row: sqlite3.Row):
         data.update(stat_json)
         data.fielding_json = loads_json_list(row[5])
         data.level_order = level_rank(data.sport_level)
-        slg = safe_float(data.get("slg"))
-        avg = safe_float(data.get("avg"))
-        data.iso = (slg - avg) if (slg is not None and avg is not None) else None
         stats.append(data)
 
     stats.sort(key=lambda s: (-s.year, s.level_order))
@@ -879,6 +876,11 @@ def build_static_site(
                 print(f"    {mlb_id}  {label}")
 
     bundles = [_load_player_bundle(cur, row) for row in rows]
+
+    # Compute TJBat+ (wRC+) for qualifying batters before any page rendering
+    # so both the active-player and retired-player detail pages (which both
+    # read from `bundles`) see the annotated wrc_plus/wrc_plus_calc fields.
+    annotate_wrc_plus(bundles)
 
     # ── Split active vs. retired ──
     # Active = has a season_stats row for `year` OR a transaction dated this
@@ -1087,29 +1089,6 @@ def build_static_site(
                     log.pitch_data_url = ""
                     log.pitch_count = 0
 
-        movement_pitches_by_year_level: dict[tuple[int, str], list[dict]] = {}
-        if player.is_pitcher:
-            levels_by_year: dict[int, set[str]] = {}
-            for s in all_stats:
-                if s.sport_level:
-                    levels_by_year.setdefault(s.year, set()).add(s.sport_level)
-
-            for y_key, year_logs in logs_by_year.items():
-                for log in year_logs:
-                    if not log.pitches_json:
-                        continue
-                    level = log.sport_level or ""
-                    if not level:
-                        known_levels = levels_by_year.get(y_key, set())
-                        if len(known_levels) == 1:
-                            level = next(iter(known_levels))
-                    movement_pitches_by_year_level.setdefault((y_key, level), []).extend(log.pitches_json)
-
-        movement_by_year_level = {
-            key: compute_pitch_movement_chart(pitches)
-            for key, pitches in movement_pitches_by_year_level.items()
-        }
-
         # Season-level Statcast data keyed by year → list of {sport_level, team_name, sc}
         statcast_by_year: dict[int, list] = {}
         for s in all_stats:
@@ -1117,17 +1096,35 @@ def build_static_site(
             if raw_sc:
                 sc = dict(raw_sc)
                 if player.is_pitcher:
-                    movement = movement_by_year_level.get((s.year, s.sport_level))
-                    if movement and movement.get("total_pitches"):
-                        sc["pitch_movement"] = movement
-                    else:
-                        sc.setdefault("pitch_movement", raw_sc.get("pitch_movement") or {})
+                    # pitch_movement is already computed per level by the statcast
+                    # pipeline and stored on this row's statcast dict; just ensure
+                    # the key exists for older rows predating that field.
+                    sc.setdefault("pitch_movement", {})
                 statcast_by_year.setdefault(s.year, []).append({
                     "sport_level": s.sport_level,
                     "team_name": s.team_name,
                     "sc": sc,
                     "stat": s,
                 })
+            elif (
+                not player.is_pitcher
+                and s.year >= MIN_WRC_YEAR
+                and s.sport_level in WRC_LEVELS
+            ):
+                # No real Statcast data for this row, but it may still carry a
+                # computed wRC+ (annotate_wrc_plus, above). Inject a near-empty
+                # entry so the Statcast Overview section can still surface it
+                # instead of silently dropping the year.
+                has_wrc = (
+                    s.get("wrc_plus_calc") if s.sport_level == "MLB" else s.get("wrc_plus")
+                ) is not None
+                if has_wrc:
+                    statcast_by_year.setdefault(s.year, []).append({
+                        "sport_level": s.sport_level,
+                        "team_name": s.team_name,
+                        "sc": {},
+                        "stat": s,
+                    })
         # For years with multiple levels, prepend a combined summary entry so the
         # summary row in the template can display real weighted-average values.
         for yr_key, yr_entries in statcast_by_year.items():

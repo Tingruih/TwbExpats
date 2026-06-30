@@ -1,3 +1,4 @@
+{% import "macros/tags.j2" as tags %}
 <section class="m-section-stack" aria-label="基礎數據">
     <div class="glass-panel m-data-sec">
         <h3>歷年賽季成績</h3>
@@ -16,7 +17,7 @@
                         {% if grp.multi %}
                         <span class="multi-tag">{{ grp.rows|length }}隊</span>
                         {% else %}
-                        <span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>
+                        {{ tags.level_tag(grp.rows[0].sport_level, grp.rows[0].year) }}
                         <span class="m-stat-team">{{ grp.rows[0].team_name }}</span>
                         {% endif %}
                     </div>
@@ -72,7 +73,7 @@
                     {% for stat in grp.rows %}
                     <div class="m-stat-sub-card">
                         <div class="m-stat-sub-hd">
-                            <span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span>
+                            {{ tags.level_tag(stat.sport_level, stat.year) }}
                             <span class="m-sub-team">{{ stat.team_name }}</span>
                         </div>
                         {% if is_pitcher %}

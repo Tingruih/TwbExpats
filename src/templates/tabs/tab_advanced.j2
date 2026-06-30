@@ -1,4 +1,6 @@
 {# ── TAB 4: ADVANCED STATS ── #}
+{% import "macros/table.j2" as macros %}
+{% import "macros/tags.j2" as tags %}
 <div class="tab-panel" id="panel-advanced">
 
     {# Advanced Stats Table #}
@@ -11,15 +13,15 @@
                         <th class="col-toggle"></th>
                         <th>年度</th><th>層級</th><th>球隊</th>
                         {% if is_pitcher %}
-                            <th data-tooltip="每局被上壘率：(H+BB) ÷ IP">WHIP</th><th data-tooltip="每9局三振數">K/9</th><th data-tooltip="每9局保送數">BB/9</th><th data-tooltip="每9局被安打數">H/9</th><th data-tooltip="每9局被全壘打數">HR/9</th><th data-tooltip="三振保送比">K/BB</th>
-                            <th data-tooltip="三振率：SO ÷ 面對打者數">K%</th><th data-tooltip="保送率：BB ÷ 面對打者數">BB%</th><th data-tooltip="好球率">Strike%</th>
-                            <th data-tooltip="被打擊率">AVG</th><th data-tooltip="被上壘率">OBP</th><th data-tooltip="被長打率">SLG</th><th data-tooltip="被攻擊指數（OBP+SLG）">OPS</th>
-                            <th data-tooltip="場內打擊率（運氣指標，聯盟均約 .300）">BABIP</th><th data-tooltip="滾飛比，>1 為滾地球型">GO/AO</th><th data-tooltip="每打席用球數">P/PA</th>
+                            {{ macros.th('WHIP', '每局被上壘率：(H+BB) ÷ IP') }}{{ macros.th('K/9', '每9局三振數') }}{{ macros.th('BB/9', '每9局保送數') }}{{ macros.th('H/9', '每9局被安打數') }}{{ macros.th('HR/9', '每9局被全壘打數') }}{{ macros.th('K/BB', '三振保送比') }}
+                            {{ macros.th('K%', '三振率：SO ÷ 面對打者數') }}{{ macros.th('BB%', '保送率：BB ÷ 面對打者數') }}{{ macros.th('Strike%', '好球率') }}
+                            {{ macros.th('AVG', '被打擊率') }}{{ macros.th('OBP', '被上壘率') }}{{ macros.th('SLG', '被長打率') }}{{ macros.th('OPS', '被攻擊指數（OBP+SLG）') }}
+                            {{ macros.th('BABIP', '場內打擊率（運氣指標，聯盟均約 .300）') }}{{ macros.th('GO/AO', '滾飛比，>1 為滾地球型') }}{{ macros.th('P/PA', '每打席用球數') }}
                         {% else %}
-                            <th data-tooltip="三振率：SO ÷ PA">K%</th><th data-tooltip="保送率：BB ÷ PA">BB%</th>
-                            <th data-tooltip="純長打率：SLG − AVG">ISO</th><th data-tooltip="場內打擊率（運氣指標，聯盟均約 .300）">BABIP</th><th data-tooltip="長打數：2B+3B+HR">XBH</th><th data-tooltip="每幾打數一支全壘打">AB/HR</th><th data-tooltip="滾飛比">GO/AO</th><th data-tooltip="盜壘成功率">SB%</th>
-                            <th data-tooltip="每打席面對球數">P/PA</th><th data-tooltip="故意四壞球數">IBB</th><th data-tooltip="觸身球數">HBP</th><th data-tooltip="打成雙殺數">GIDP</th><th data-tooltip="雙殺機會數">GIDPO</th>
-                            <th data-tooltip="高飛犧牲打數">SF</th><th data-tooltip="犧牲觸擊數">SH</th><th data-tooltip="殘壘數">LOB</th><th data-tooltip="因失誤上壘數">ROE</th><th data-tooltip="再見安打數">WO</th>
+                            {{ macros.th('K%', '三振率：SO ÷ PA') }}{{ macros.th('BB%', '保送率：BB ÷ PA') }}
+                            {{ macros.th('ISO', '純長打率：SLG − AVG') }}{{ macros.th('BABIP', '場內打擊率（運氣指標，聯盟均約 .300）') }}{{ macros.th('XBH', '長打數：2B+3B+HR') }}{{ macros.th('AB/HR', '每幾打數一支全壘打') }}{{ macros.th('GO/AO', '滾飛比') }}{{ macros.th('SB%', '盜壘成功率') }}
+                            {{ macros.th('P/PA', '每打席面對球數') }}{{ macros.th('IBB', '故意四壞球數') }}{{ macros.th('HBP', '觸身球數') }}{{ macros.th('GIDP', '打成雙殺數') }}{{ macros.th('GIDPO', '雙殺機會數') }}
+                            {{ macros.th('SF', '高飛犧牲打數') }}{{ macros.th('SH', '犧牲觸擊數') }}{{ macros.th('LOB', '殘壘數') }}{{ macros.th('ROE', '因失誤上壘數') }}{{ macros.th('WO', '再見安打數') }}
                         {% endif %}
                     </tr>
                 </thead>
@@ -35,7 +37,7 @@
                             {% if grp.multi %}<span class="toggle-arrow" id="arrow-adv-{{ yr }}"></span>{% endif %}
                         </td>
                         <td><strong>{{ yr }}</strong></td>
-                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>{% endif %}</td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}{{ tags.level_tag(grp.rows[0].sport_level, grp.rows[0].year) }}{% endif %}</td>
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         {% if is_pitcher %}
                             <td class="num">{{ sm.whip|floatformat(2) }}</td>
@@ -81,7 +83,7 @@
                     <tr class="year-detail-row" data-tbl="adv" data-grp="{{ yr }}" style="display:none;">
                         <td></td>
                         <td></td>
-                        <td><span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span></td>
+                        <td>{{ tags.level_tag(stat.sport_level, stat.year) }}</td>
                         <td>{{ stat.team_name }}</td>
                         {% if is_pitcher %}
                             <td class="num">{{ stat.whip|floatformat(2) }}</td>
@@ -141,14 +143,14 @@
                     <tr>
                         <th>年度</th><th>層級</th>
                         {% if is_pitcher %}
-                            <th data-tooltip="守備無關防禦率">FIP</th><th data-tooltip="預期勝率">xWPCT</th><th data-tooltip="被加權上壘率">wOBA</th><th data-tooltip="預期被加權上壘率">xwOBA</th>
-                            <th data-tooltip="被強勁長打比例">Barrel%</th><th data-tooltip="被強擊球比例">Hard-Hit%</th><th data-tooltip="平均被擊球初速">Avg EV</th>
-                            <th data-tooltip="滾地球比例">GB%</th><th data-tooltip="飛球中被全壘打比例">HR/FB%</th><th data-tooltip="揮空率">Whiff%</th><th data-tooltip="平均出手延伸距離">Avg Ext</th>
+                            {{ macros.th('FIP', '守備無關防禦率') }}{{ macros.th('xWPCT', '預期勝率') }}{{ macros.th('wOBA', '被加權上壘率') }}{{ macros.th('xwOBA', '預期被加權上壘率') }}
+                            {{ macros.th('Barrel%', '被強勁長打比例') }}{{ macros.th('Hard-Hit%', '被強擊球比例') }}{{ macros.th('Avg EV', '平均被擊球初速') }}
+                            {{ macros.th('GB%', '滾地球比例') }}{{ macros.th('HR/FB%', '飛球中被全壘打比例') }}{{ macros.th('Whiff%', '揮空率') }}{{ macros.th('Avg Ext', '平均出手延伸距離') }}
                         {% else %}
-                            <th data-tooltip="進場擊球數">BBE</th><th data-tooltip="加權上壘率">wOBA</th><th data-tooltip="預期加權上壘率">xwOBA</th>
-                            <th data-tooltip="得分創造指數，100 為聯盟平均">wRC+</th><th data-tooltip="勝利貢獻值">WAR</th>
-                            <th data-tooltip="強勁長打比例">Barrel%</th><th data-tooltip="強擊球比例">Hard-Hit%</th><th data-tooltip="平均擊球初速">Avg EV</th>
-                            <th data-tooltip="最高擊球初速">Max EV</th><th data-tooltip="前10%擊球初速平均">EV90</th><th data-tooltip="平均擊球仰角">Avg LA</th><th data-tooltip="揮空加看球好球比例">SwSp%</th>
+                            {{ macros.th('BBE', '進場擊球數') }}{{ macros.th('wOBA', '加權上壘率') }}{{ macros.th('xwOBA', '預期加權上壘率') }}
+                            {{ macros.th('wRC+', '得分創造指數，100 為聯盟平均') }}{{ macros.th('WAR', '勝利貢獻值') }}
+                            {{ macros.th('Barrel%', '強勁長打比例') }}{{ macros.th('Hard-Hit%', '強擊球比例') }}{{ macros.th('Avg EV', '平均擊球初速') }}
+                            {{ macros.th('Max EV', '最高擊球初速') }}{{ macros.th('EV90', '前10%擊球初速平均') }}{{ macros.th('Avg LA', '平均擊球仰角') }}{{ macros.th('SwSp%', '揮空加看球好球比例') }}
                         {% endif %}
                     </tr>
                 </thead>
@@ -161,7 +163,7 @@
                     {% set ss_row = entry.stat %}
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
                         <td><strong>{{ yr }}</strong></td>
-                        <td><span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span></td>
+                        <td>{{ tags.level_tag(entry.sport_level, yr) }}</td>
                         {% if is_pitcher %}
                             <td class="num">{% if ss_row and ss_row.fip %}{{ ss_row.fip|floatformat(2) }}{% else %}—{% endif %}</td>
                             <td class="num">{% if ss_row and ss_row.xwpct %}{{ ss_row.xwpct|floatformat(3) }}{% else %}—{% endif %}</td>
@@ -178,7 +180,7 @@
                             <td class="num">{{ sc.bbe|num_dash }}</td>
                             <td class="num">{{ sc.woba|floatformat(3) }}</td>
                             <td class="num">{% if ss_row and ss_row.expected and ss_row.expected.xwoba %}{{ ss_row.expected.xwoba|floatformat(3) }}{% else %}—{% endif %}</td>
-                            <td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if ss_row and ss_row.wrc_plus is not none %}{{ ss_row.wrc_plus }}{% elif ss_row and ss_row.wrc_plus_calc is not none %}{{ ss_row.wrc_plus_calc }}{% else %}—{% endif %}</td>
                             <td class="num">{% if ss_row and ss_row.war %}{{ ss_row.war|floatformat(1) }}{% else %}—{% endif %}</td>
                             <td class="num">{{ sc.barrel_pct|pct_fmt }}</td>
                             <td class="num">{{ sc.hard_hit_pct|pct_fmt }}</td>
@@ -203,15 +205,15 @@
             <table class="data-table year-group-table" id="stats-table-pd">
                 <thead>
                     <tr>
-                        <th>年度</th><th>層級</th><th data-tooltip="總投球數">Pitches</th>
+                        <th>年度</th><th>層級</th>{{ macros.th('Pitches', '總投球數') }}
                         {% if is_pitcher %}
-                            <th data-tooltip="投進好球帶比例">Zone%</th><th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th>
-                            <th data-tooltip="好球帶內接觸率">Z-Contact%</th><th data-tooltip="總揮棒率">Swing%</th><th data-tooltip="揮空率">Whiff%</th>
-                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
+                            {{ macros.th('Zone%', '投進好球帶比例') }}{{ macros.th('Z-Swing%', '好球帶內揮棒率') }}{{ macros.th('O-Swing%', '好球帶外揮棒率') }}
+                            {{ macros.th('Z-Contact%', '好球帶內接觸率') }}{{ macros.th('Swing%', '總揮棒率') }}{{ macros.th('Whiff%', '揮空率') }}
+                            {{ macros.th('CSW%', '看球好球加揮空比例') }}{{ macros.th('SwStr%', '揮棒落空好球比例') }}
                         {% else %}
-                            <th data-tooltip="面對投球中的好球比例">Strike%</th><th data-tooltip="進好球帶比例">Zone%</th><th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th>
-                            <th data-tooltip="好球帶內接觸率">Z-Contact%</th><th data-tooltip="總揮棒率">Swing%</th><th data-tooltip="揮空率">Whiff%</th>
-                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
+                            {{ macros.th('Strike%', '面對投球中的好球比例') }}{{ macros.th('Zone%', '進好球帶比例') }}{{ macros.th('Z-Swing%', '好球帶內揮棒率') }}{{ macros.th('O-Swing%', '好球帶外揮棒率') }}
+                            {{ macros.th('Z-Contact%', '好球帶內接觸率') }}{{ macros.th('Swing%', '總揮棒率') }}{{ macros.th('Whiff%', '揮空率') }}
+                            {{ macros.th('CSW%', '看球好球加揮空比例') }}{{ macros.th('SwStr%', '揮棒落空好球比例') }}
                         {% endif %}
                     </tr>
                 </thead>
@@ -223,7 +225,7 @@
                     {% set sc = entry.sc %}
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
                         <td><strong>{{ yr }}</strong></td>
-                        <td><span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span></td>
+                        <td>{{ tags.level_tag(entry.sport_level, yr) }}</td>
                         <td class="num">{{ sc.total_pitches|num_dash }}</td>
                         {% if is_pitcher %}
                             <td class="num">{{ sc.zone_pct|pct_fmt }}</td>
@@ -261,10 +263,10 @@
                 <thead>
                     <tr>
                         <th>年度</th><th>層級</th>
-                        <th data-tooltip="進場擊球數">BBE</th>
-                        <th data-tooltip="滾地球比例">GB%</th><th data-tooltip="平飛球比例">LD%</th><th data-tooltip="飛球比例">FB%</th><th data-tooltip="內野高飛球比例">PU%</th><th data-tooltip="空中擊球比例（平飛+飛球）">Air%</th>
-                        <th data-tooltip="拉打比例">Pull%</th><th data-tooltip="中間方向擊球比例">Straight%</th><th data-tooltip="反方向擊球比例">Oppo%</th>
-                        {% if not is_pitcher %}<th data-tooltip="拉打空中球比例">PullAir%</th>{% endif %}
+                        {{ macros.th('BBE', '進場擊球數') }}
+                        {{ macros.th('GB%', '滾地球比例') }}{{ macros.th('LD%', '平飛球比例') }}{{ macros.th('FB%', '飛球比例') }}{{ macros.th('PU%', '內野高飛球比例') }}{{ macros.th('Air%', '空中擊球比例（平飛+飛球）') }}
+                        {{ macros.th('Pull%', '拉打比例') }}{{ macros.th('Straight%', '中間方向擊球比例') }}{{ macros.th('Oppo%', '反方向擊球比例') }}
+                        {% if not is_pitcher %}{{ macros.th('PullAir%', '拉打空中球比例') }}{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -276,7 +278,7 @@
                     {% if sc.bbe is not none %}
                     <tr class="{% if yr == selected_year %}highlight-row{% endif %}">
                         <td><strong>{{ yr }}</strong></td>
-                        <td><span class="level-tag">{{ entry.sport_level | level_display(yr) }}</span></td>
+                        <td>{{ tags.level_tag(entry.sport_level, yr) }}</td>
                         <td class="num">{{ sc.bbe|num_dash }}</td>
                         <td class="num">{{ sc.gb_pct|pct_fmt }}</td>
                         <td class="num">{{ sc.ld_pct|pct_fmt }}</td>
@@ -357,15 +359,15 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th data-tooltip="投手球種">球種</th><th data-tooltip="該球種使用比例">Pitch%</th><th data-tooltip="平均球速">Velo</th><th data-tooltip="誘導垂直位移">iVB</th><th data-tooltip="水平位移">HB</th>
-                                            <th data-tooltip="平均轉速">Spin</th><th data-tooltip="出手延伸距離">Ext.</th><th data-tooltip="垂直出手點">vRel</th><th data-tooltip="水平出手點">hRel</th>
-                                            <th data-tooltip="進好球帶比例">Zone%</th><th data-tooltip="誘使追打比例">Chase%</th><th data-tooltip="揮空率">Whiff%</th>
+                                            {{ macros.th('球種', '投手球種') }}{{ macros.th('Pitch%', '該球種使用比例') }}{{ macros.th('Velo', '平均球速') }}{{ macros.th('iVB', '誘導垂直位移') }}{{ macros.th('HB', '水平位移') }}
+                                            {{ macros.th('Spin', '平均轉速') }}{{ macros.th('Ext.', '出手延伸距離') }}{{ macros.th('vRel', '垂直出手點') }}{{ macros.th('hRel', '水平出手點') }}
+                                            {{ macros.th('Zone%', '進好球帶比例') }}{{ macros.th('Chase%', '誘使追打比例') }}{{ macros.th('Whiff%', '揮空率') }}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for pt in arsenal %}
                                         <tr>
-                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td>{{ tags.pitch_tag(pt.type, pt.name) }}</td>
                                             <td class="num">{{ pt.pct|pct_fmt }}</td>
                                             <td class="num">{{ pt.velo|floatformat(1) }}</td>
                                             <td class="num">{{ pt.ivb|floatformat(1) }}</td>
@@ -392,15 +394,15 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th data-tooltip="投手球種">球種</th><th data-tooltip="該球種投球數">Pitches</th><th data-tooltip="該球種使用比例">Pitch%</th><th data-tooltip="好球比例">Strike%</th>
-                                            <th data-tooltip="好球帶內揮空率">Z-Whiff%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th><th data-tooltip="看球好球加揮空比例">CSW%</th>
-                                            <th data-tooltip="兩好球後解決打者比例">PutAway%</th><th data-tooltip="被打擊率">AVG</th><th data-tooltip="被加權上壘率">wOBA</th><th data-tooltip="被強勁長打比例">Barrel%</th><th data-tooltip="被強擊球比例">HardHit%</th>
+                                            {{ macros.th('球種', '投手球種') }}{{ macros.th('Pitches', '該球種投球數') }}{{ macros.th('Pitch%', '該球種使用比例') }}{{ macros.th('Strike%', '好球比例') }}
+                                            {{ macros.th('Z-Whiff%', '好球帶內揮空率') }}{{ macros.th('O-Swing%', '好球帶外揮棒率') }}{{ macros.th('SwStr%', '揮棒落空好球比例') }}{{ macros.th('CSW%', '看球好球加揮空比例') }}
+                                            {{ macros.th('PutAway%', '兩好球後解決打者比例') }}{{ macros.th('AVG', '被打擊率') }}{{ macros.th('wOBA', '被加權上壘率') }}{{ macros.th('Barrel%', '被強勁長打比例') }}{{ macros.th('HardHit%', '被強擊球比例') }}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for pt in outcomes %}
                                         <tr>
-                                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                                            <td>{{ tags.pitch_tag(pt.type, pt.name) }}</td>
                                             <td class="num">{{ pt.count|num_dash }}</td>
                                             <td class="num">{{ pt.pct|pct_fmt }}</td>
                                             <td class="num">{{ pt.strike_pct|pct_fmt }}</td>
@@ -429,10 +431,10 @@
                                 <table class="data-table pitch-usage-table">
                                     <thead>
                                         <tr>
-                                            <th data-tooltip="投手球種">球種</th>
+                                            {{ macros.th('球種', '投手球種') }}
                                             {% for row in usage_rows %}
                                             {% if row.key != 'all' %}
-                                            <th data-tooltip="該球數下此球種的使用比例">{{ row.label }}<br><span class="pitch-usage-subhead">{{ row.counts_label }}</span></th>
+                                            {% call macros.th_html(tooltip="該球數下此球種的使用比例") %}{{ row.label }}<br><span class="pitch-usage-subhead">{{ row.counts_label }}</span>{% endcall %}
                                             {% endif %}
                                             {% endfor %}
                                         </tr>
@@ -440,7 +442,7 @@
                                     <tbody>
                                         {% for pitch in usage_types %}
                                         <tr>
-                                            <td><span class="pitch-tag pitch-{{ pitch.type|lower }}">{{ pitch.name or pitch.type }}</span></td>
+                                            <td>{{ tags.pitch_tag(pitch.type, pitch.name) }}</td>
                                             {% for row in usage_rows %}
                                             {% if row.key != 'all' %}
                                             {% set pitch_cell = namespace(pct=none) %}
@@ -473,16 +475,16 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th data-tooltip="面對球種">球種</th><th data-tooltip="面對該球種投球數">Pitches</th><th data-tooltip="好球比例">Strike%</th><th data-tooltip="進好球帶比例">Zone%</th>
-                            <th data-tooltip="好球帶內揮棒率">Z-Swing%</th><th data-tooltip="好球帶外揮棒率">O-Swing%</th><th data-tooltip="揮空率">Whiff%</th><th data-tooltip="揮棒落空好球比例">SwStr%</th>
-                            <th data-tooltip="看球好球加揮空比例">CSW%</th><th data-tooltip="兩好球後被解決比例">Put Away%</th><th data-tooltip="對該球種打擊率">AVG</th><th data-tooltip="對該球種加權上壘率">wOBA</th>
-                            <th data-tooltip="對該球種強勁長打比例">Barrel%</th><th data-tooltip="對該球種強擊球比例">Hard-Hit%</th>
+                            {{ macros.th('球種', '面對球種') }}{{ macros.th('Pitches', '面對該球種投球數') }}{{ macros.th('Strike%', '好球比例') }}{{ macros.th('Zone%', '進好球帶比例') }}
+                            {{ macros.th('Z-Swing%', '好球帶內揮棒率') }}{{ macros.th('O-Swing%', '好球帶外揮棒率') }}{{ macros.th('Whiff%', '揮空率') }}{{ macros.th('SwStr%', '揮棒落空好球比例') }}
+                            {{ macros.th('CSW%', '看球好球加揮空比例') }}{{ macros.th('Put Away%', '兩好球後被解決比例') }}{{ macros.th('AVG', '對該球種打擊率') }}{{ macros.th('wOBA', '對該球種加權上壘率') }}
+                            {{ macros.th('Barrel%', '對該球種強勁長打比例') }}{{ macros.th('Hard-Hit%', '對該球種強擊球比例') }}
                         </tr>
                     </thead>
                     <tbody>
                         {% for pt in vs %}
                         <tr>
-                            <td><span class="pitch-tag pitch-{{ pt.type|lower }}">{{ pt.name or pt.type }}</span></td>
+                            <td>{{ tags.pitch_tag(pt.type, pt.name) }}</td>
                             <td class="num">{{ pt.count|num_dash }}</td>
                             <td class="num">{{ pt.strike_pct|pct_fmt }}</td>
                             <td class="num">{{ pt.zone_pct|pct_fmt }}</td>

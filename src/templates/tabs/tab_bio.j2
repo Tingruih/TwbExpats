@@ -1,4 +1,5 @@
 {# ── TAB 1: BIO ── #}
+{% import "macros/stat_cell.j2" as cell %}
 <div class="tab-panel tab-panel--active" id="panel-bio">
 
     <div class="bio-grid">
@@ -89,21 +90,21 @@
             <h3 class="bio-card-title">生涯累計 ({{ total_career.years_range }})</h3>
             {% if is_pitcher %}
             <div class="mini-stats-grid highlight-only">
-                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.so|num_dash }}</span><span class="ms-l">K</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.wins|num_dash }}-{{ total_career.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.ip|floatformat(1) if total_career.ip else '-' }}</span><span class="ms-l">IP</span></div>
+                {{ cell.ms_item('G', total_career.gp|num_dash) }}
+                {{ cell.ms_item('ERA', total_career.era|floatformat(2)) }}
+                {{ cell.ms_item('WHIP', total_career.whip|floatformat(2)) }}
+                {{ cell.ms_item('K', total_career.so|num_dash) }}
+                {{ cell.ms_item('W-L', total_career.wins|num_dash ~ '-' ~ total_career.losses|num_dash) }}
+                {{ cell.ms_item('IP', total_career.ip|floatformat(1) if total_career.ip else '-') }}
             </div>
             {% else %}
             <div class="mini-stats-grid highlight-only">
-                <div class="ms-item"><span class="ms-v">{{ total_career.gp|num_dash }}</span><span class="ms-l">G</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.hr|num_dash }}</span><span class="ms-l">HR</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
-                <div class="ms-item"><span class="ms-v">{{ total_career.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+                {{ cell.ms_item('G', total_career.gp|num_dash) }}
+                {{ cell.ms_item('AVG', total_career.avg|floatformat(3)) }}
+                {{ cell.ms_item('OPS', total_career.ops|floatformat(3)) }}
+                {{ cell.ms_item('HR', total_career.hr|num_dash) }}
+                {{ cell.ms_item('RBI', total_career.rbi|num_dash) }}
+                {{ cell.ms_item('SB', total_career.sb|num_dash) }}
             </div>
             {% endif %}
             {% endif %}
@@ -119,21 +120,21 @@
             <h3 class="bio-card-title">{{ sc.year }} 賽季 — {{ sc.teams_display }}</h3>
             {% if is_pitcher %}
             <div class="mini-stats-grid highlight-only">
-                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.era|floatformat(2) }}</span><span class="ms-l">ERA</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.whip|floatformat(2) }}</span><span class="ms-l">WHIP</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.so|num_dash }}</span><span class="ms-l">K</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.wins|num_dash }}-{{ sc.losses|num_dash }}</span><span class="ms-l">W-L</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.ip|floatformat(1) if sc.ip else '-' }}</span><span class="ms-l">IP</span></div>
+                {{ cell.ms_item('G', sc.gp|num_dash) }}
+                {{ cell.ms_item('ERA', sc.era|floatformat(2)) }}
+                {{ cell.ms_item('WHIP', sc.whip|floatformat(2)) }}
+                {{ cell.ms_item('K', sc.so|num_dash) }}
+                {{ cell.ms_item('W-L', sc.wins|num_dash ~ '-' ~ sc.losses|num_dash) }}
+                {{ cell.ms_item('IP', sc.ip|floatformat(1) if sc.ip else '-') }}
             </div>
             {% else %}
             <div class="mini-stats-grid highlight-only">
-                <div class="ms-item"><span class="ms-v">{{ sc.gp|num_dash }}</span><span class="ms-l">G</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.avg|floatformat(3) }}</span><span class="ms-l">AVG</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.ops|floatformat(3) }}</span><span class="ms-l">OPS</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.hr|num_dash }}</span><span class="ms-l">HR</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.rbi|num_dash }}</span><span class="ms-l">RBI</span></div>
-                <div class="ms-item"><span class="ms-v">{{ sc.sb|num_dash }}</span><span class="ms-l">SB</span></div>
+                {{ cell.ms_item('G', sc.gp|num_dash) }}
+                {{ cell.ms_item('AVG', sc.avg|floatformat(3)) }}
+                {{ cell.ms_item('OPS', sc.ops|floatformat(3)) }}
+                {{ cell.ms_item('HR', sc.hr|num_dash) }}
+                {{ cell.ms_item('RBI', sc.rbi|num_dash) }}
+                {{ cell.ms_item('SB', sc.sb|num_dash) }}
             </div>
             {% endif %}
             {% endif %}

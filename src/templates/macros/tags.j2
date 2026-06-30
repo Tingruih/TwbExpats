@@ -1,0 +1,13 @@
+{# 共用徽章/標籤 macro：層級、球種、主客場 #}
+
+{% macro level_tag(level, year) -%}
+<span class="level-tag">{{ level | level_display(year) }}</span>
+{%- endmacro %}
+
+{% macro pitch_tag(pitch_type, pitch_name) -%}
+<span class="pitch-tag pitch-{{ pitch_type|lower }}">{{ pitch_name or pitch_type }}</span>
+{%- endmacro %}
+
+{% macro ha_tag(is_home) -%}
+<span class="ha-tag {% if is_home %}ha-home{% else %}ha-away{% endif %}">{% if is_home %}主{% else %}客{% endif %}</span>
+{%- endmacro %}

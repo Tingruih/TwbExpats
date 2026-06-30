@@ -12,6 +12,8 @@ from __future__ import annotations
 import math
 from typing import Optional
 
+from .helpers import ip_to_outs
+
 # ── Pitch result-code classifications ──────────────────────────────────────
 # Source: MLB Stats API ``details.code`` values.
 
@@ -25,28 +27,23 @@ WHIFF_CODES = {"S", "W", "T", "M", "Q"}
 
 CALLED_STRIKE_CODES = {"C"}
 
-# ── wOBA weights by year (FanGraphs MLB guts table) ──────────────────────
-# Columns: walk, hbp, single, double, triple, home_run
-# Source: https://www.fangraphs.com/guts.aspx?type=cn
-_W = {
-    2026: {"walk": 0.711, "hbp": 0.743, "single": 0.909, "double": 1.292, "triple": 1.636, "home_run": 2.105},
-    2025: {"walk": 0.691, "hbp": 0.722, "single": 0.882, "double": 1.252, "triple": 1.584, "home_run": 2.037},
-    2024: {"walk": 0.689, "hbp": 0.720, "single": 0.882, "double": 1.254, "triple": 1.590, "home_run": 2.050},
-    2023: {"walk": 0.696, "hbp": 0.726, "single": 0.883, "double": 1.244, "triple": 1.569, "home_run": 2.004},
-    2022: {"walk": 0.689, "hbp": 0.720, "single": 0.884, "double": 1.261, "triple": 1.601, "home_run": 2.072},
-    2021: {"walk": 0.692, "hbp": 0.722, "single": 0.879, "double": 1.242, "triple": 1.568, "home_run": 2.007},
-    2020: {"walk": 0.699, "hbp": 0.728, "single": 0.883, "double": 1.238, "triple": 1.558, "home_run": 1.979},
-    2019: {"walk": 0.690, "hbp": 0.719, "single": 0.870, "double": 1.217, "triple": 1.529, "home_run": 1.940},
+# ── wOBA linear weights (TJStats fixed set, shared across all levels and seasons) ──
+# Source: https://tjstats.ca/glossary/
+# TJStats uses one fixed set of weights and handles run-environment variation
+# through per-league constants (lg_wOBA, lg_R/PA) and park factors instead.
+WOBA_WEIGHTS: dict[str, float] = {
+    "walk": 0.689,
+    "hbp": 0.720,
+    "single": 0.881,
+    "double": 1.254,
+    "triple": 1.589,
+    "home_run": 2.048,
 }
-# Fallback for years not in the table (use the oldest available year)
-_WOBA_FALLBACK = _W[2019]
 
 
 def get_woba_weights(year: Optional[int] = None) -> dict:
-    """Return the FanGraphs wOBA weights for *year*, falling back gracefully."""
-    if year is None:
-        return _W.get(max(_W), _WOBA_FALLBACK)
-    return _W.get(year, _WOBA_FALLBACK)
+    """Return the fixed wOBA linear weights (year argument kept for compatibility)."""
+    return WOBA_WEIGHTS
 
 
 # PA event strings from MLB Stats API ``result.eventType`` that count as wOBA outcomes.
@@ -169,7 +166,6 @@ _LD_TRAJECTORIES = {"line_drive", "bunt_line_drive"}
 _FB_TRAJECTORIES = {"fly_ball"}
 _PU_TRAJECTORIES = {"popup", "bunt_popup"}
 _AIR_TRAJECTORIES = _LD_TRAJECTORIES | _FB_TRAJECTORIES
-_PULL_AIR_TRAJECTORIES = _AIR_TRAJECTORIES
 
 _BATTED_BALL_RATE_DIGITS = 6
 # MLB Gameday hit coordinate origin and spray-angle formula.
@@ -796,7 +792,7 @@ def _compute_spray(in_play: list[dict]) -> dict:
             straight += 1
         elif direction == "pull":
             pull += 1
-            if p.get("trajectory", "") in _PULL_AIR_TRAJECTORIES:
+            if p.get("trajectory", "") in _AIR_TRAJECTORIES:
                 pull_air += 1
         elif direction == "oppo":
             oppo += 1
@@ -979,10 +975,9 @@ def compute_pitcher_statcast(
 
     _ensure_pre_strikes(pitches)
 
-    woba_w = get_woba_weights(year)
     agg = _aggregate_pitches(pitches)
-    woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
-    bat_side_splits = _compute_pitcher_bat_side_splits(pitches, year=year)
+    woba_num, woba_den = _compute_woba(agg["pa_final"], WOBA_WEIGHTS)
+    bat_side_splits = _compute_pitcher_bat_side_splits(pitches)
 
     hr = sum(1 for p in agg["pa_final"] if p.get("pa_event") == "home_run")
 
@@ -1008,14 +1003,13 @@ def compute_pitcher_statcast(
     return result
 
 
-def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
+def _compute_pitch_arsenal_pitcher(pitches: list[dict]) -> list[dict]:
     """Per-pitch-type breakdown for a pitcher."""
     pitches = _filter_known_pitch_events(pitches)
     if not pitches:
         return []
 
     total = len(pitches)
-    woba_w = get_woba_weights(year)
 
     by_type: dict[str, list[dict]] = {}
     for p in pitches:
@@ -1026,7 +1020,7 @@ def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = No
     for ptype, ps in by_type.items():
         n = len(ps)
         agg = _aggregate_pitches(ps)
-        woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
+        woba_num, woba_den = _compute_woba(agg["pa_final"], WOBA_WEIGHTS)
         name = next((p.get("pitch_name") for p in ps if p.get("pitch_name")), ptype)
 
         # Put Away%: strikeouts on two-strike pitches / total two-strike pitches
@@ -1060,14 +1054,13 @@ def _compute_pitch_arsenal_pitcher(pitches: list[dict], year: Optional[int] = No
     return out
 
 
-def _compute_pitch_outcomes_pitcher(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
+def _compute_pitch_outcomes_pitcher(pitches: list[dict]) -> list[dict]:
     """Per-pitch-type outcome breakdown for a pitcher."""
     pitches = _filter_known_pitch_events(pitches)
     if not pitches:
         return []
 
     total = len(pitches)
-    woba_w = get_woba_weights(year)
 
     by_type: dict[str, list[dict]] = {}
     for p in pitches:
@@ -1094,7 +1087,7 @@ def _compute_pitch_outcomes_pitcher(pitches: list[dict], year: Optional[int] = N
             woba_den += 1
             key = WOBA_EVENT_MAP.get(ev)
             if key:
-                woba_num += woba_w[key]
+                woba_num += WOBA_WEIGHTS[key]
             if ev not in ("walk", "hit_by_pitch", "sac_fly", "sac_bunt", "intent_walk"):
                 ab += 1
                 if ev in ("single", "double", "triple", "home_run"):
@@ -1154,10 +1147,7 @@ def _compute_pitch_usage_by_count_pitcher(pitches: list[dict]) -> dict:
     rows = []
     for bucket in _COUNT_USAGE_BUCKETS:
         count_set = bucket["counts"]
-        if count_set is None:
-            bucket_pitches = pitches
-        else:
-            bucket_pitches = [p for p in pitches if _pre_count_tuple(p) in count_set]
+        bucket_pitches = [p for p in pitches if _pre_count_tuple(p) in count_set]
 
         bucket_total = len(bucket_pitches)
         bucket_type_counts = {t: 0 for t in ordered_types}
@@ -1185,9 +1175,7 @@ def _compute_pitch_usage_by_count_pitcher(pitches: list[dict]) -> dict:
     return {"pitch_types": pitch_types, "rows": rows}
 
 
-def _compute_pitcher_bat_side_splits(
-    pitches: list[dict], year: Optional[int] = None
-) -> dict[str, dict]:
+def _compute_pitcher_bat_side_splits(pitches: list[dict]) -> dict[str, dict]:
     """Build all/L/R batter-side pitch-type tables for pitchers."""
     splits: dict[str, dict] = {}
     for key, label in _BAT_SIDE_SPLITS:
@@ -1199,8 +1187,8 @@ def _compute_pitcher_bat_side_splits(
         splits[key] = {
             "key": key,
             "label": label,
-            "pitch_arsenal": _compute_pitch_arsenal_pitcher(split_pitches, year=year),
-            "pitch_outcomes": _compute_pitch_outcomes_pitcher(split_pitches, year=year),
+            "pitch_arsenal": _compute_pitch_arsenal_pitcher(split_pitches),
+            "pitch_outcomes": _compute_pitch_outcomes_pitcher(split_pitches),
             "pitch_usage_by_count": _compute_pitch_usage_by_count_pitcher(split_pitches),
         }
     return splits
@@ -1222,9 +1210,8 @@ def compute_batter_statcast(
     # that predates the field being added to extract_pitch_logs).
     _ensure_pre_strikes(pitches)
 
-    woba_w = get_woba_weights(year)
     agg = _aggregate_pitches(pitches)
-    woba_num, woba_den = _compute_woba(agg["pa_final"], woba_w)
+    woba_num, woba_den = _compute_woba(agg["pa_final"], WOBA_WEIGHTS)
 
     # 此部分若ev_values數據量小於10 則算出數據與tjstats不符
     ev_values = sorted([p["ev"] for p in agg["bbe_ev"]])  # ascending for percentile
@@ -1234,8 +1221,9 @@ def compute_batter_statcast(
         idx = min(int(len(ev_values) * 0.9), len(ev_values) - 1)
         ev90 = round(ev_values[idx], 1)
 
-    la_values = [p["la"] for p in agg["bbe_ev"] if p.get("la") is not None]
-    sweet_spots = sum(1 for p in agg["in_play"] if _is_sweet_spot(p.get("la")))
+    la_in_play = [p for p in agg["in_play"] if p.get("la") is not None]
+    la_values = [p["la"] for p in la_in_play]
+    sweet_spots = sum(1 for p in la_in_play if _is_sweet_spot(p.get("la")))
     strikes = sum(1 for p in pitches if p.get("is_strike") or p.get("is_in_play"))
     n_ip = len(agg["in_play"])
 
@@ -1248,7 +1236,7 @@ def compute_batter_statcast(
         "ev90": ev90,
         "avg_la": _mean_round(la_values, 1),
         "swsp_pct": _ratio(sweet_spots, len(la_values)),
-        "vs_pitch_types": _compute_vs_pitch_types_batter(pitches, year=year),
+        "vs_pitch_types": _compute_vs_pitch_types_batter(pitches),
         "pitch_plinko": _compute_pitch_plinko(
             pitches,
             split_field="pitch_hand",
@@ -1261,15 +1249,13 @@ def compute_batter_statcast(
     return result
 
 
-def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = None) -> list[dict]:
+def _compute_vs_pitch_types_batter(pitches: list[dict]) -> list[dict]:
     """Per-pitch-type breakdown for a batter."""
     # EP (Eephus) and FA (generic Fastball) almost exclusively appear in
     # position-player-pitching situations (e.g. catcher or shortstop mops up
     # in a blowout).  Exclude them so they don't pollute the breakdown or
     # show as spurious pitch types (matching TJStats / Baseball Savant behaviour).
     _SKIP_TYPES = {"EP", "FA"}
-
-    woba_w = get_woba_weights(year)
     by_type: dict[str, list[dict]] = {}
     for p in pitches:
         t = p.get("pitch_type") or "UN"
@@ -1307,7 +1293,7 @@ def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = No
             woba_den += 1
             key = WOBA_EVENT_MAP.get(ev)
             if key:
-                woba_num += woba_w[key]
+                woba_num += WOBA_WEIGHTS[key]
             # AB = PA - BB - HBP - SF - SH
             if ev not in ("walk", "hit_by_pitch", "sac_fly", "sac_bunt", "intent_walk"):
                 ab += 1
@@ -1352,8 +1338,13 @@ def _compute_vs_pitch_types_batter(pitches: list[dict], year: Optional[int] = No
 
 def compute_fip(hr, bb, hbp, k, ip, sport_level: str, year: int,
                 c_fip: Optional[float] = None) -> Optional[float]:
-    """MiLB FIP using known or supplied constant."""
-    if ip is None or ip <= 0:
+    """MiLB FIP using known or supplied constant.
+
+    ``ip`` is in baseball notation (7.2 = 7⅔ innings); converted via
+    ip_to_outs to the true fractional innings, matching _compute_rate_stats.
+    """
+    ip_actual = ip_to_outs(ip) / 3.0
+    if ip_actual <= 0:
         return None
     if c_fip is None:
         c_fip = FIP_CONSTANTS.get((sport_level, year))
@@ -1371,7 +1362,7 @@ def compute_fip(hr, bb, hbp, k, ip, sport_level: str, year: int,
     hbp = hbp or 0
     k = k or 0
     try:
-        fip = (13 * hr + 3 * (bb + hbp) - 2 * k) / ip + c_fip
+        fip = (13 * hr + 3 * (bb + hbp) - 2 * k) / ip_actual + c_fip
         return round(fip, 2)
     except (TypeError, ZeroDivisionError):
         return None

@@ -1,4 +1,5 @@
 {# ── 手機版 TAB：守備數據（統一 mc-* 數據卡片系統）── #}
+{% import "macros/tags.j2" as tags %}
 {% macro mcell(label, value) -%}
 <div class="mc-cell"><b>{{ label }}</b><span>{{ value }}</span></div>
 {%- endmacro %}
@@ -13,7 +14,7 @@
                 <header class="mc-hd">
                     <div class="mc-hd-meta">
                         <span class="mc-yr">{{ f.year }}</span>
-                        <span class="level-tag">{{ f.sport_level | level_display(f.year) }}</span>
+                        {{ tags.level_tag(f.sport_level, f.year) }}
                         <span class="mc-team">{{ f.team_name }}</span>
                     </div>
                     <div class="mc-hd-aside">

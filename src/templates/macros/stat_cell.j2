@@ -1,0 +1,5 @@
+{# 共用「數值＋標籤」小方塊 macro #}
+
+{% macro ms_item(label, value) -%}
+<div class="ms-item"><span class="ms-v">{{ value }}</span><span class="ms-l">{{ label }}</span></div>
+{%- endmacro %}

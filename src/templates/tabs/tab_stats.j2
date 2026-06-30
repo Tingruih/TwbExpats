@@ -1,4 +1,6 @@
 {# ── TAB 2: SEASON STATS ── #}
+{% import "macros/table.j2" as macros %}
+{% import "macros/tags.j2" as tags %}
 <div class="tab-panel" id="panel-stats">
 
     <div class="data-table-section glass-panel">
@@ -8,14 +10,14 @@
                 <thead>
                     <tr>
                         <th class="col-toggle"></th>
-                        <th>年度</th><th>層級</th><th>球隊</th><th data-tooltip="出賽數">G</th>
+                        <th>年度</th><th>層級</th><th>球隊</th>{{ macros.th('G', '出賽數') }}
                         {% if is_pitcher %}
-                            <th data-tooltip="勝敗投紀錄">W/L</th><th data-tooltip="先發場次">GS</th><th data-tooltip="救援成功數">SV</th><th data-tooltip="中繼成功數">HLD</th><th data-tooltip="投球局數">IP</th><th data-tooltip="面對打者總數">BF</th>
-                            <th data-tooltip="被安打數">H</th><th data-tooltip="被自責分數">ER</th><th data-tooltip="被全壘打數">HR</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="觸身球數">HBP</th><th data-tooltip="三振數">SO</th><th data-tooltip="防禦率：每9局平均自責分">ERA</th>
+                            {{ macros.th('W/L', '勝敗投紀錄') }}{{ macros.th('GS', '先發場次') }}{{ macros.th('SV', '救援成功數') }}{{ macros.th('HLD', '中繼成功數') }}{{ macros.th('IP', '投球局數') }}{{ macros.th('BF', '面對打者總數') }}
+                            {{ macros.th('H', '被安打數') }}{{ macros.th('ER', '被自責分數') }}{{ macros.th('HR', '被全壘打數') }}{{ macros.th('BB', '四壞球數') }}{{ macros.th('HBP', '觸身球數') }}{{ macros.th('SO', '三振數') }}{{ macros.th('ERA', '防禦率：每9局平均自責分') }}
                         {% else %}
-                            <th data-tooltip="打席數">PA</th><th data-tooltip="打數（不含四壞、犧牲等）">AB</th><th data-tooltip="得分數">R</th><th data-tooltip="打點數">RBI</th><th data-tooltip="安打數">H</th><th data-tooltip="二壘安打數">2B</th><th data-tooltip="三壘安打數">3B</th>
-                            <th data-tooltip="全壘打數">HR</th><th data-tooltip="盜壘成功數">SB</th><th data-tooltip="盜壘失敗數">CS</th><th data-tooltip="四壞球數">BB</th><th data-tooltip="三振數">SO</th>
-                            <th data-tooltip="打擊率">AVG</th><th data-tooltip="上壘率">OBP</th><th data-tooltip="長打率">SLG</th><th data-tooltip="OBP + SLG">OPS</th>
+                            {{ macros.th('PA', '打席數') }}{{ macros.th('AB', '打數（不含四壞、犧牲等）') }}{{ macros.th('R', '得分數') }}{{ macros.th('RBI', '打點數') }}{{ macros.th('H', '安打數') }}{{ macros.th('2B', '二壘安打數') }}{{ macros.th('3B', '三壘安打數') }}
+                            {{ macros.th('HR', '全壘打數') }}{{ macros.th('SB', '盜壘成功數') }}{{ macros.th('CS', '盜壘失敗數') }}{{ macros.th('BB', '四壞球數') }}{{ macros.th('SO', '三振數') }}
+                            {{ macros.th('AVG', '打擊率') }}{{ macros.th('OBP', '上壘率') }}{{ macros.th('SLG', '長打率') }}{{ macros.th('OPS', 'OBP + SLG') }}
                         {% endif %}
                     </tr>
                 </thead>
@@ -31,7 +33,7 @@
                             {% if grp.multi %}<span class="toggle-arrow" id="arrow-basic-{{ yr }}"></span>{% endif %}
                         </td>
                         <td><strong>{{ yr }}</strong></td>
-                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}<span class="level-tag">{{ grp.rows[0].sport_level | level_display(grp.rows[0].year) }}</span>{% endif %}</td>
+                        <td>{% if grp.multi %}<span class="multi-tag">合計</span>{% else %}{{ tags.level_tag(grp.rows[0].sport_level, grp.rows[0].year) }}{% endif %}</td>
                         <td>{% if not grp.multi %}{{ grp.rows[0].team_name }}{% else %}—{% endif %}</td>
                         <td class="num">{{ sm.gp|num_dash }}</td>
                         {% if is_pitcher %}
@@ -73,7 +75,7 @@
                     <tr class="year-detail-row" data-tbl="basic" data-grp="{{ yr }}" style="display:none;">
                         <td></td>
                         <td></td>
-                        <td><span class="level-tag">{{ stat.sport_level | level_display(stat.year) }}</span></td>
+                        <td>{{ tags.level_tag(stat.sport_level, stat.year) }}</td>
                         <td>{{ stat.team_name }}</td>
                         <td class="num">{{ stat.gp|num_dash }}</td>
                         {% if is_pitcher %}

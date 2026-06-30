@@ -75,22 +75,25 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ static_url('js/stats-table.js') }}"></script>
-<script src="{{ static_url('js/stats-tooltip.js') }}"></script>
-<script src="{{ static_url('js/pitch-log.js') }}"></script>
-<script src="{{ static_url('js/gamelogs.js') }}"></script>
-<script src="{{ static_url('js/mobile/m-pitch-log.js') }}"></script>
-<script src="{{ static_url('js/mobile/m-gamelogs.js') }}"></script>
-<script src="{{ static_url('js/arsenal-filters.js') }}"></script>
-<script src="{{ static_url('js/mobile/m-advanced.js') }}"></script>
-<script src="{{ static_url('js/pitcher-charts.js') }}"></script>
-<script src="{{ static_url('js/pitch-plinko.js') }}"></script>
+<script defer src="{{ static_url('js/stats-table.js') }}"></script>
+<script defer src="{{ static_url('js/stats-tooltip.js') }}"></script>
+<script defer src="{{ static_url('js/pitch-log.js') }}"></script>
+<script defer src="{{ static_url('js/gamelogs.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-tabs.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-accordion.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-bio.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-pitch-log.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-gamelogs.js') }}"></script>
+<script defer src="{{ static_url('js/arsenal-filters.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-advanced.js') }}"></script>
+<script defer src="{{ static_url('js/pitcher-charts.js') }}"></script>
+<script defer src="{{ static_url('js/pitch-plinko.js') }}"></script>
 {% if chart_data %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script type="application/json" id="chart-labels">{{ chart_labels|tojson_safe }}</script>
 <script type="application/json" id="chart-data">{{ chart_data|tojson_safe }}</script>
-<script src="{{ static_url('js/charts.js') }}"></script>
+<script defer src="{{ static_url('js/charts.js') }}"></script>
 {% endif %}
-<script src="{{ static_url('js/mobile/m-charts.js') }}"></script>
-<script src="{{ static_url('js/tabs.js') }}"></script>
+<script defer src="{{ static_url('js/mobile/m-charts.js') }}"></script>
+<script defer src="{{ static_url('js/tabs.js') }}"></script>
 {% endblock %}

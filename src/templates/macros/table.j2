@@ -1,0 +1,9 @@
+{# 共用 <th> 欄位標頭 macro，集中欄位說明（tooltip）的標記方式 #}
+
+{% macro th(label, tooltip=None) -%}
+<th{% if tooltip %} data-tooltip="{{ tooltip }}"{% endif %}>{{ label }}</th>
+{%- endmacro %}
+
+{% macro th_html(tooltip=None) -%}
+<th{% if tooltip %} data-tooltip="{{ tooltip }}"{% endif %}>{{ caller() }}</th>
+{%- endmacro %}
